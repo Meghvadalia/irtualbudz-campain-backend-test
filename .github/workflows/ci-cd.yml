@@ -37,5 +37,5 @@ jobs:
           target: /var/www/html/monarc-backend
       - name: Reload server
         run: |
-          ssh nestjs@192.168.1.1 'pm2 reload monarc-backend'
+          ssh nestjs@66.94.96.216 'pm2 reload monarc-backend'
 
