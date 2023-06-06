@@ -17,7 +17,15 @@ jobs:
         uses: actions/setup-node@v2
         with:
           node-version: 16
+      - name: Install dependencies
+        run: npm install
 
+      - name: Build project
+        run: npm run build
+
+      - name: Run tests
+        run: npm run test
+        
       - name: Deploy to server
         uses: appleboy/scp-action@master
         with:
@@ -35,5 +43,5 @@ jobs:
           username: ${{ secrets.USERNAME }}
           port: ${{ secrets.PORT }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
-          script: npm install && pm2 reload monarc-backend
+          script: pm2 reload monarc-backend
 
