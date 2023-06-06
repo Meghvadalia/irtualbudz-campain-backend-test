@@ -29,7 +29,6 @@ jobs:
 
       - name: Deploy to server
         run: |
-          sudo apt-get install -y sshpass
           sshpass -p '6Xl70wj3WXEJElzz' scp -r dist/ nestjs@66.94.96.216:/var/www/html/monarc-backend
 
       - name: Reload server
