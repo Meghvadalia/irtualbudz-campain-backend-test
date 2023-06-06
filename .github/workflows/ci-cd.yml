@@ -1,0 +1,41 @@
+name: CI/CD
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v2
+        with:
+          node-version: 14
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Build project
+        run: npm run build
+
+      - name: Run tests
+        run: npm run test
+
+      - name: Deploy to server
+        uses: appleboy/scp-action@master
+        with:
+          host: 66.94.96.216
+          username: nestjs
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          source: dist/
+          target: /var/www/html/monarc-backend
+      - name: Reload server
+        run: |
+          ssh nestjs@192.168.1.1 'pm2 reload monarc-backend'
+
