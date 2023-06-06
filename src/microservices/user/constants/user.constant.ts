@@ -1,0 +1,10 @@
+export const enum USER_SIGNIN_TYPE {
+	EMAIL_PASSWORD = 'EMAIL_PASSWORD',
+}
+
+export const enum USER_TYPE {
+	SUPERADMIN = 'SUPERADMIN',
+	ADMIN = 'ADMIN',
+	VENDOR = 'VENDOR',
+	CUSTOMER = 'CUSTOMER',
+}
