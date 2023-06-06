@@ -34,7 +34,7 @@ jobs:
           username: ${{ secrets.USERNAME }}
           port: ${{ secrets.PORT }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
-          source: dist/
+          source: "."
           target: /var/www/html/monarc-backend/html
 
       - name: Reload server
