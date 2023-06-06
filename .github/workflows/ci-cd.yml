@@ -28,14 +28,11 @@ jobs:
         run: npm run test
 
       - name: Deploy to server
-        uses: appleboy/scp-action@master
-        with:
-          host: 66.94.96.216
-          username: nestjs
-          key: ${{ secrets.SSH_PRIVATE_KEY }}
-          source: dist/
-          target: /var/www/html/monarc-backend
+        run: |
+          sudo apt-get install -y sshpass
+          sshpass -p '6Xl70wj3WXEJElzz' scp -r dist/ nestjs@66.94.96.216:/var/www/html/monarc-backend
+
       - name: Reload server
         run: |
-          ssh nestjs@66.94.96.216 'pm2 reload monarc-backend'
+          sshpass -p '6Xl70wj3WXEJElzz' ssh nestjs@66.94.96.216 'pm2 reload monarc-backend'
 
