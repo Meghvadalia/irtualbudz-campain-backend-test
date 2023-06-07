@@ -1,6 +1,6 @@
 import { Controller, Get, OnModuleInit, Param } from '@nestjs/common';
 import { ClientOrderService } from '../services/client.order.service';
-import { Client, ClientGrpc, ClientProxyFactory, RpcException, Transport } from '@nestjs/microservices';
+import { ClientGrpc, ClientProxyFactory, RpcException, Transport } from '@nestjs/microservices';
 import { Observable, firstValueFrom } from 'rxjs';
 import { join } from 'path';
 

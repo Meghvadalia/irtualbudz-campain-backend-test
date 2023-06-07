@@ -2,9 +2,9 @@ import { Module } from '@nestjs/common';
 import { KafkaModule } from './modules/kafka';
 import { MicroserviceClientModule } from './modules/microservice-client';
 import { OrderModule } from './microservices/order';
-import { DatabaseProviderModule } from './providers/database/mongodb.module';
 import { ConfigModule } from '@nestjs/config';
 import { UsersModule } from './microservices/user/users.module';
+import { ScheduleModule } from '@nestjs/schedule';
 // import { InventoryModule } from './microservices/inventory';
 // import { ProductModule } from './microservices/product';
 
@@ -14,6 +14,7 @@ import { UsersModule } from './microservices/user/users.module';
 			envFilePath: `${process.cwd()}/.env.${process.env.NODE_ENV}`,
 			isGlobal: true,
 		}),
+		ScheduleModule.forRoot(),
 
 		// Kafka module
 		KafkaModule,
