@@ -5,6 +5,7 @@ import { OrderModule } from './microservices/order';
 import { ConfigModule } from '@nestjs/config';
 import { UsersModule } from './microservices/user/users.module';
 import { ScheduleModule } from '@nestjs/schedule';
+import { CustomerModule } from './microservices/customers/customer.module';
 // import { InventoryModule } from './microservices/inventory';
 // import { ProductModule } from './microservices/product';
 
@@ -21,6 +22,7 @@ import { ScheduleModule } from '@nestjs/schedule';
 
 		// Microservice modules
 		OrderModule,
+		CustomerModule,
 		// InventoryModule,
 		// ProductModule,
 		UsersModule,

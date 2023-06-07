@@ -1,4 +1,4 @@
-import { Controller } from '@nestjs/common';
+import { Controller, Get } from '@nestjs/common';
 import { GrpcMethod } from '@nestjs/microservices';
 import axios from 'axios';
 import { Order } from '../entities/order.entity';
@@ -20,9 +20,10 @@ export class OrderController {
 		}
 	}
 
-	@Cron('0 0 * * * *', {
+	@Cron('0 0 0 * * *', {
 		timeZone: 'Asia/Kolkata',
 	})
+	@Get('seed')
 	async seedOrders(): Promise<void> {
 		try {
 			const options = {
