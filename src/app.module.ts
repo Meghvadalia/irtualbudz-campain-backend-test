@@ -5,7 +5,7 @@ import { OrderModule } from './microservices/order';
 import { DatabaseProviderModule } from './providers/database/mongodb.module';
 import { ConfigModule } from '@nestjs/config';
 import { UsersModule } from './microservices/user/users.module';
-// import { InventoryModule } from './microservices/inventory';
+import { InventoryModule } from './microservices/inventory';
 // import { ProductModule } from './microservices/product';
 
 @Module({
@@ -20,7 +20,7 @@ import { UsersModule } from './microservices/user/users.module';
 
 		// Microservice modules
 		OrderModule,
-		// InventoryModule,
+		InventoryModule,
 		// ProductModule,
 		UsersModule,
 

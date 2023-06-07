@@ -1,0 +1,23 @@
+syntax = "proto3";
+
+package Inventory;
+service InventoryService {
+  rpc CreateInventory(CreateInventoryRequest) returns (CreateInventoryResponse) {}
+  rpc GetInventory(GetInventoryRequest) returns (GetInventoryResponse) {}
+}
+
+message CreateInventoryRequest {
+  int32 name=1;
+}
+
+message CreateInventoryResponse {
+  int32 surname=1;
+}
+
+message GetInventoryRequest {
+  int32 name=1;
+}
+
+message GetInventoryResponse {
+  int32 surname=1;
+}
