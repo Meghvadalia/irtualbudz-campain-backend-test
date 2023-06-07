@@ -1,14 +1,10 @@
-import { Controller } from '@nestjs/common';
+import { Controller, Get } from '@nestjs/common';
 import { GrpcMethod } from '@nestjs/microservices';
-import axios from 'axios';
-import { Order } from '../entities/order.entity';
-import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
-import { Cron } from '@nestjs/schedule';
+import { OrderService } from '../services/order.service';
 
 @Controller('orders')
 export class OrderController {
-	constructor(@InjectModel(Order.name) private orderModel: Model<Order>) {}
+	constructor(private readonly orderService: OrderService) {}
 
 	@GrpcMethod('OrderService', 'getOrder')
 	getOrder(data: any): any {
@@ -20,30 +16,10 @@ export class OrderController {
 		}
 	}
 
-	@Cron('0 0 * * * *', {
-		timeZone: 'Asia/Kolkata',
-	})
+	@Get('seed')
 	async seedOrders(): Promise<void> {
 		try {
-			const options = {
-				method: 'get',
-				url: `${process.env.FLOWHUB_URL}/v1/orders/findByLocationId/Ao4QyaEGBMqRoTpg5`,
-				headers: {
-					key: process.env.FLOWHUB_KEY,
-					ClientId: process.env.FLOWHUB_CLIENT_ID,
-					Accept: 'application/json',
-				},
-			};
-			try {
-				const { data } = await axios.request(options);
-				const orderDataArray = data.orders;
-
-				for (const orderData of orderDataArray) {
-					await this.orderModel.create({ ...orderData });
-				}
-			} catch (error) {
-				console.error(error);
-			}
+			await this.orderService.scheduleCronJob();
 		} catch (error) {
 			console.log('GRPC METHOD', error);
 		}
