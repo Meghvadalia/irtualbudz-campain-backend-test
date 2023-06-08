@@ -5,10 +5,14 @@ import { Inventory } from '../entities/inventory.entity';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { Cron } from '@nestjs/schedule';
+import { Product } from '../entities/product.entity';
 
 @Controller('inventory')
 export class InventoryController {
-	constructor(@InjectModel(Inventory.name) private inventoryModel: Model<Inventory>) {}
+	constructor(
+		@InjectModel(Inventory.name) private inventoryModel: Model<Inventory>,
+		@InjectModel(Product.name) private productModel: Model<Product>
+	) {}
 
 	@GrpcMethod('InventoryService', 'getInventory')
 	getInventory(data: any): any {
@@ -23,7 +27,7 @@ export class InventoryController {
 	@Cron('0 0 0 * * *', {
 		timeZone: 'Asia/Kolkata',
 	})
-	@Get("seed")
+	@Get('seed')
 	async seedInventory(): Promise<void> {
 		try {
 			const options = {
@@ -38,9 +42,47 @@ export class InventoryController {
 			try {
 				const { data } = await axios.request(options);
 				const inventoryDataArray = data.data;
-				// console.log(JSON.stringify(data));
 				for (let index = 0; index < inventoryDataArray.length; index++) {
-					await this.inventoryModel.create({ ...inventoryDataArray[index] })
+					const inventoryData = inventoryDataArray[index];
+
+					const productData = {
+						clientId: inventoryData.clientId,
+						productName: inventoryData.productName,
+						productDescription: inventoryData.productDescription,
+						priceInMinorUnits: inventoryData.priceInMinorUnits,
+						sku: inventoryData.sku,
+						nutrients: inventoryData.nutrients,
+						productPictureURL: inventoryData.productPictureURL,
+						purchaseCategory: inventoryData.purchaseCategory,
+						category: inventoryData.category,
+						type: inventoryData.type,
+						brand: inventoryData.brand,
+						isMixAndMatch: inventoryData.isMixAndMatch,
+						isStackable: inventoryData.isStackable,
+						productUnitOfMeasure: inventoryData.productUnitOfMeasure,
+						productUnitOfMeasureToGramsMultiplier: inventoryData.productUnitOfMeasureToGramsMultiplier,
+						productWeight: inventoryData.productWeight,
+						weightTierInformation: inventoryData.weightTierInformation,
+						cannabinoidInformation: inventoryData.cannabinoidInformation,
+						speciesName: inventoryData.speciesName,
+					};
+
+					const product = await this.productModel.create(productData);
+
+					const inventoryDataToSave = {
+						productId: product._id,
+						clientId: inventoryData.clientId,
+						posProductId: inventoryData.productId,
+						quantity: inventoryData.quantity,
+						inventoryUnitOfMeasure: inventoryData.inventoryUnitOfMeasure,
+						inventoryUnitOfMeasureToGramsMultiplier: inventoryData.inventoryUnitOfMeasureToGramsMultiplier,
+						locationId: inventoryData.locationId,
+						locationName: inventoryData.locationName,
+						currencyCode: inventoryData.currencyCode,
+						expirationDate: inventoryData.expirationDate,
+						productUpdatedAt: inventoryData.productUpdatedAt,
+					};
+					await this.inventoryModel.create(inventoryDataToSave);
 				}
 			} catch (error) {
 				console.error(error);
