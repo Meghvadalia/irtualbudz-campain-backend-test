@@ -9,7 +9,7 @@ export class Product extends Model<IProduct> {
 	@Prop({ required: true })
 	clientId: number;
 
-	@Prop({ required: true, type: [{ type: Types.ObjectId, ref: DATABASE_COLLECTION.COMPANIES }] })
+	@Prop({ required: true, type: Types.ObjectId, ref: DATABASE_COLLECTION.COMPANIES })
 	companyId: string;
 
 	@Prop({ trim: true })

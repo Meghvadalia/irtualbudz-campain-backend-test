@@ -8,10 +8,10 @@ export class Inventory extends Model<IInventory> {
 	@Prop({ required: true })
 	posProductId: string;
 
-	@Prop({ required: true, type: [{ type: Types.ObjectId, ref: DATABASE_COLLECTION.COMPANIES }] })
+	@Prop({ required: true, type: Types.ObjectId, ref: DATABASE_COLLECTION.COMPANIES })
 	companyId: string;
 
-	@Prop({ required: true, type: [{ type: Types.ObjectId, ref: DATABASE_COLLECTION.POS }] })
+	@Prop({ required: true, type: Types.ObjectId, ref: DATABASE_COLLECTION.POS })
 	posId: string;
 
 	@Prop({ type: [{ type: Types.ObjectId, ref: DATABASE_COLLECTION.PRODUCT }] })

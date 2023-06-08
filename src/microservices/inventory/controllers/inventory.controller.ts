@@ -11,6 +11,8 @@ import { Company } from 'src/model/company/entities/company.entity';
 import { IPOS } from 'src/model/pos/interface/pos.interface';
 import { POS } from 'src/model/pos/entities/pos.entity';
 import { Store } from 'src/model/store/entities/store.entity';
+import { IProduct } from '../interfaces/product.interface';
+import { IInventory } from '../interfaces/inventory.interface';
 
 @Controller('inventory')
 export class InventoryController {
@@ -65,11 +67,10 @@ export class InventoryController {
 				try {
 					const { data } = await axios.request(options);
 					const inventoryDataArray = data.data;
-
-					const productDataArray = inventoryDataArray.map((inventoryData) => ({
+					const productDataArray = inventoryDataArray.map((inventoryData: IProduct) => ({
 						clientId: inventoryData.clientId,
 						productName: inventoryData.productName,
-						companyId: monarcCompanyData._id.toString(),
+						companyId: monarcCompanyData._id,
 						productDescription: inventoryData.productDescription,
 						priceInMinorUnits: inventoryData.priceInMinorUnits,
 						sku: inventoryData.sku,
@@ -92,7 +93,7 @@ export class InventoryController {
 					const insertedProducts = await this.productModel.insertMany(productDataArray);
 					const productIds = insertedProducts.map((product) => product._id);
 
-					const inventoryDataToSaveArray = inventoryDataArray.map((inventoryData, index) => ({
+					const inventoryDataToSaveArray = inventoryDataArray.map((inventoryData: IInventory, index) => ({
 						productId: productIds[index],
 						companyId: monarcCompanyData._id,
 						clientId: inventoryData.clientId,
