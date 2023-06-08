@@ -20,20 +20,20 @@ export interface IOrder {
 
 export interface ItemsInCart {
 	_id: string;
-	sku: string;
-	category: Category;
-	title1: string;
-	title2: string;
-	productName: string;
-	strainName: string;
-	unitOfWeight: string;
-	quantity: number;
-	unitPrice: number;
-	totalPrice: number;
-	unitCost: number;
-	totalCost: number;
-	itemDiscounts: ItemDiscounts;
-	tax: Tax;
+	// sku: string;
+	// category: Category;
+	// title1: string;
+	// title2: string;
+	// productName: string;
+	// strainName: string;
+	// unitOfWeight: string;
+	// quantity: number;
+	// unitPrice: number;
+	// totalPrice: number;
+	// unitCost: number;
+	// totalCost: number;
+	// itemDiscounts: ItemDiscounts;
+	// tax: Tax;
 }
 
 export interface Tax {
@@ -131,3 +131,21 @@ export enum Category {
 // 	Each = 'Each',
 // 	Gram = 'Gram',
 // }
+
+export interface ItemsCart {
+	_id: string;
+	sku: string;
+	category: Category;
+	title1: string;
+	title2: string;
+	productName: string;
+	strainName: string;
+	unitOfWeight: string;
+	quantity: number;
+	unitPrice: number;
+	totalPrice: number;
+	unitCost: number;
+	totalCost: number;
+	itemDiscounts: ItemDiscounts;
+	tax: Tax;
+}
