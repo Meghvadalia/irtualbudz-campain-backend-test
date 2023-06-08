@@ -31,19 +31,22 @@ export class OrderService {
 
 			const { data } = await axios.request(options);
 			let temp = data.orders.map((x)=> ({staffName:x.budtender,locationId:x.locationId}))
-			console.log("Sgr",data.orders[0])
 			// // remove duplicate object
 			let staff = temp.filter((v,i,a)=>a.findIndex(v2=>['staffName','locationId'].every(k=>v2[k] ===v[k]))===i)
 			this.staffModal.insertMany(staff);
 			let itemAndStaffFun = []
+			/* create function array for promise all 
+			 * for loop pass object of order
+			 */
 			for (let index = 0; index < data.orders.length; index++) {
 				let element = data.orders[index];
-				// console.log(JSON.stringify(element))
 				itemAndStaffFun.push(this.addStaffData(element))
 			}
 			Promise.all(itemAndStaffFun)
 			.then((satfCartData)=>{
-				console.log("res :",JSON.stringify(satfCartData))
+				/* remove budtender and add staffId and items Card Id
+				 * 
+				 */
 				for (let i = 0; i < data.orders.length; i++) {
 					data.orders[i].staffId = satfCartData[i].staff
 					data.orders[i].itemsInCart = satfCartData[i].cart
@@ -53,19 +56,6 @@ export class OrderService {
 			}).catch((err)=>{
 				console.log("err :",err)
 			})
-
-			// if (data.orders.length > 0) {
-			// 	await this.orderModel.insertMany(data.orders);
-			// 	console.log(`Seeded ${data.orders.length} orders.`);
-			// 	let cartData = data.orders.filter((x)=>x.itemsInCart)
-			// 	console.log(JSON.stringify(cartData))
-
-
-			// 	await this.cartModal.insertMany(cartData);
-			// 	console.log(`Seeded ${cartData.length} cart.`);
-			// } else {
-			// 	console.log('No orders to seed.');
-			// }
 		} catch (error) {
 			console.error('Error while seeding orders:', error);
 		}
@@ -92,27 +82,21 @@ export class OrderService {
 			console.error('Error while scheduling cron job:', error);
 		}
 	}
-
+	/* addStaffData function accept object of order
+	 * and return array of staff and cart ids
+	 */
 	addStaffData(element:any) {
 		return new Promise((resolve,reject)=>{
-			// this.orderModel.findOne(staffData)
-			// .then((res)=>{
-			// 	resolve(res)
-			// })
-			// .catch((err)=>{
-			// 	console.log("error :",err)
-			// 	reject(err)
-			// })
 			return this.staffModal.findOne({staffName:element.budtender,locationId:element.locationId }).then((res)=>{
 				if(res == null){
-					console.log("new")
+					// // cerate new staff and insert items
 					return this.staffModal.create({staffName:element.budtender,locationId:element.locationId }).then((staffRes)=>{
 						return this.cartModal.insertMany(element.itemsInCart).then((itemRes)=>{
 							resolve({staff:staffRes,cart:itemRes})
 						})
 					})
 				}else{
-					console.log("old",res._id)
+					// // get staff and insert items
 					return this.cartModal.insertMany(element.itemsInCart).then((itemRes)=>{
 						resolve({staff:res._id,cart:itemRes.map(x=>x._id)})
 					})
