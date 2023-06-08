@@ -7,10 +7,8 @@ import { StoreService } from '../services/store.service';
 
 @Controller('store')
 export class StoreController {
-	constructor(
-		@InjectModel(Store.name) private storeModel: Model<IStore>,
-		private readonly clientStoreService: StoreService
-	) {}
+	constructor(@InjectModel(Store.name) private storeModel: Model<IStore>, private readonly clientStoreService: StoreService) {}
+
 	@Get('seed-stores')
 	async seedStoreList() {
 		try {
