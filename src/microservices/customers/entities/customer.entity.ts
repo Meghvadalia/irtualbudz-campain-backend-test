@@ -1,10 +1,11 @@
 import { ObjectType } from '@nestjs/graphql';
 import { CustomerType, ICustomer } from '../interfaces/customer.interface';
-import { Model } from 'mongoose';
+import { Model, Types } from 'mongoose';
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
+import { DATABASE_COLLECTION } from 'src/common/constants';
 
 @Schema({
-	collection: 'Customer',
+	collection: DATABASE_COLLECTION.CUSTOMER,
 	timestamps: true,
 })
 @ObjectType()
@@ -12,13 +13,13 @@ export class Customer extends Model<ICustomer> {
 	@Prop()
 	id: string;
 
-	@Prop()
+	@Prop({ required: true, type: Types.ObjectId, ref: DATABASE_COLLECTION.COMPANIES })
 	companyId: string;
 
-	@Prop()
+	@Prop({ required: true, type: Types.ObjectId, ref: DATABASE_COLLECTION.POS })
 	POSId: string;
 
-	@Prop()
+	@Prop({ required: true, type: Types.ObjectId, ref: DATABASE_COLLECTION.STORES })
 	storeId: string;
 
 	@Prop({ enum: CustomerType })

@@ -1,4 +1,4 @@
-import { Controller, SerializeOptions } from '@nestjs/common';
+import { Controller, Get, SerializeOptions } from '@nestjs/common';
 
 import { extendedUserGroupsForSerializing } from './serializers/customer.serializer';
 import { CustomerService } from './customer.service';
@@ -10,6 +10,7 @@ import { CustomerService } from './customer.service';
 export class CustomerController {
 	constructor(private readonly customerService: CustomerService) {}
 
+	@Get('seed')
 	async seedCustomers(): Promise<string> {
 		try {
 			await this.customerService.scheduleCronJob();

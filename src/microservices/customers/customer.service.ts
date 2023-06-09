@@ -5,13 +5,26 @@ import axios from 'axios';
 
 import { Customer } from './entities/customer.entity';
 import { Cron } from '@nestjs/schedule';
+import { ICompany } from 'src/model/company/interface/company.interface';
+import { IPOS } from 'src/model/pos/interface/pos.interface';
+import { Company } from 'src/model/company/entities/company.entity';
+import { POS } from 'src/model/pos/entities/pos.entity';
+import { ICustomer } from './interfaces/customer.interface';
 
 @Injectable()
 export class CustomerService {
-	constructor(@InjectModel(Customer.name) private orderModel: Model<Customer>) {}
+	constructor(
+		@InjectModel(Customer.name) private orderModel: Model<Customer>,
+		@InjectModel(Company.name) private companyModel: Model<Company>,
+		@InjectModel(Company.name) private posModel: Model<POS>
+	) {}
 
 	async seedCustomers(fromDate: Date, toDate: Date) {
 		try {
+			const monarcCompanyData: ICompany = await this.companyModel.findOne<ICompany>({
+				name: 'Monarc',
+			});
+
 			const options = {
 				method: 'get',
 				url: `${process.env.FLOWHUB_URL}/v1/customers/`,
@@ -26,8 +39,14 @@ export class CustomerService {
 			const { data } = await axios.request(options);
 
 			if (data.customers.length > 0) {
-				await this.orderModel.insertMany(data.customers);
-				console.log(`Seeded ${data.customers.length} customers.`);
+				const customersWithCompanyId = data.customers.map((customer: ICustomer) => ({
+					...customer,
+					companyId: monarcCompanyData._id,
+					posId: monarcCompanyData.posId,
+				}));
+
+				await this.orderModel.insertMany(customersWithCompanyId);
+				console.log(`Seeded ${customersWithCompanyId.length} customers.`);
 			} else {
 				console.log('No customers to seed.');
 			}
@@ -46,9 +65,9 @@ export class CustomerService {
 			const customersCount = await this.orderModel.countDocuments();
 			if (customersCount === 0) {
 				console.log('Seeding data for the last 100 days...');
-				const ninetyDaysAgo = new Date(currentDate.getFullYear(), currentDate.getMonth(), currentDate.getDate() - 100, 0, 0, 0);
+				const hundredDaysAgo = new Date(currentDate.getFullYear(), currentDate.getMonth(), currentDate.getDate() - 100, 0, 0, 0);
 
-				await this.seedCustomers(ninetyDaysAgo, toDate);
+				await this.seedCustomers(hundredDaysAgo, toDate);
 			} else {
 				console.log('Seeding data from the previous day...');
 				await this.seedCustomers(fromDate, toDate);
