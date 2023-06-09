@@ -13,7 +13,7 @@ import { IPOS } from 'src/model/pos/interface/pos.interface';
 import { Company } from 'src/model/company/entities/company.entity';
 import { POS } from 'src/model/pos/entities/pos.entity';
 import { Store } from 'src/model/store/entities/store.entity';
-
+import mongoose from 'mongoose';
 @Injectable()
 export class OrderService {
 	constructor(
@@ -54,7 +54,6 @@ export class OrderService {
 			}
 			Promise.all(staffFun)
 				.then((satfCartData) => {
-					console.log("satfCartData", JSON.stringify(satfCartData))
 					for (let index = 0; index < data.orders.length; index++) {
 						let element = data.orders[index];
 						ItemFunction.push(this.addItemCart(element.itemsInCart, element.locationId));
@@ -65,7 +64,7 @@ export class OrderService {
 						for (let k = 0; k < data.orders.length; k++) {
 							let element = data.orders[k];
 							element.itemsInCart = cart[k];
-							element.staffId = satfCartData.filter((x)=>element.budtender == x.staffName)[0]._id
+							element.staffId = new mongoose.Types.ObjectId(satfCartData.filter((x) => element.budtender == x.staffName)[0]._id)
 							delete element.budtender
 							orderArrayFun.push(this.addOrder(element))
 						}
