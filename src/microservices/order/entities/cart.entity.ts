@@ -5,6 +5,10 @@ import { AppliesTo, ItemDiscounts, ItemsCart, Tax } from '../interfaces/cart.int
 @Schema({ collection: 'Cart', timestamps: true })
 export class Cart extends Model<ItemsCart> {
 	@Prop()
+	posCartId: String;
+	@Prop()
+	storeId: String;
+	@Prop()
 	sku: String;
 	@Prop()
 	category: String;

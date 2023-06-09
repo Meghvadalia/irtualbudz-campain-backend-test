@@ -7,7 +7,7 @@ export class Staff extends Model<IStaff> {
 	@Prop()
 	staffName: String;
 	@Prop()
-	locationId: String;
+	storeId: String;
 }
 
 export const StaffSchema = SchemaFactory.createForClass(Staff);

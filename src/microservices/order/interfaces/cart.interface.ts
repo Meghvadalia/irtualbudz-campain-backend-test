@@ -1,5 +1,7 @@
 export interface ItemsCart {
 	_id: string;
+	posCartId:string;
+	locationId:string;
 	sku: string;
 	category: Category;
 	title1: string;

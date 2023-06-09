@@ -5,7 +5,7 @@ import { AppliesTo, Category, CustomerType, IOrder, ItemsInCart, Payments, Total
 @Schema({ collection: 'Order', timestamps: true })
 export class Order extends Model<IOrder> {
 	@Prop({ required: true })
-	_id: string;
+	posOrderId: string;
 
 	@Prop({ required: true })
 	clientId: string;

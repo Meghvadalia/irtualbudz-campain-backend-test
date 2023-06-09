@@ -1,5 +1,5 @@
 export interface IOrder {
-	// id: string;
+	posOrderId: string;
 	clientId: string;
 	customerId: string;
 	currentPoints: number;
