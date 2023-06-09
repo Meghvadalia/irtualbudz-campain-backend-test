@@ -4,6 +4,7 @@ import { MicroserviceOptions, Transport } from '@nestjs/microservices';
 import { OrderModule } from './microservices/order';
 import { join } from 'path';
 import { UsersModule } from './microservices/user/users.module';
+import { InventoryModule } from './microservices/inventory';
 import { CustomerModule } from './microservices/customers/customer.module';
 
 async function bootstrap() {
@@ -44,6 +45,18 @@ async function bootstrap() {
 	});
 	await customerApp.listen().then(() => {
 		console.log('Customer microservice is running');
+	});
+
+	const InventoryApp = await NestFactory.createMicroservice<MicroserviceOptions>(InventoryModule, {
+		transport: Transport.GRPC,
+		options: {
+			package: 'Inventory',
+			protoPath: join(__dirname, './proto/inventory.proto'),
+			url: 'localhost:8005',
+		},
+	});
+	await InventoryApp.listen().then(() => {
+		console.log('Inventory microservice is running');
 	});
 }
 bootstrap();
