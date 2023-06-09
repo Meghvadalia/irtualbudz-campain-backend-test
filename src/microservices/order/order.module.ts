@@ -6,6 +6,9 @@ import { Order, OrderSchema } from './entities/order.entity';
 import { DatabaseProviderModule } from 'src/providers/database/mongodb.module';
 import { Cart, CartSchema } from './entities/cart.entity';
 import { Staff, StaffSchema } from './entities/staff.entity';
+import { Company, CompanySchema } from 'src/model/company/entities/company.entity';
+import { POS, POSSchema } from 'src/model/pos/entities/pos.entity';
+import { Store, StoreSchema } from 'src/model/store/entities/store.entity';
 
 
 @Module({
@@ -13,7 +16,10 @@ import { Staff, StaffSchema } from './entities/staff.entity';
 		DatabaseProviderModule, 
 		MongooseModule.forFeature([{ name: Order.name, schema: OrderSchema }]),
 		MongooseModule.forFeature([{ name: Cart.name, schema: CartSchema }]),
-		MongooseModule.forFeature([{name:Staff.name,schema:StaffSchema}])
+		MongooseModule.forFeature([{name:Staff.name,schema:StaffSchema}]),
+		MongooseModule.forFeature([{ name: Company.name, schema: CompanySchema }]),
+		MongooseModule.forFeature([{ name: POS.name, schema: POSSchema }]),
+		MongooseModule.forFeature([{ name: Store.name, schema: StoreSchema }]),
 	],
 	controllers: [OrderController],
 	providers: [OrderService],

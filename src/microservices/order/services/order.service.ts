@@ -8,6 +8,11 @@ import { Cron } from '@nestjs/schedule';
 import { Cart } from '../entities/cart.entity';
 import { Staff } from '../entities/staff.entity';
 import { IStaff } from '../interfaces/staff.interface';
+import { ICompany } from 'src/model/company/interface/company.interface';
+import { IPOS } from 'src/model/pos/interface/pos.interface';
+import { Company } from 'src/model/company/entities/company.entity';
+import { POS } from 'src/model/pos/entities/pos.entity';
+import { Store } from 'src/model/store/entities/store.entity';
 
 @Injectable()
 export class OrderService {
@@ -15,6 +20,9 @@ export class OrderService {
 		@InjectModel(Order.name) private orderModel: Model<Order>,
 		@InjectModel(Cart.name) private cartModal: Model<Cart>,
 		@InjectModel(Staff.name) private staffModal: Model<Staff>,
+		@InjectModel(Company.name) private companyModel: Model<Company>,
+		@InjectModel(POS.name) private posModel: Model<POS>,
+		@InjectModel(Store.name) private storeModel: Model<Store>
 	) { }
 
 	async seedOrders(fromDate: Date, toDate: Date, importId: string) {
@@ -80,19 +88,20 @@ export class OrderService {
 			const fromDate = new Date(currentDate.getFullYear(), currentDate.getMonth(), currentDate.getDate() - 1, 0, 0, 0);
 			const toDate = new Date(currentDate.getFullYear(), currentDate.getMonth(), currentDate.getDate(), 0, 0, 0);
 
-			const options = {
-				method: 'get',
-				url: `${process.env.FLOWHUB_URL}/v1/clientsLocations`,
-				params: { created_after: fromDate, created_before: toDate },
-				headers: {
-					key: process.env.FLOWHUB_KEY,
-					ClientId: process.env.FLOWHUB_CLIENT_ID,
-					Accept: 'application/json',
-				},
-			};
+			const monarcCompanyData: ICompany = await this.companyModel.findOne<ICompany>({
+				name: 'Monarc',
+			});
 
-			const { data } = await axios.request(options);
-			console.log("Total locations ", data.data.length);
+			const posData: IPOS = await this.posModel.findOne<IPOS>({
+				_id: monarcCompanyData.posId,
+			});
+
+			const locations = await this.storeModel.find({
+				companyId: monarcCompanyData._id,
+			});
+
+			const locationIds = locations.map(({ location }) => location);
+			// console.log("Total locations ", data.data.length);
 			// Counter to keep track of elapsed time
 			let counter = 0;
 
@@ -100,8 +109,8 @@ export class OrderService {
 			const intervalDuration = 2000; // 1000 milliseconds = 1 second
 
 			// Maximum time in seconds (2000 seconds)
-			const maxTime = data.data.length;
-
+			const maxTime = locationIds.length;
+			// console.log(locationIds)
 			const intervalFunction = async () => {
 				// Check if the elapsed time exceeds the maximum time
 				if (counter >= maxTime) {
@@ -112,15 +121,15 @@ export class OrderService {
 				}
 
 				// Code to execute in each interval
-				console.log('Interval:', data.data[counter].locationId);
+				console.log('Location ID:', locationIds[counter].locationId);
 				const customersCount = await this.orderModel.countDocuments();
 				if (customersCount === 0) {
 					console.log('Seeding data for the last 100 days...');
 					const hundredDaysAgo = new Date(currentDate.getFullYear(), currentDate.getMonth(), currentDate.getDate() - 100, 0, 0, 0);
-					this.seedOrders(hundredDaysAgo, toDate, data.data[counter].importId);
+					this.seedOrders(hundredDaysAgo, toDate, locationIds[counter].importId);
 				} else {
 					console.log('Seeding data from the previous day...');
-					this.seedOrders(fromDate, toDate, data.data[counter].importId);
+					this.seedOrders(fromDate, toDate, locationIds[counter].importId);
 				}
 
 				// Increment the counter
@@ -147,8 +156,8 @@ export class OrderService {
 			})
 		})
 	}
-	/* addStaff function accept object of Staff
-	 * and return array of cart ids
+	/* 
+	 * addStaff function accept object of Staff
 	 */
 	addStaff(element: any) {
 		return new Promise((resolve, reject) => {
@@ -166,7 +175,9 @@ export class OrderService {
 			})
 		})
 	}
-
+	/* addSingleData function accept object of single cart
+	 * and return array of cart ids
+	 */
 	addSingleData(cart, locationId) {
 		return new Promise((resolve, reject) => {
 			return this.cartModal.findOne({ posCartId: cart.id, storeId: locationId, productName: cart.productName }).then((res) => {

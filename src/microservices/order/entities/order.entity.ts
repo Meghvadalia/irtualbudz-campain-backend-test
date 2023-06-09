@@ -5,7 +5,7 @@ import { DATABASE_COLLECTION } from 'src/common/constants';
 
 @Schema({ collection: DATABASE_COLLECTION.ORDER, timestamps: true })
 export class Order extends Model<IOrder> {
-	@Prop({ required: true })
+	@Prop({ required: true,unique: true })
 	posOrderId: string;
 
 	@Prop({ required: true })
