@@ -5,7 +5,7 @@ import { DATABASE_COLLECTION } from 'src/common/constants';
 
 @Schema({ collection: DATABASE_COLLECTION.INVENTORY, timestamps: true })
 export class Inventory extends Model<IInventory> {
-	@Prop({ required: true })
+	@Prop({ required: true, unique: true })
 	posProductId: string;
 
 	@Prop({ required: true, type: Types.ObjectId, ref: DATABASE_COLLECTION.COMPANIES })

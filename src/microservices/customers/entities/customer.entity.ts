@@ -10,7 +10,7 @@ import { DATABASE_COLLECTION } from 'src/common/constants';
 })
 @ObjectType()
 export class Customer extends Model<ICustomer> {
-	@Prop()
+	@Prop({ required: true, unique: true })
 	id: string;
 
 	@Prop({ required: true, type: Types.ObjectId, ref: DATABASE_COLLECTION.COMPANIES })

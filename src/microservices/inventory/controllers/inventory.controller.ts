@@ -1,4 +1,4 @@
-import { Controller, Get } from '@nestjs/common';
+import { ConflictException, Controller, Get } from '@nestjs/common';
 import { GrpcMethod } from '@nestjs/microservices';
 import axios from 'axios';
 import { Inventory } from '../entities/inventory.entity';
@@ -64,58 +64,59 @@ export class InventoryController {
 						Accept: 'application/json',
 					},
 				};
-				try {
-					const { data } = await axios.request(options);
-					const inventoryDataArray = data.data;
-					const productDataArray = inventoryDataArray.map((inventoryData: IProduct) => ({
-						clientId: inventoryData.clientId,
-						productName: inventoryData.productName,
-						companyId: monarcCompanyData._id,
-						productDescription: inventoryData.productDescription,
-						priceInMinorUnits: inventoryData.priceInMinorUnits,
-						sku: inventoryData.sku,
-						nutrients: inventoryData.nutrients,
-						productPictureURL: inventoryData.productPictureURL,
-						purchaseCategory: inventoryData.purchaseCategory,
-						category: inventoryData.category,
-						type: inventoryData.type,
-						brand: inventoryData.brand,
-						isMixAndMatch: inventoryData.isMixAndMatch,
-						isStackable: inventoryData.isStackable,
-						productUnitOfMeasure: inventoryData.productUnitOfMeasure,
-						productUnitOfMeasureToGramsMultiplier: inventoryData.productUnitOfMeasureToGramsMultiplier,
-						productWeight: inventoryData.productWeight,
-						weightTierInformation: inventoryData.weightTierInformation,
-						cannabinoidInformation: inventoryData.cannabinoidInformation,
-						speciesName: inventoryData.speciesName,
-					}));
+				const { data } = await axios.request(options);
+				const inventoryDataArray = data.data;
+				const productDataArray = inventoryDataArray.map((inventoryData: IProduct) => ({
+					clientId: inventoryData.clientId,
+					productName: inventoryData.productName,
+					companyId: monarcCompanyData._id,
+					productDescription: inventoryData.productDescription,
+					priceInMinorUnits: inventoryData.priceInMinorUnits,
+					sku: inventoryData.sku,
+					nutrients: inventoryData.nutrients,
+					productPictureURL: inventoryData.productPictureURL,
+					purchaseCategory: inventoryData.purchaseCategory,
+					category: inventoryData.category,
+					type: inventoryData.type,
+					brand: inventoryData.brand,
+					isMixAndMatch: inventoryData.isMixAndMatch,
+					isStackable: inventoryData.isStackable,
+					productUnitOfMeasure: inventoryData.productUnitOfMeasure,
+					productUnitOfMeasureToGramsMultiplier: inventoryData.productUnitOfMeasureToGramsMultiplier,
+					productWeight: inventoryData.productWeight,
+					weightTierInformation: inventoryData.weightTierInformation,
+					cannabinoidInformation: inventoryData.cannabinoidInformation,
+					speciesName: inventoryData.speciesName,
+				}));
 
-					const insertedProducts = await this.productModel.insertMany(productDataArray);
-					const productIds = insertedProducts.map((product) => product._id);
+				const insertedProducts = await this.productModel.insertMany(productDataArray);
+				const productIds = insertedProducts.map((product) => product._id);
 
-					const inventoryDataToSaveArray = inventoryDataArray.map((inventoryData: IInventory, index) => ({
-						productId: productIds[index],
-						companyId: monarcCompanyData._id,
-						clientId: inventoryData.clientId,
-						posId: monarcCompanyData.posId,
-						posProductId: inventoryData.productId,
-						quantity: inventoryData.quantity,
-						inventoryUnitOfMeasure: inventoryData.inventoryUnitOfMeasure,
-						inventoryUnitOfMeasureToGramsMultiplier: inventoryData.inventoryUnitOfMeasureToGramsMultiplier,
-						locationId: inventoryData.locationId,
-						locationName: inventoryData.locationName,
-						currencyCode: inventoryData.currencyCode,
-						expirationDate: inventoryData.expirationDate,
-						productUpdatedAt: inventoryData.productUpdatedAt,
-					}));
+				const inventoryDataToSaveArray = inventoryDataArray.map((inventoryData: IInventory, index) => ({
+					productId: productIds[index],
+					companyId: monarcCompanyData._id,
+					clientId: inventoryData.clientId,
+					posId: monarcCompanyData.posId,
+					posProductId: inventoryData.productId,
+					quantity: inventoryData.quantity,
+					inventoryUnitOfMeasure: inventoryData.inventoryUnitOfMeasure,
+					inventoryUnitOfMeasureToGramsMultiplier: inventoryData.inventoryUnitOfMeasureToGramsMultiplier,
+					locationId: inventoryData.locationId,
+					locationName: inventoryData.locationName,
+					currencyCode: inventoryData.currencyCode,
+					expirationDate: inventoryData.expirationDate,
+					productUpdatedAt: inventoryData.productUpdatedAt,
+				}));
 
-					await this.inventoryModel.collection.insertMany(inventoryDataToSaveArray);
-				} catch (error) {
-					console.error(error);
+				const insertResult = await this.inventoryModel.collection.insertMany(inventoryDataToSaveArray);
+
+				if (insertResult.insertedCount !== inventoryDataArray.length) {
+					throw new ConflictException('Duplicate records found.');
 				}
 			}
 		} catch (error) {
 			console.log('GRPC METHOD', error);
+			throw new Error(error);
 		}
 	}
 }
