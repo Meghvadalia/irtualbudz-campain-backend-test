@@ -1,10 +1,11 @@
-import { Module } from '@nestjs/common';
+import { MiddlewareConsumer, Module, NestModule } from '@nestjs/common';
 import { KafkaModule } from './modules/kafka';
 import { MicroserviceClientModule } from './modules/microservice-client';
 import { OrderModule } from './microservices/order';
 import { DatabaseProviderModule } from './providers/database/mongodb.module';
 import { ConfigModule } from '@nestjs/config';
 import { UsersModule } from './microservices/user/users.module';
+import { LoggingMiddleware } from './common/middlwares/logging.middleware';
 // import { InventoryModule } from './microservices/inventory';
 // import { ProductModule } from './microservices/product';
 
@@ -28,4 +29,8 @@ import { UsersModule } from './microservices/user/users.module';
 		MicroserviceClientModule,
 	],
 })
-export class AppModule {}
+export class AppModule implements NestModule {
+	configure(consumer: MiddlewareConsumer) {
+		consumer.apply(LoggingMiddleware).forRoutes('*');
+	}
+}
