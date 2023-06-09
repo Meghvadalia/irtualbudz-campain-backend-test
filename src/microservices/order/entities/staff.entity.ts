@@ -1,8 +1,9 @@
 import { Model } from 'mongoose';
-import { Prop, Schema, SchemaFactory, raw } from '@nestjs/mongoose';
+import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { IStaff } from '../interfaces/staff.interface';
+import { DATABASE_COLLECTION } from 'src/common/constants';
 
-@Schema({ collection: 'Staff', timestamps: true })
+@Schema({ collection: DATABASE_COLLECTION.STAFF, timestamps: true })
 export class Staff extends Model<IStaff> {
 	@Prop()
 	staffName: String;

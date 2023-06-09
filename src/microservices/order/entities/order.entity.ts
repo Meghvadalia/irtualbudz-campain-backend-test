@@ -1,8 +1,9 @@
 import { Model } from 'mongoose';
 import { Prop, Schema, SchemaFactory, raw } from '@nestjs/mongoose';
 import { AppliesTo, Category, CustomerType, IOrder, ItemsInCart, Payments, Totals } from '../interfaces/order.interface';
+import { DATABASE_COLLECTION } from 'src/common/constants';
 
-@Schema({ collection: 'Order', timestamps: true })
+@Schema({ collection: DATABASE_COLLECTION.ORDER, timestamps: true })
 export class Order extends Model<IOrder> {
 	@Prop({ required: true })
 	_id: string;
@@ -43,51 +44,6 @@ export class Order extends Model<IOrder> {
 		raw([
 			{
 				id: { type: String },
-				// sku: { type: String },
-				// category: { type: String, enum: Category },
-				// title1: { type: String },
-				// title2: { type: String },
-				// productName: { type: String },
-				// strainName: { type: String },
-				// unitOfWeight: { type: String },
-				// quantity: { type: Number },
-				// unitPrice: { type: Number },
-				// totalPrice: { type: Number },
-				// unitCost: { type: Number },
-				// totalCost: { type: Number },
-				// itemDiscounts: [
-				// 	{
-				// 		_id: { type: String },
-				// 		name: { type: String },
-				// 		type: { type: String },
-				// 		discountAmount: { type: Number },
-				// 		discountType: { type: String },
-				// 		discountId: { type: String },
-				// 		ItemDiscounts: { type: Number },
-				// 		dollarsOff: { type: Number },
-				// 		penniesOff: { type: Number },
-				// 		percentOff: { type: Number },
-				// 		discounterName: { type: String },
-				// 		discounterId: { type: String },
-				// 		isCartDiscount: { type: Boolean },
-				// 		couponCode: { type: String },
-				// 		quantity: { type: Number },
-				// 	},
-				// ],
-				// tax: [
-				// 	{
-				// 		_id: { type: String },
-				// 		name: { type: String },
-				// 		percentage: { type: Number },
-				// 		calculateBeforeDiscounts: { type: String },
-				// 		supplierSpecificTax: { type: Boolean },
-				// 		excludeCustomerGroups: { type: [String] },
-				// 		enableCostMarkup: { type: Boolean },
-				// 		markupPercentage: { type: Number },
-				// 		thisTaxInPennies: { type: Number },
-				// 		appliesTo: { type: String, enum: AppliesTo },
-				// 	},
-				// ],
 			},
 		])
 	)

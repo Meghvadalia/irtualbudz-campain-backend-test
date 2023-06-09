@@ -37,12 +37,13 @@ export class CustomerService {
 			};
 
 			const { data } = await axios.request(options);
+			console.log(data.customers[0]);
 
 			if (data.customers.length > 0) {
 				const customersWithCompanyId = data.customers.map((customer: ICustomer) => ({
 					...customer,
 					companyId: monarcCompanyData._id,
-					posId: monarcCompanyData.posId,
+					// posId: monarcCompanyData.posId,
 				}));
 
 				await this.orderModel.insertMany(customersWithCompanyId);

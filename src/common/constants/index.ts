@@ -10,4 +10,7 @@ export const DATABASE_COLLECTION = {
 	ORDER: 'orders',
 	INVENTORY: 'inventories',
 	PRODUCT: 'products',
+	CART: 'cart',
+	STAFF: 'staff',
+	USER: 'users',
 };

@@ -1,8 +1,9 @@
 import { Model } from 'mongoose';
 import { Prop, Schema, SchemaFactory, raw } from '@nestjs/mongoose';
 import { AppliesTo, ItemDiscounts, ItemsCart, Tax } from '../interfaces/cart.interface';
+import { DATABASE_COLLECTION } from 'src/common/constants';
 
-@Schema({ collection: 'Cart', timestamps: true })
+@Schema({ collection: DATABASE_COLLECTION.CART, timestamps: true })
 export class Cart extends Model<ItemsCart> {
 	@Prop()
 	sku: String;
