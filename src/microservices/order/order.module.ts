@@ -7,15 +7,15 @@ import { DatabaseProviderModule } from 'src/providers/database/mongodb.module';
 import { Cart, CartSchema } from './entities/cart.entity';
 import { Staff, StaffSchema } from './entities/staff.entity';
 
-
 @Module({
 	imports: [
-		DatabaseProviderModule, 
+		DatabaseProviderModule,
 		MongooseModule.forFeature([{ name: Order.name, schema: OrderSchema }]),
 		MongooseModule.forFeature([{ name: Cart.name, schema: CartSchema }]),
-		MongooseModule.forFeature([{name:Staff.name,schema:StaffSchema}])
+		MongooseModule.forFeature([{ name: Staff.name, schema: StaffSchema }]),
 	],
 	controllers: [OrderController],
 	providers: [OrderService],
+	exports: [OrderService],
 })
 export class OrderModule {}

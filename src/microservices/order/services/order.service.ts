@@ -14,12 +14,11 @@ export class OrderService {
 	constructor(
 		@InjectModel(Order.name) private orderModel: Model<Order>,
 		@InjectModel(Cart.name) private cartModal: Model<Cart>,
-		@InjectModel(Staff.name) private staffModal: Model<Staff>,
-	) { }
+		@InjectModel(Staff.name) private staffModal: Model<Staff>
+	) {}
 
 	async seedOrders(fromDate: Date, toDate: Date, importId: string) {
 		try {
-
 			const options = {
 				method: 'get',
 				url: `${process.env.FLOWHUB_URL}/v1/orders/findByLocationId/${importId}`,
@@ -32,42 +31,47 @@ export class OrderService {
 			};
 
 			const { data } = await axios.request(options);
-			let temp = data.orders.map((x) => ({ staffName: x.budtender, locationId: x.locationId }))
+			// console.log('=>', data.orders[0]);
+			// console.log('==>', data.orders[1]);
+			// console.log('===>', data.orders[2]);
+			// console.log('====>', data.orders[3]);
+
+			let temp = data.orders.map((x) => ({ staffName: x.budtender, locationId: x.locationId }));
 			// remove duplicate object
-			let staff = temp.filter((v, i, a) => a.findIndex(v2 => ['staffName', 'locationId'].every(k => v2[k] === v[k])) === i)
-			let staffFun = []
-			let ItemFunction = []
-			/* create function array for promise all 
+			let staff = temp.filter((v, i, a) => a.findIndex((v2) => ['staffName', 'locationId'].every((k) => v2[k] === v[k])) === i);
+			let staffFun = [];
+			let ItemFunction = [];
+			/* create function array for promise all
 			 * for loop pass object of order
 			 */
 			for (let index = 0; index < staff.length; index++) {
 				let element = staff[index];
-				staffFun.push(this.addStaff(element))
+				staffFun.push(this.addStaff(element));
 			}
 			Promise.all(staffFun)
 				.then((satfCartData) => {
-					console.log("satfCartData", JSON.stringify(satfCartData))
+					console.log('satfCartData', JSON.stringify(satfCartData));
 					for (let index = 0; index < data.orders.length; index++) {
 						let element = data.orders[index];
 						ItemFunction.push(this.addItemCart(element.itemsInCart, element.locationId));
 					}
-					let orderArrayFun = []
+					let orderArrayFun = [];
 					Promise.all(ItemFunction).then((cart) => {
-
 						for (let k = 0; k < data.orders.length; k++) {
 							let element = data.orders[k];
 							element.itemsInCart = cart[k];
-							element.staffId = satfCartData.filter((x)=>element.budtender == x.staffName)[0]._id
-							delete element.budtender
-							orderArrayFun.push(this.addOrder(element))
+							element.staffId = satfCartData.filter((x) => element.budtender == x.staffName)[0]._id;
+							delete element.budtender;
+							orderArrayFun.push(this.addOrder(element));
 						}
-						Promise.all(orderArrayFun).then((order)=>{
-							console.log("Order Done",order.length)
-						})
-					})
-				}).catch((err) => {
-					console.log("err :", err)
+						Promise.all(orderArrayFun).then((order) => {
+							console.log('Order Done', order.length);
+						});
+					});
 				})
+				.catch((err) => {
+					console.log('err :', err);
+				});
 		} catch (error) {
 			console.error('Error while seeding orders:', error);
 		}
@@ -92,7 +96,7 @@ export class OrderService {
 			};
 
 			const { data } = await axios.request(options);
-			console.log("Total locations ", data.data.length);
+			console.log('Total locations ', data.data.length);
 			// Counter to keep track of elapsed time
 			let counter = 0;
 
@@ -116,7 +120,14 @@ export class OrderService {
 				const customersCount = await this.orderModel.countDocuments();
 				if (customersCount === 0) {
 					console.log('Seeding data for the last 100 days...');
-					const hundredDaysAgo = new Date(currentDate.getFullYear(), currentDate.getMonth(), currentDate.getDate() - 100, 0, 0, 0);
+					const hundredDaysAgo = new Date(
+						currentDate.getFullYear(),
+						currentDate.getMonth(),
+						currentDate.getDate() - 100,
+						0,
+						0,
+						0
+					);
 					this.seedOrders(hundredDaysAgo, toDate, data.data[counter].importId);
 				} else {
 					console.log('Seeding data from the previous day...');
@@ -127,8 +138,6 @@ export class OrderService {
 				counter++;
 			};
 			const interval = setInterval(intervalFunction, intervalDuration);
-
-
 		} catch (error) {
 			console.error('Error while scheduling cron job:', error);
 		}
@@ -138,33 +147,34 @@ export class OrderService {
 	 */
 	addItemCart(carts: any, locationId: any) {
 		return new Promise((resolve, reject) => {
-			let tempArr = []
+			let tempArr = [];
 			for (let i = 0; i < carts.length; i++) {
-				tempArr.push(this.addSingleData(carts[i], locationId))
+				tempArr.push(this.addSingleData(carts[i], locationId));
 			}
 			Promise.all(tempArr).then((data) => {
-				resolve(data.map((x) => x._id))
-			})
-		})
+				resolve(data.map((x) => x._id));
+			});
+		});
 	}
 	/* addStaff function accept object of Staff
 	 * and return array of cart ids
 	 */
 	addStaff(element: any) {
 		return new Promise((resolve, reject) => {
-			let staffObject:IStaff={
-				staffName: element.staffName, storeId: element.locationId
-			}
+			let staffObject: IStaff = {
+				staffName: element.staffName,
+				storeId: element.locationId,
+			};
 			return this.staffModal.findOne(staffObject).then((res) => {
 				if (res == null) {
 					return this.staffModal.create(staffObject).then((staffRes) => {
-						resolve(staffRes)
-					})
+						resolve(staffRes);
+					});
 				} else {
-					resolve(res)
+					resolve(res);
 				}
-			})
-		})
+			});
+		});
 	}
 
 	addSingleData(cart, locationId) {
@@ -173,20 +183,19 @@ export class OrderService {
 				if (res == null) {
 					cart.posCartId = cart.id;
 					cart.storeId = locationId;
-					delete cart.id
+					delete cart.id;
 					try {
 						return this.cartModal.create(cart).then((newItem) => {
-							resolve(newItem)
-						})
+							resolve(newItem);
+						});
 					} catch (error) {
-						console.log("error", error)
+						console.log('error', error);
 					}
-
 				} else {
-					resolve(res)
+					resolve(res);
 				}
-			})
-		})
+			});
+		});
 	}
 
 	/* addStaff function accept object of Staff
@@ -194,18 +203,24 @@ export class OrderService {
 	 */
 	addOrder(element: any) {
 		return new Promise((resolve, reject) => {
-			
 			return this.orderModel.findOne({ posOrderId: element._id }).then((res) => {
 				if (res == null) {
-					element.posOrderId = element._id
-					delete element._id
+					element.posOrderId = element._id;
+					delete element._id;
 					return this.orderModel.create(element).then((orderRes) => {
-						resolve(orderRes)
-					})
-				} else {				
+						resolve(orderRes);
+					});
+				} else {
 					// console.log("old")
 				}
-			})
-		})
+			});
+		});
+	}
+
+	async getOrders() {
+		const orderList = await this.orderModel.find({
+			locationId: 'k5wsZpPcz4C92Q2mW',
+		});
+		return orderList;
 	}
 }

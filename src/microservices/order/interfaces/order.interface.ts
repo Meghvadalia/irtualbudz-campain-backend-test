@@ -50,11 +50,11 @@ export interface Tax {
 }
 
 export interface Totals {
-	FinalTotal: number;
-	SubTotal: number;
-	TotalDiscounts: number;
-	TotalFees: number;
-	TotalTaxes: number;
+	finalTotal: number;
+	subTotal: number;
+	totalDiscounts: number;
+	totalFees: number;
+	totalTaxes: number;
 }
 
 export interface ItemDiscounts {

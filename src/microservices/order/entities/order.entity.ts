@@ -1,6 +1,6 @@
 import { Model } from 'mongoose';
 import { Prop, Schema, SchemaFactory, raw } from '@nestjs/mongoose';
-import { AppliesTo, Category, CustomerType, IOrder, ItemsInCart, Payments, Totals } from '../interfaces/order.interface';
+import { CustomerType, IOrder, ItemsInCart, Payments, Totals } from '../interfaces/order.interface';
 import { DATABASE_COLLECTION } from 'src/common/constants';
 
 @Schema({ collection: DATABASE_COLLECTION.ORDER, timestamps: true })
@@ -31,11 +31,11 @@ export class Order extends Model<IOrder> {
 
 	@Prop(
 		raw({
-			FinalTotal: { type: Number },
-			SubTotal: { type: Number },
-			TotalDiscounts: { type: Number },
-			TotalFees: { type: Number },
-			TotalTaxes: { type: Number },
+			finalTotal: { type: Number },
+			subTotal: { type: Number },
+			totalDiscounts: { type: Number },
+			totalFees: { type: Number },
+			totalTaxes: { type: Number },
 		})
 	)
 	totals: Totals;

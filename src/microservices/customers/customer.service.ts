@@ -6,17 +6,14 @@ import axios from 'axios';
 import { Customer } from './entities/customer.entity';
 import { Cron } from '@nestjs/schedule';
 import { ICompany } from 'src/model/company/interface/company.interface';
-import { IPOS } from 'src/model/pos/interface/pos.interface';
 import { Company } from 'src/model/company/entities/company.entity';
-import { POS } from 'src/model/pos/entities/pos.entity';
 import { ICustomer } from './interfaces/customer.interface';
 
 @Injectable()
 export class CustomerService {
 	constructor(
-		@InjectModel(Customer.name) private orderModel: Model<Customer>,
-		@InjectModel(Company.name) private companyModel: Model<Company>,
-		@InjectModel(Company.name) private posModel: Model<POS>
+		@InjectModel(Customer.name) private customerModel: Model<Customer>,
+		@InjectModel(Company.name) private companyModel: Model<Company>
 	) {}
 
 	async seedCustomers(fromDate: Date, toDate: Date) {
@@ -43,10 +40,10 @@ export class CustomerService {
 				const customersWithCompanyId = data.customers.map((customer: ICustomer) => ({
 					...customer,
 					companyId: monarcCompanyData._id,
-					// posId: monarcCompanyData.posId,
+					posId: monarcCompanyData.posId,
 				}));
 
-				await this.orderModel.insertMany(customersWithCompanyId);
+				await this.customerModel.insertMany(customersWithCompanyId);
 				console.log(`Seeded ${customersWithCompanyId.length} customers.`);
 			} else {
 				console.log('No customers to seed.');
@@ -63,7 +60,7 @@ export class CustomerService {
 			const fromDate = new Date(currentDate.getFullYear(), currentDate.getMonth(), currentDate.getDate() - 1, 0, 0, 0);
 			const toDate = new Date(currentDate.getFullYear(), currentDate.getMonth(), currentDate.getDate(), 0, 0, 0);
 
-			const customersCount = await this.orderModel.countDocuments();
+			const customersCount = await this.customerModel.countDocuments();
 			if (customersCount === 0) {
 				console.log('Seeding data for the last 100 days...');
 				const hundredDaysAgo = new Date(currentDate.getFullYear(), currentDate.getMonth(), currentDate.getDate() - 100, 0, 0, 0);
@@ -76,5 +73,10 @@ export class CustomerService {
 		} catch (error) {
 			console.error('Error while scheduling cron job:', error);
 		}
+	}
+
+	async getCustomers() {
+		const users = await this.customerModel.find().exec();
+		return users;
 	}
 }
