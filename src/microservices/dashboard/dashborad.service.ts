@@ -22,7 +22,7 @@ export class DashboardService {
 
 		const { averageSpend, loyaltyPointsConverted } = await this.calculateAverageSpendAndLoyaltyPoints();
 
-		const { paymentGrowth, percentageGrowth } = await this.totalSales(query);
+		const { totalOrderAmount, percentageGrowth, totalOrders, orderGrowth } = await this.totalSales(query);
 
 		const totalDiscounts = await this.totalDiscounts();
 
@@ -33,9 +33,13 @@ export class DashboardService {
 
 		return {
 			overview: {
-				growth: {
+				totalSales: {
+					totalOrderAmount,
 					percentageGrowth,
-					paymentGrowth,
+				},
+				order: {
+					totalOrders,
+					orderGrowth,
 				},
 				totalDiscounts,
 			},
@@ -140,7 +144,11 @@ export class DashboardService {
 		const formattedFromDate = dayjs(fromDate).format('YYYY-MM-DDT00:00:00.000[Z]');
 		const formattedToDate = dayjs(toDate).format('YYYY-MM-DDT23:59:59.999[Z]');
 
-		const { fromOrderList, toOrderList } = await this.orderService.getOrdersByDate(formattedFromDate, formattedToDate);
+		const { fromOrderList, toOrderList, orderList } = await this.orderService.getOrdersByDate(formattedFromDate, formattedToDate);
+
+		const ordersGrowth = ((toOrderList.length - fromOrderList.length) / fromOrderList.length) * 100;
+		const orderSum = toOrderList.length > fromOrderList.length ? '+' : '-';
+		const orderGrowth = `${orderSum}${Math.abs(ordersGrowth).toFixed(2)}%`;
 
 		const startOrderAmount = fromOrderList.flatMap((order) => order.payments).map((payment) => payment.amount);
 		const toOrderAmount = toOrderList.flatMap((order) => order.payments).map((payment) => payment.amount);
@@ -148,13 +156,18 @@ export class DashboardService {
 		const startOrderSum = +startOrderAmount.reduce((accumulator, currentValue) => accumulator + currentValue, 0);
 		const toOrderSum = +toOrderAmount.reduce((accumulator, currentValue) => accumulator + currentValue, 0);
 
+		const orderAmount = orderList.flatMap((order) => order.payments).map((payment) => payment.amount);
+		const totalOrderAmount = orderAmount.reduce((accumulator, currentValue) => accumulator + currentValue, 0);
+
 		const growth = ((toOrderSum - startOrderSum) / startOrderSum) * 100;
 		const sign = toOrderSum > startOrderSum ? '+' : '-';
 		const totalGrowth = `${sign}${Math.abs(growth).toFixed(2)}%`;
 
 		return {
-			paymentGrowth: toOrderSum - startOrderSum,
+			totalOrderAmount,
 			percentageGrowth: totalGrowth,
+			totalOrders: orderList.length,
+			orderGrowth,
 		};
 	}
 

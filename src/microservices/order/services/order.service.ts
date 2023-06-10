@@ -249,6 +249,13 @@ export class OrderService {
 		const toEndDate = new Date(toDate);
 		toEndDate.setDate(toEndDate.getDate() + 1);
 
+		const orderList = await this.orderModel.find({
+			createdAt: {
+				$gte: fromStartDate,
+				$lt: toEndDate,
+			},
+		});
+
 		const fromOrderList = await this.orderModel.find({
 			createdAt: {
 				$gte: fromStartDate,
@@ -264,6 +271,7 @@ export class OrderService {
 		});
 
 		return {
+			orderList,
 			fromOrderList,
 			toOrderList,
 		};
