@@ -8,7 +8,7 @@ import { InventoryModule } from './microservices/inventory';
 import { CustomerModule } from './microservices/customers/customer.module';
 
 async function bootstrap() {
-	const app = await NestFactory.create(AppModule);
+	const app = await NestFactory.create(AppModule, { cors: true });
 	await app.listen(8000);
 
 	const orderApp = await NestFactory.createMicroservice<MicroserviceOptions>(OrderModule, {
