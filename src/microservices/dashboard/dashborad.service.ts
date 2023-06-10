@@ -34,6 +34,7 @@ export class DashboardService {
 		const hourlyData = await this.getOrderCountsByHour();
 
 		const brandWiseOrderData = await this.orderService.getBrandWiseSales(query.fromDate, query.toDate);
+		const staffWiseOrderData = await this.orderService.getEmployeeWiseSales(query.fromDate, query.toDate);
 
 		return {
 			overview: {
@@ -63,7 +64,8 @@ export class DashboardService {
 			},
 			operations: {
 				weekOrders,
-				hourlyData
+				hourlyData,
+				staffWiseOrderData
 			},
 		};
 	}

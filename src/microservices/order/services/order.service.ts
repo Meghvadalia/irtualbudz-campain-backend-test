@@ -424,4 +424,63 @@ export class OrderService {
 		console.log('====================================');
 		return brandWiseOrderData;
 	}
+
+	async getEmployeeWiseSales(fromDate, toDate) {
+		const fromStartDate = new Date(fromDate);
+		const fromEndDate = new Date(toDate);
+		const pipeline: PipelineStage[] = [
+			{
+				$match: {
+					createdAt: {
+						$gte: fromStartDate, // Specify the "from" date in ISO format
+						$lte: fromEndDate,
+					},
+				},
+			},
+			{
+				$unwind: '$itemsInCart', // Unwind the itemsInCart array
+			},
+			{
+				$lookup: {
+					from: 'staff', // Replace "staff" with the actual name of your staff collection
+					localField: 'staffId',
+					foreignField: '_id',
+					as: 'staff',
+				},
+			},
+			{
+				$unwind: '$staff', // Unwind the staff array
+			},
+			{
+				$group: {
+					_id: {
+						staffName: '$staff.staffName',
+					},
+
+					totalAmount: { $sum: '$totals.finalTotal' },
+				},
+			},
+			{
+				$sort: {
+					totalAmount: -1, // Sort in descending order based on totalAmount
+				},
+			},
+			{
+				$limit: 5, // Limit the result to the top 5 brands
+			},
+			{
+				$project: {
+					_id: 0, // Exclude the _id field from the output
+					staffName: '$_id.staffName',
+					totalAmount: 1,
+				},
+			},
+		];
+
+		let staffWiseOrderData = await this.orderModel.aggregate(pipeline);
+		console.log('====================================');
+		console.log(staffWiseOrderData);
+		console.log('====================================');
+		return staffWiseOrderData;
+	}
 }

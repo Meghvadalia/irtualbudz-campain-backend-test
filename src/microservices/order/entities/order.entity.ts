@@ -1,4 +1,4 @@
-import { Model, Types } from 'mongoose';
+import { Model, ObjectId, Types } from 'mongoose';
 import { Prop, Schema, SchemaFactory, raw } from '@nestjs/mongoose';
 import { AppliesTo, Category, CustomerType, IOrder, Payments, Totals } from '../interfaces/order.interface';
 import { DATABASE_COLLECTION } from 'src/common/constants';
@@ -56,7 +56,7 @@ export class Order extends Model<IOrder> {
 	fullName: string;
 
 	@Prop()
-	staffId: string;
+	staffId: Types.ObjectId;
 
 	@Prop(
 		raw([
