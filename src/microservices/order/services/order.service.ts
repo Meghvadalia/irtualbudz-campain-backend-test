@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
+import { Aggregate, Model, PipelineStage } from 'mongoose';
 import axios from 'axios';
 
 import { Order } from '../entities/order.entity';
@@ -33,7 +33,11 @@ export class OrderService {
 			const options = {
 				method: 'get',
 				url: `${process.env.FLOWHUB_URL}/v1/orders/findByLocationId/${importId}`,
-				params: { created_after: fromDate, created_before: toDate, page_size: 10000, page: 2 },
+				params: {
+					created_after: fromDate,
+					created_before: toDate,
+					page_size: 10000,
+				},
 				headers: {
 					key: process.env.FLOWHUB_KEY,
 					ClientId: process.env.FLOWHUB_CLIENT_ID,
@@ -43,7 +47,10 @@ export class OrderService {
 
 			const { data } = await axios.request(options);
 			// console.log(JSON.stringify(data.orders.map((x)=>x._id)))
-			let temp = data.orders.map((x) => ({ staffName: x.budtender, locationId: x.locationId }));
+			let temp = data.orders.map((x) => ({
+				staffName: x.budtender,
+				locationId: x.locationId,
+			}));
 			// remove duplicate object
 			let staff = temp.filter((v, i, a) => a.findIndex((v2) => ['staffName', 'locationId'].every((k) => v2[k] === v[k])) === i);
 			let staffFun = [];
@@ -194,22 +201,28 @@ export class OrderService {
 	 */
 	addSingleData(cart, locationId, id) {
 		return new Promise((resolve, reject) => {
-			return this.cartModal.findOne({ posCartId: cart.id, storeId: locationId, productName: cart.productName }).then((res) => {
-				if (res == null) {
-					cart.posCartId = cart.id;
-					cart.storeId = locationId;
-					delete cart.id;
-					try {
-						return this.cartModal.create(cart).then((newItem) => {
-							resolve(newItem._id);
-						});
-					} catch (error) {
-						console.log('error', error);
+			return this.cartModal
+				.findOne({
+					posCartId: cart.id,
+					storeId: locationId,
+					productName: cart.productName,
+				})
+				.then((res) => {
+					if (res == null) {
+						cart.posCartId = cart.id;
+						cart.storeId = locationId;
+						delete cart.id;
+						try {
+							return this.cartModal.create(cart).then((newItem) => {
+								resolve(newItem._id);
+							});
+						} catch (error) {
+							console.log('error', error);
+						}
+					} else {
+						resolve(res._id);
 					}
-				} else {
-					resolve(res._id);
-				}
-			});
+				});
 		});
 	}
 
@@ -287,5 +300,116 @@ export class OrderService {
 			fromOrderList,
 			toOrderList,
 		};
+	}
+
+	async getOrderForEachDate(fromDate, toDate) {
+		const fromStartDate = new Date(fromDate);
+		const fromEndDate = new Date(toDate);
+		const pipeline: PipelineStage[] = [
+			{
+				$match: {
+					createdAt: {
+						$gte: fromStartDate, // Specify the "from" date in ISO format
+						$lte: fromEndDate,
+					},
+				},
+			},
+			{
+				$group: {
+					_id: {
+						$dateToString: {
+							format: '%Y-%m-%d',
+							date: '$createdAt',
+						},
+					},
+					date: {
+						$first: {
+							$dateToString: {
+								format: '%Y-%m-%d',
+								date: '$createdAt',
+							},
+						},
+					},
+					count: { $sum: 1 },
+					totalAmount: { $sum: '$totals.finalTotal' },
+				},
+			},
+			{
+				$sort: {
+					date: 1,
+				},
+			},
+			{
+				$project: {
+					_id: 0, // Exclude the _id field from the output
+					date: 1,
+					count: 1,
+					totalAmount: 1,
+				},
+			},
+		];
+		console.log(pipeline);
+		let dateWiseOrderData = await this.orderModel.aggregate(pipeline);
+		console.log('Data', dateWiseOrderData);
+		return dateWiseOrderData;
+	}
+
+	async getBrandWiseSales(fromDate, toDate) {
+		const fromStartDate = new Date(fromDate);
+		const fromEndDate = new Date(toDate);
+		const pipeline: PipelineStage[] = [
+			{
+				$match: {
+					createdAt: {
+						$gte: fromStartDate, // Specify the "from" date in ISO format
+						$lte: fromEndDate,
+					},
+				},
+			},
+			{
+				$unwind: '$itemsInCart', // Unwind the itemsInCart array
+			},
+			{
+				$lookup: {
+					from: 'cart', // Replace "products" with the actual name of your products collection
+					localField: 'itemsInCart',
+					foreignField: '_id',
+					as: 'product',
+				},
+			},
+			{
+				$unwind: '$product', // Unwind the product array
+			},
+			{
+				$group: {
+					_id: {
+						brand: '$product.title2',
+					},
+
+					totalAmount: { $sum: '$totals.finalTotal' },
+				},
+			},
+			{
+				$sort: {
+					totalAmount: -1, // Sort in descending order based on totalAmount
+				},
+			},
+			{
+				$limit: 5, // Limit the result to the top 5 brands
+			},
+			{
+				$project: {
+					_id: 0, // Exclude the _id field from the output
+					brand: '$_id.brand',
+					totalAmount: 1,
+				},
+			},
+		];
+
+		let brandWiseOrderData = await this.orderModel.aggregate(pipeline);
+		console.log('====================================');
+		console.log(brandWiseOrderData);
+		console.log('====================================');
+		return brandWiseOrderData;
 	}
 }

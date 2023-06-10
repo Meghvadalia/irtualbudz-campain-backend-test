@@ -22,7 +22,7 @@ export class DashboardService {
 
 		const { averageSpend, loyaltyPointsConverted } = await this.calculateAverageSpendAndLoyaltyPoints();
 
-		const { totalOrderAmount, percentageGrowth, totalOrders, orderGrowth } = await this.totalSales(query);
+		const { totalOrderAmount, percentageGrowth, totalOrders, orderGrowth, dateWiseOrderData } = await this.totalSales(query);
 
 		const totalDiscounts = await this.totalDiscounts();
 
@@ -31,6 +31,8 @@ export class DashboardService {
 		const topCategory = await this.topSellingCategory();
 		const { medCustomerRatio, recCustomerRatio } = await this.recVsMedCustomer();
 		const weekOrders = await this.getOrderCountsByDayOfWeek();
+
+		const brandWiseOrderData = await this.orderService.getBrandWiseSales(query.fromDate, query.toDate);
 
 		return {
 			overview: {
@@ -43,6 +45,7 @@ export class DashboardService {
 					orderGrowth,
 				},
 				totalDiscounts,
+				dateWiseOrderData,
 			},
 			customer: {
 				averageAge,
@@ -53,6 +56,9 @@ export class DashboardService {
 					newCustomer: medCustomerRatio,
 					returnningCustomer: recCustomerRatio,
 				},
+			},
+			sales: {
+				brandWiseSalesData: brandWiseOrderData,
 			},
 			operations: {
 				weekOrders,
@@ -167,11 +173,22 @@ export class DashboardService {
 		const sign = toOrderSum > startOrderSum ? '+' : '-';
 		const totalGrowth = `${sign}${Math.abs(growth).toFixed(2)}%`;
 
+		const dateWiseOrderData = await this.orderService.getOrderForEachDate(fromDate, toDate);
+		console.log('====================================');
+		console.log({
+			totalOrderAmount,
+			percentageGrowth: totalGrowth,
+			totalOrders: orderList.length,
+			orderGrowth,
+			dateWiseOrderData,
+		});
+		console.log('====================================');
 		return {
 			totalOrderAmount,
 			percentageGrowth: totalGrowth,
 			totalOrders: orderList.length,
 			orderGrowth,
+			dateWiseOrderData,
 		};
 	}
 

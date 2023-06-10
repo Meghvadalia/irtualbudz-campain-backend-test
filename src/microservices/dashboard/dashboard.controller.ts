@@ -9,9 +9,9 @@ export class DashboardController {
 	@Get()
 	async getCalculatedData(@Query() query: { fromDate: string; toDate: string }, @Res() res: Response) {
 		try {
-			const { customer, overview, operations } = await this.dashboardService.getCalculatedData(query);
+			const { customer, overview, sales, operations } = await this.dashboardService.getCalculatedData(query);
 
-			return res.json({ overview, customer, operations });
+			return res.json({ overview, customer, sales, operations });
 		} catch (error) {
 			console.error(error);
 			throw new Error(error);
