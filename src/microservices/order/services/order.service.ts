@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
+import { Aggregate, Model, PipelineStage } from 'mongoose';
 import axios from 'axios';
 
 import { Order } from '../entities/order.entity';
@@ -33,7 +33,11 @@ export class OrderService {
 			const options = {
 				method: 'get',
 				url: `${process.env.FLOWHUB_URL}/v1/orders/findByLocationId/${importId}`,
-				params: { created_after: fromDate, created_before: toDate, page_size: 10000 },
+				params: {
+					created_after: fromDate,
+					created_before: toDate,
+					page_size: 10000,
+				},
 				headers: {
 					key: process.env.FLOWHUB_KEY,
 					ClientId: process.env.FLOWHUB_CLIENT_ID,
@@ -43,9 +47,17 @@ export class OrderService {
 
 			const { data } = await axios.request(options);
 			// console.log(JSON.stringify(data.orders.map((x)=>x._id)))
-			let temp = data.orders.map((x) => ({ staffName: x.budtender, locationId: x.locationId }));
+			let temp = data.orders.map((x) => ({
+				staffName: x.budtender,
+				locationId: x.locationId,
+			}));
 			// remove duplicate object
-			let staff = temp.filter((v, i, a) => a.findIndex((v2) => ['staffName', 'locationId'].every((k) => v2[k] === v[k])) === i);
+			let staff = temp.filter(
+				(v, i, a) =>
+					a.findIndex((v2) =>
+						['staffName', 'locationId'].every((k) => v2[k] === v[k])
+					) === i
+			);
 			let staffFun = [];
 			let ItemFunction = [];
 			/* create function array for promise all
@@ -59,7 +71,13 @@ export class OrderService {
 				.then((satfCartData) => {
 					for (let index = 0; index < data.orders.length; index++) {
 						let element = data.orders[index];
-						ItemFunction.push(this.addItemCart(element.itemsInCart, element.locationId, element._id));
+						ItemFunction.push(
+							this.addItemCart(
+								element.itemsInCart,
+								element.locationId,
+								element._id
+							)
+						);
 					}
 					let orderArrayFun = [];
 					Promise.all(ItemFunction).then((cart) => {
@@ -68,8 +86,12 @@ export class OrderService {
 							let element = data.orders[k];
 							// element.itemsInCart = cart[k];
 							delete element.itemsInCart;
-							element.itemsInCart = cart.filter((x) => x.id == element._id)[0].data;
-							element.staffId = satfCartData.filter((x) => element.budtender == x.staffName)[0]._id;
+							element.itemsInCart = cart.filter(
+								(x) => x.id == element._id
+							)[0].data;
+							element.staffId = satfCartData.filter(
+								(x) => element.budtender == x.staffName
+							)[0]._id;
 							delete element.budtender;
 							orderArrayFun.push(this.addOrder(element));
 						}
@@ -90,12 +112,27 @@ export class OrderService {
 	async scheduleCronJob() {
 		try {
 			const currentDate = new Date();
-			const fromDate = new Date(currentDate.getFullYear(), currentDate.getMonth(), currentDate.getDate() - 1, 0, 0, 0);
-			const toDate = new Date(currentDate.getFullYear(), currentDate.getMonth(), currentDate.getDate(), 0, 0, 0);
+			const fromDate = new Date(
+				currentDate.getFullYear(),
+				currentDate.getMonth(),
+				currentDate.getDate() - 1,
+				0,
+				0,
+				0
+			);
+			const toDate = new Date(
+				currentDate.getFullYear(),
+				currentDate.getMonth(),
+				currentDate.getDate(),
+				0,
+				0,
+				0
+			);
 
-			const monarcCompanyData: ICompany = await this.companyModel.findOne<ICompany>({
-				name: 'Monarc',
-			});
+			const monarcCompanyData: ICompany =
+				await this.companyModel.findOne<ICompany>({
+					name: 'Monarc',
+				});
 
 			const posData: IPOS = await this.posModel.findOne<IPOS>({
 				_id: monarcCompanyData.posId,
@@ -129,7 +166,8 @@ export class OrderService {
 				console.log('Location ID:', locationIds[counter].locationId);
 				// // only for company location ID 150
 				if (locationIds[counter].locationId == 150) {
-					const customersCount = await this.orderModel.countDocuments();
+					const customersCount =
+						await this.orderModel.countDocuments();
 					if (customersCount === 0) {
 						console.log('Seeding data for the last 100 days...');
 						const hundredDaysAgo = new Date(
@@ -140,10 +178,18 @@ export class OrderService {
 							0,
 							0
 						);
-						this.seedOrders(hundredDaysAgo, toDate, locationIds[counter].importId);
+						this.seedOrders(
+							hundredDaysAgo,
+							toDate,
+							locationIds[counter].importId
+						);
 					} else {
 						console.log('Seeding data from the previous day...');
-						this.seedOrders(fromDate, toDate, locationIds[counter].importId);
+						this.seedOrders(
+							fromDate,
+							toDate,
+							locationIds[counter].importId
+						);
 					}
 				}
 
@@ -180,9 +226,11 @@ export class OrderService {
 			};
 			return this.staffModal.findOne(staffObject).then((res) => {
 				if (res == null) {
-					return this.staffModal.create(staffObject).then((staffRes) => {
-						resolve(staffRes);
-					});
+					return this.staffModal
+						.create(staffObject)
+						.then((staffRes) => {
+							resolve(staffRes);
+						});
 				} else {
 					resolve(res);
 				}
@@ -194,22 +242,30 @@ export class OrderService {
 	 */
 	addSingleData(cart, locationId, id) {
 		return new Promise((resolve, reject) => {
-			return this.cartModal.findOne({ posCartId: cart.id, storeId: locationId, productName: cart.productName }).then((res) => {
-				if (res == null) {
-					cart.posCartId = cart.id;
-					cart.storeId = locationId;
-					delete cart.id;
-					try {
-						return this.cartModal.create(cart).then((newItem) => {
-							resolve(newItem._id);
-						});
-					} catch (error) {
-						console.log('error', error);
+			return this.cartModal
+				.findOne({
+					posCartId: cart.id,
+					storeId: locationId,
+					productName: cart.productName,
+				})
+				.then((res) => {
+					if (res == null) {
+						cart.posCartId = cart.id;
+						cart.storeId = locationId;
+						delete cart.id;
+						try {
+							return this.cartModal
+								.create(cart)
+								.then((newItem) => {
+									resolve(newItem._id);
+								});
+						} catch (error) {
+							console.log('error', error);
+						}
+					} else {
+						resolve(res._id);
 					}
-				} else {
-					resolve(res._id);
-				}
-			});
+				});
 		});
 	}
 
@@ -218,18 +274,22 @@ export class OrderService {
 	 */
 	addOrder(element: any) {
 		return new Promise((resolve, reject) => {
-			return this.orderModel.findOne({ posOrderId: element._id }).then((res) => {
-				if (res == null) {
-					element.posOrderId = element._id;
-					// console.log("Id :",element._id, " ==> ",JSON.stringify(element.itemsInCart))
-					delete element._id;
-					return this.orderModel.create(element).then((orderRes) => {
-						resolve(orderRes);
-					});
-				} else {
-					// console.log("old")
-				}
-			});
+			return this.orderModel
+				.findOne({ posOrderId: element._id })
+				.then((res) => {
+					if (res == null) {
+						element.posOrderId = element._id;
+						// console.log("Id :",element._id, " ==> ",JSON.stringify(element.itemsInCart))
+						delete element._id;
+						return this.orderModel
+							.create(element)
+							.then((orderRes) => {
+								resolve(orderRes);
+							});
+					} else {
+						// console.log("old")
+					}
+				});
 		});
 	}
 
@@ -275,5 +335,55 @@ export class OrderService {
 			fromOrderList,
 			toOrderList,
 		};
+	}
+
+	async getOrderForEachDate(fromDate, toDate) {
+		const fromStartDate = new Date(fromDate);
+		const fromEndDate = new Date(toDate);
+		const pipeline: PipelineStage[] = [
+			{
+				$match: {
+					createdAt: {
+						$gte: fromStartDate, // Specify the "from" date in ISO format
+						$lte: fromEndDate,
+					},
+				},
+			},
+			{
+				$group: {
+					_id: {
+						$dateToString: {
+							format: '%Y-%m-%d',
+							date: '$createdAt',
+						},
+					},
+					date: {
+						$first: {
+							$dateToString: {
+								format: '%Y-%m-%d',
+								date: '$createdAt',
+							},
+						},
+					},
+					count: { $sum: 1 },
+				},
+			},
+			{
+				$sort: {
+					date: 1,
+				},
+			},
+			{
+				$project: {
+					_id: 0, // Exclude the _id field from the output
+					date: 1,
+					count: 1,
+				},
+			},
+		];
+		console.log(pipeline);
+		let dateWiseOrderData = await this.orderModel.aggregate(pipeline);
+		console.log('Data', dateWiseOrderData);
+		return dateWiseOrderData;
 	}
 }
