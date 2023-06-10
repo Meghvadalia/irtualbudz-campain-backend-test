@@ -31,6 +31,7 @@ export class DashboardService {
 		const topCategory = await this.topSellingCategory();
 		const { medCustomerRatio, recCustomerRatio } = await this.recVsMedCustomer();
 		const weekOrders = await this.getOrderCountsByDayOfWeek();
+		const hourlyData = await this.getOrderCountsByHour();
 
 		const brandWiseOrderData = await this.orderService.getBrandWiseSales(query.fromDate, query.toDate);
 
@@ -62,6 +63,7 @@ export class DashboardService {
 			},
 			operations: {
 				weekOrders,
+				hourlyData
 			},
 		};
 	}
@@ -211,6 +213,29 @@ export class DashboardService {
 
 		return orderCountsByDayOfWeek;
 	}
+
+	async getOrderCountsByHour() {
+		const orders = await this.orderService.currentDaysOrderList();
+		
+		const hourCounts = Array(12).fill(0); // Initialize count array for each hour from 10 AM to 9 PM
+	  
+		orders.forEach(order => {
+		  const createdAt = new Date(order.createdAt);
+		  const hour = createdAt.getUTCHours();
+		  if (hour >= 10 && hour <= 21) {
+			hourCounts[hour - 10]++;
+		  }
+		});
+	  
+		const hourLabels = Array.from({ length: 12 }, (_, index) => (index + 10) % 12 + (index >= 6 ? ' PM' : ' AM'));
+	  
+		const orderCountsByHour = hourLabels.map((hourLabel, index) => {
+		  const count = hourCounts[index];
+		  return { hour: hourLabel, count };
+		});
+	  
+		return orderCountsByHour;
+	  }
 
 	async totalDiscounts() {
 		const orderList = await this.orderService.getOrders();

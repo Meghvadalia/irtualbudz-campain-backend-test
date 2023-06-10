@@ -264,6 +264,18 @@ export class OrderService {
 
 		return orders;
 	}
+	async currentDaysOrderList() {
+		var currentDate = new Date('2023-03-14'); // Get the current date and time
+		// Set the time to the beginning of the current day
+		currentDate.setHours(0, 0, 0, 0);
+		// Set the time to the end of the current day
+		var endDate = new Date(currentDate);
+		endDate.setHours(23, 59, 59, 999);
+		const orders = await this.orderModel.find({
+			createdAt: { $gte: currentDate, $lt: endDate },
+		});
+		return orders;
+	}
 
 	async getOrdersByDate(fromDate, toDate) {
 		const fromStartDate = new Date(fromDate);
