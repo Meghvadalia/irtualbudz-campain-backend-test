@@ -15,9 +15,19 @@ export class DashboardController {
 				loyaltyPointsConverted,
 				paymentSum: totalSales,
 				totalDiscounts,
+				topCategory: topSellingCategory,
+				recOrMedCustomer,
 			} = await this.dashboardService.getCalculatedData();
 
-			return res.json({ averageAge, averageSpend, loyaltyPointsConverted, totalSales, totalDiscounts });
+			return res.json({
+				averageAge,
+				averageSpend,
+				loyaltyPointsConverted,
+				totalSales,
+				totalDiscounts,
+				topSellingCategory,
+				recOrMedCustomer,
+			});
 		} catch (error) {
 			console.error(error);
 			throw new Error(error);

@@ -25,12 +25,20 @@ export class DashboardService {
 
 		// const brandTotal = await this.calculatebrandTotal();
 
+		const topCategory = await this.topSellingCategory();
+		const { medCustomerRatio, recCustomerRatio } = await this.recVsMedCustomer();
+
 		return {
 			averageAge,
 			averageSpend,
 			loyaltyPointsConverted,
 			paymentSum,
 			totalDiscounts,
+			topCategory,
+			recOrMedCustomer: {
+				newCustomer: medCustomerRatio,
+				returnningCustomer: recCustomerRatio,
+			},
 		};
 	}
 
@@ -61,16 +69,39 @@ export class DashboardService {
 			return order.itemsInCart;
 		});
 
+		let productList = [];
 		for (let item of cartItems) {
 			const itemId = item._id.toString();
-			console.log(itemId);
 			try {
 				const products = await this.cartModel.find({ _id: itemId });
-				console.log({ products });
+				products.forEach((p) => {
+					productList.push(p.productName);
+				});
+
+				for (let productName of productList) {
+				}
 			} catch (error) {
 				console.error(error);
 			}
 		}
+	}
+
+	async recVsMedCustomer() {
+		const orderList = await this.orderService.getOrders();
+
+		const customerType = orderList.flatMap((order) => order.customerType);
+
+		const totalCount = customerType.length;
+		const recCustomerCount = customerType.reduce((count, type) => (type === 'recCustomer' ? count + 1 : count), 0);
+		const medCustomerCount = totalCount - recCustomerCount;
+
+		const recCustomerRatio = ((recCustomerCount / totalCount) * 100).toFixed(2);
+		const medCustomerRatio = ((medCustomerCount / totalCount) * 100).toFixed(2);
+
+		return {
+			recCustomerRatio,
+			medCustomerRatio,
+		};
 	}
 
 	async calculateAverageSpendAndLoyaltyPoints() {
@@ -104,7 +135,43 @@ export class DashboardService {
 		return totalDiscounts;
 	}
 
-	async topSellingCategory() {}
+	async topSellingCategory() {
+		const orderList = await this.orderService.getOrders();
+		const cartItems = orderList.flatMap((order) => {
+			return order.itemsInCart;
+		});
+
+		let categoryCount = {};
+
+		for (let item of cartItems) {
+			const itemId = item._id.toString();
+			try {
+				const products = await this.cartModel.find({ _id: itemId });
+
+				for (let product of products) {
+					const category = product.category;
+					if (categoryCount[category]) {
+						categoryCount[category]++;
+					} else {
+						categoryCount[category] = 1;
+					}
+				}
+			} catch (error) {
+				console.error(error);
+			}
+		}
+
+		let maxCount = 0;
+		let topCategory = '';
+
+		for (let category in categoryCount) {
+			if (categoryCount[category] > maxCount) {
+				maxCount = categoryCount[category];
+				topCategory = category;
+			}
+		}
+		return topCategory;
+	}
 
 	// async loyaltyPointsConverted() {
 	// 	const orderList = await this.orderService.getOrders();
