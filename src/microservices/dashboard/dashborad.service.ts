@@ -4,6 +4,7 @@ import { OrderService } from '../order/services/order.service';
 import { InjectModel } from '@nestjs/mongoose';
 import { Cart } from '../order/entities/cart.entity';
 import { Model } from 'mongoose';
+import * as dayjs from 'dayjs';
 
 @Injectable()
 export class DashboardService {
@@ -13,13 +14,15 @@ export class DashboardService {
 		private readonly orderService: OrderService
 	) {}
 
-	async getCalculatedData() {
+	async getCalculatedData(query: { fromDate: string; toDate: string }) {
 		const age = await this.calculateAverageAge();
 
 		const sum = age.reduce((accumulator, currentValue) => accumulator + currentValue, 0);
 		const averageAge = (sum / age.length).toFixed(1);
 
-		const { averageSpend, loyaltyPointsConverted, paymentSum } = await this.calculateAverageSpendAndLoyaltyPoints();
+		const { averageSpend, loyaltyPointsConverted } = await this.calculateAverageSpendAndLoyaltyPoints();
+
+		const { paymentGrowth, percentageGrowth } = await this.totalSales(query);
 
 		const totalDiscounts = await this.totalDiscounts();
 
@@ -29,15 +32,22 @@ export class DashboardService {
 		const { medCustomerRatio, recCustomerRatio } = await this.recVsMedCustomer();
 
 		return {
-			averageAge,
-			averageSpend,
-			loyaltyPointsConverted,
-			paymentSum,
-			totalDiscounts,
-			topCategory,
-			recOrMedCustomer: {
-				newCustomer: medCustomerRatio,
-				returnningCustomer: recCustomerRatio,
+			overview: {
+				growth: {
+					percentageGrowth,
+					paymentGrowth,
+				},
+				totalDiscounts,
+			},
+			customer: {
+				averageAge,
+				averageSpend,
+				loyaltyPointsConverted,
+				topCategory,
+				recOrMedCustomer: {
+					newCustomer: medCustomerRatio,
+					returnningCustomer: recCustomerRatio,
+				},
 			},
 		};
 	}
@@ -122,7 +132,29 @@ export class DashboardService {
 		return {
 			averageSpend: average,
 			loyaltyPointsConverted: loyaltyPointsSum,
-			paymentSum,
+		};
+	}
+
+	async totalSales(query) {
+		const { fromDate, toDate } = query;
+		const formattedFromDate = dayjs(fromDate).format('YYYY-MM-DDT00:00:00.000[Z]');
+		const formattedToDate = dayjs(toDate).format('YYYY-MM-DDT23:59:59.999[Z]');
+
+		const { fromOrderList, toOrderList } = await this.orderService.getOrdersByDate(formattedFromDate, formattedToDate);
+
+		const startOrderAmount = fromOrderList.flatMap((order) => order.payments).map((payment) => payment.amount);
+		const toOrderAmount = toOrderList.flatMap((order) => order.payments).map((payment) => payment.amount);
+
+		const startOrderSum = +startOrderAmount.reduce((accumulator, currentValue) => accumulator + currentValue, 0);
+		const toOrderSum = +toOrderAmount.reduce((accumulator, currentValue) => accumulator + currentValue, 0);
+
+		const growth = ((toOrderSum - startOrderSum) / startOrderSum) * 100;
+		const sign = toOrderSum > startOrderSum ? '+' : '-';
+		const totalGrowth = `${sign}${Math.abs(growth).toFixed(2)}%`;
+
+		return {
+			paymentGrowth: toOrderSum - startOrderSum,
+			percentageGrowth: totalGrowth,
 		};
 	}
 
@@ -132,7 +164,7 @@ export class DashboardService {
 		const payments = orderList.flatMap((order) => order.totals).map((total) => total.totalDiscounts);
 
 		const totalDiscounts = payments.reduce((accumulator, currentValue) => accumulator + currentValue, 0);
-		return totalDiscounts;
+		return totalDiscounts.toFixed(2);
 	}
 
 	async topSellingCategory() {

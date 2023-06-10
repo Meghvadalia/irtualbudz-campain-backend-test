@@ -33,7 +33,7 @@ export class OrderService {
 			const options = {
 				method: 'get',
 				url: `${process.env.FLOWHUB_URL}/v1/orders/findByLocationId/${importId}`,
-				params: { created_after: fromDate, created_before: toDate },
+				params: { created_after: fromDate, created_before: toDate, page_size: 10000 },
 				headers: {
 					key: process.env.FLOWHUB_KEY,
 					ClientId: process.env.FLOWHUB_CLIENT_ID,
@@ -238,5 +238,34 @@ export class OrderService {
 			locationId: 'k5wsZpPcz4C92Q2mW',
 		});
 		return orderList;
+	}
+
+	async getOrdersByDate(fromDate, toDate) {
+		const fromStartDate = new Date(fromDate);
+		const fromEndDate = new Date(fromDate);
+		fromEndDate.setDate(fromEndDate.getDate() + 1);
+
+		const toStartDate = new Date(toDate);
+		const toEndDate = new Date(toDate);
+		toEndDate.setDate(toEndDate.getDate() + 1);
+
+		const fromOrderList = await this.orderModel.find({
+			createdAt: {
+				$gte: fromStartDate,
+				$lt: fromEndDate,
+			},
+		});
+
+		const toOrderList = await this.orderModel.find({
+			createdAt: {
+				$gte: toStartDate,
+				$lt: toEndDate,
+			},
+		});
+
+		return {
+			fromOrderList,
+			toOrderList,
+		};
 	}
 }
