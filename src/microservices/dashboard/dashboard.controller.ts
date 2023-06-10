@@ -7,11 +7,15 @@ export class DashboardController {
 	constructor(private readonly dashboardService: DashboardService) {}
 
 	@Get()
-	async getCalculatedData(@Query() query: { fromDate: string; toDate: string }, @Res() res: Response) {
+	async getCalculatedData(
+		@Query() query: { fromDate: string; toDate: string },
+		@Res() res: Response
+	) {
 		try {
-			const { customer, overview } = await this.dashboardService.getCalculatedData(query);
+			const { customer, overview, sales } =
+				await this.dashboardService.getCalculatedData(query);
 
-			return res.json({ overview, customer });
+			return res.json({ overview, customer, sales });
 		} catch (error) {
 			console.error(error);
 			throw new Error(error);

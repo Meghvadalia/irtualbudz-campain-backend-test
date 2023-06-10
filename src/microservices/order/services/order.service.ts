@@ -388,4 +388,63 @@ export class OrderService {
 		console.log('Data', dateWiseOrderData);
 		return dateWiseOrderData;
 	}
+
+	async getBrandWiseSales(fromDate, toDate) {
+		const fromStartDate = new Date(fromDate);
+		const fromEndDate = new Date(toDate);
+		const pipeline: PipelineStage[] = [
+			{
+				$match: {
+					createdAt: {
+						$gte: fromStartDate, // Specify the "from" date in ISO format
+						$lte: fromEndDate,
+					},
+				},
+			},
+			{
+				$unwind: '$itemsInCart', // Unwind the itemsInCart array
+			},
+			{
+				$lookup: {
+					from: 'cart', // Replace "products" with the actual name of your products collection
+					localField: 'itemsInCart',
+					foreignField: '_id',
+					as: 'product',
+				},
+			},
+			{
+				$unwind: '$product', // Unwind the product array
+			},
+			{
+				$group: {
+					_id: {
+						brand: '$product.title2',
+					},
+
+					totalAmount: { $sum: '$totals.finalTotal' },
+				},
+			},
+			{
+				$sort: {
+					totalAmount: -1, // Sort in descending order based on totalAmount
+				},
+			},
+			{
+				$limit: 5, // Limit the result to the top 5 brands
+			},
+			{
+				$project: {
+					_id: 0, // Exclude the _id field from the output
+					brand: '$_id.brand',
+					totalAmount: 1,
+				},
+			},
+		];
+
+		let brandWiseOrderData = await this.orderModel.aggregate(pipeline);
+		console.log('====================================');
+		console.log(brandWiseOrderData);
+		console.log('====================================');
+		return brandWiseOrderData;
+	}
 }

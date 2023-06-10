@@ -42,6 +42,11 @@ export class DashboardService {
 		const { medCustomerRatio, recCustomerRatio } =
 			await this.recVsMedCustomer();
 
+		const brandWiseOrderData = await this.orderService.getBrandWiseSales(
+			query.fromDate,
+			query.toDate
+		);
+
 		return {
 			overview: {
 				totalSales: {
@@ -64,6 +69,9 @@ export class DashboardService {
 					newCustomer: medCustomerRatio,
 					returnningCustomer: recCustomerRatio,
 				},
+			},
+			sales: {
+				brandWiseSalesData: brandWiseOrderData,
 			},
 		};
 	}
