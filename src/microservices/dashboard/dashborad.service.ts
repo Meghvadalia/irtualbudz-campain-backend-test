@@ -30,6 +30,7 @@ export class DashboardService {
 
 		const topCategory = await this.topSellingCategory();
 		const { medCustomerRatio, recCustomerRatio } = await this.recVsMedCustomer();
+		const weekOrders = await this.getOrderCountsByDayOfWeek();
 
 		return {
 			overview: {
@@ -52,6 +53,9 @@ export class DashboardService {
 					newCustomer: medCustomerRatio,
 					returnningCustomer: recCustomerRatio,
 				},
+			},
+			operations: {
+				weekOrders,
 			},
 		};
 	}
@@ -169,6 +173,26 @@ export class DashboardService {
 			totalOrders: orderList.length,
 			orderGrowth,
 		};
+	}
+
+	async getOrderCountsByDayOfWeek() {
+		const busiestDay = await this.orderService.fourteenDaysOrderList();
+
+		const dayCounts = busiestDay.reduce((counts, order) => {
+			const createdAt = new Date(order.createdAt);
+			const dayOfWeek = createdAt.getUTCDay();
+			counts[dayOfWeek] = (counts[dayOfWeek] || 0) + 1;
+			return counts;
+		}, []);
+
+		const dayOfWeekLabels = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+
+		const orderCountsByDayOfWeek = dayOfWeekLabels.map((dayOfWeek, index) => {
+			const count = dayCounts[index] || 0;
+			return { dayOfWeek, count };
+		});
+
+		return orderCountsByDayOfWeek;
 	}
 
 	async totalDiscounts() {

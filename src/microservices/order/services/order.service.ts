@@ -33,7 +33,7 @@ export class OrderService {
 			const options = {
 				method: 'get',
 				url: `${process.env.FLOWHUB_URL}/v1/orders/findByLocationId/${importId}`,
-				params: { created_after: fromDate, created_before: toDate, page_size: 10000 },
+				params: { created_after: fromDate, created_before: toDate, page_size: 10000, page: 2 },
 				headers: {
 					key: process.env.FLOWHUB_KEY,
 					ClientId: process.env.FLOWHUB_CLIENT_ID,
@@ -238,6 +238,18 @@ export class OrderService {
 			locationId: 'k5wsZpPcz4C92Q2mW',
 		});
 		return orderList;
+	}
+
+	async fourteenDaysOrderList() {
+		const currentDate = new Date('2023-03-14');
+		const fourteenDaysAgo = new Date(currentDate);
+		fourteenDaysAgo.setDate(fourteenDaysAgo.getDate() - 14);
+
+		const orders = await this.orderModel.find({
+			createdAt: { $gte: fourteenDaysAgo, $lt: currentDate },
+		});
+
+		return orders;
 	}
 
 	async getOrdersByDate(fromDate, toDate) {
