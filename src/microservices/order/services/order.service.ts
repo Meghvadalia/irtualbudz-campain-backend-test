@@ -27,7 +27,9 @@ export class OrderService {
 
 	async seedOrders(fromDate: Date, toDate: Date, importId: string) {
 		try {
-
+			console.log("fromDate",fromDate)
+			console.log("toDate",toDate)
+			console.log("importId",importId)
 			const options = {
 				method: 'get',
 				url: `${process.env.FLOWHUB_URL}/v1/orders/findByLocationId/${importId}`,
@@ -40,6 +42,7 @@ export class OrderService {
 			};
 
 			const { data } = await axios.request(options);
+			// console.log(JSON.stringify(data.orders.map((x)=>x._id)))			
 			let temp = data.orders.map((x) => ({ staffName: x.budtender, locationId: x.locationId }))
 			// remove duplicate object
 			let staff = temp.filter((v, i, a) => a.findIndex(v2 => ['staffName', 'locationId'].every(k => v2[k] === v[k])) === i)
@@ -56,15 +59,17 @@ export class OrderService {
 				.then((satfCartData) => {
 					for (let index = 0; index < data.orders.length; index++) {
 						let element = data.orders[index];
-						ItemFunction.push(this.addItemCart(element.itemsInCart, element.locationId));
+						ItemFunction.push(this.addItemCart(element.itemsInCart, element.locationId, element._id));
 					}
 					let orderArrayFun = []
 					Promise.all(ItemFunction).then((cart) => {
-
+						// console.log("cart",JSON.stringify(cart))
 						for (let k = 0; k < data.orders.length; k++) {
 							let element = data.orders[k];
-							element.itemsInCart = cart[k];
-							element.staffId = new mongoose.Types.ObjectId(satfCartData.filter((x) => element.budtender == x.staffName)[0]._id)
+							// element.itemsInCart = cart[k];
+							delete element.itemsInCart
+							element.itemsInCart = cart.filter((x)=>x.id == element._id)[0].data
+							element.staffId = satfCartData.filter((x) => element.budtender == x.staffName)[0]._id
 							delete element.budtender
 							orderArrayFun.push(this.addOrder(element))
 						}
@@ -121,15 +126,19 @@ export class OrderService {
 
 				// Code to execute in each interval
 				console.log('Location ID:', locationIds[counter].locationId);
-				const customersCount = await this.orderModel.countDocuments();
-				if (customersCount === 0) {
-					console.log('Seeding data for the last 100 days...');
-					const hundredDaysAgo = new Date(currentDate.getFullYear(), currentDate.getMonth(), currentDate.getDate() - 100, 0, 0, 0);
-					this.seedOrders(hundredDaysAgo, toDate, locationIds[counter].importId);
-				} else {
-					console.log('Seeding data from the previous day...');
-					this.seedOrders(fromDate, toDate, locationIds[counter].importId);
+				// // only for company location ID 150
+				if(locationIds[counter].locationId == 150){
+					const customersCount = await this.orderModel.countDocuments();
+					if (customersCount === 0) {
+						console.log('Seeding data for the last 100 days...');
+						const hundredDaysAgo = new Date(currentDate.getFullYear(), currentDate.getMonth(), currentDate.getDate() - 100, 0, 0, 0);
+						this.seedOrders(hundredDaysAgo, toDate, locationIds[counter].importId);
+					} else {
+						console.log('Seeding data from the previous day...');
+						this.seedOrders(fromDate, toDate, locationIds[counter].importId);
+					}
 				}
+				
 
 				// Increment the counter
 				counter++;
@@ -144,14 +153,14 @@ export class OrderService {
 	/* addItemCart function accept object of cart
 	 * and return array of cart ids
 	 */
-	addItemCart(carts: any, locationId: any) {
+	addItemCart(carts: any, locationId: any,id:any) {
 		return new Promise((resolve, reject) => {
 			let tempArr = []
 			for (let i = 0; i < carts.length; i++) {
-				tempArr.push(this.addSingleData(carts[i], locationId))
+				tempArr.push(this.addSingleData(carts[i], locationId,id))
 			}
 			Promise.all(tempArr).then((data) => {
-				resolve(data.map((x) => x._id))
+				resolve({id:id,data:data})
 			})
 		})
 	}
@@ -177,7 +186,7 @@ export class OrderService {
 	/* addSingleData function accept object of single cart
 	 * and return array of cart ids
 	 */
-	addSingleData(cart, locationId) {
+	addSingleData(cart, locationId,id) {
 		return new Promise((resolve, reject) => {
 			return this.cartModal.findOne({ posCartId: cart.id, storeId: locationId, productName: cart.productName }).then((res) => {
 				if (res == null) {
@@ -186,14 +195,14 @@ export class OrderService {
 					delete cart.id
 					try {
 						return this.cartModal.create(cart).then((newItem) => {
-							resolve(newItem)
+							resolve(newItem._id)
 						})
 					} catch (error) {
 						console.log("error", error)
 					}
 
 				} else {
-					resolve(res)
+					resolve(res._id)
 				}
 			})
 		})
@@ -208,6 +217,7 @@ export class OrderService {
 			return this.orderModel.findOne({ posOrderId: element._id }).then((res) => {
 				if (res == null) {
 					element.posOrderId = element._id
+					// console.log("Id :",element._id, " ==> ",JSON.stringify(element.itemsInCart))
 					delete element._id
 					return this.orderModel.create(element).then((orderRes) => {
 						resolve(orderRes)

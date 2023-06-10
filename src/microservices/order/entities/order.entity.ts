@@ -1,6 +1,6 @@
-import { Model } from 'mongoose';
+import { Model, Types } from 'mongoose';
 import { Prop, Schema, SchemaFactory, raw } from '@nestjs/mongoose';
-import { AppliesTo, Category, CustomerType, IOrder, ItemsInCart, Payments, Totals } from '../interfaces/order.interface';
+import { AppliesTo, Category, CustomerType, IOrder,  Payments, Totals } from '../interfaces/order.interface';
 import { DATABASE_COLLECTION } from 'src/common/constants';
 
 @Schema({ collection: DATABASE_COLLECTION.ORDER, timestamps: true })
@@ -40,14 +40,8 @@ export class Order extends Model<IOrder> {
 	)
 	totals: Totals;
 
-	@Prop(
-		raw([
-			{
-				id: { type: String },
-			},
-		])
-	)
-	itemsInCart: ItemsInCart;
+	@Prop()
+	itemsInCart: string[];
 
 	@Prop({ enum: CustomerType })
 	customerType: CustomerType;
@@ -81,3 +75,12 @@ export class Order extends Model<IOrder> {
 }
 
 export const OrderSchema = SchemaFactory.createForClass(Order);
+OrderSchema.pre('save', async function (next) {
+	const user = this;
+	try {
+	
+		next();
+	} catch (error) {
+		return next(error);
+	}
+});

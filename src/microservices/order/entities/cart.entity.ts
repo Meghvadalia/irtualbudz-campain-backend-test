@@ -5,7 +5,7 @@ import { DATABASE_COLLECTION } from 'src/common/constants';
 
 @Schema({ collection: DATABASE_COLLECTION.CART, timestamps: true })
 export class Cart extends Model<ItemsCart> {
-	@Prop()
+	@Prop({required: true, unique: false })
 	posCartId: String;
 	@Prop()
 	storeId: String;
@@ -42,13 +42,13 @@ export class Cart extends Model<ItemsCart> {
 			discountAmount: { type: Number },
 			discountType: { type: String },
 			discountId: { type: String },
-			ItemDiscounts: { type: Number },
+			ItemDiscounts: { type: String },
 			dollarsOff: { type: Number },
 			penniesOff: { type: Number },
 			percentOff: { type: Number },
 			discounterName: { type: String },
 			discounterId: { type: String },
-			isCartDiscount: { type: Boolean },
+			isCartDiscount: { type: String },
 			couponCode: { type: String },
 			quantity: { type: Number },
 		})

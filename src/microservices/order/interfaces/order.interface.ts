@@ -8,33 +8,17 @@ export interface IOrder {
 	orderType: string;
 	orderId: string;
 	totals: Totals;
-	itemsInCart: ItemsInCart;
+	itemsInCart: Array<string>;
 	customerType: CustomerType;
 	locationId: string;
 	voided: boolean;
 	fullName: string;
-	budtender: string;
+	staffId: string;
 	payments: Payments;
 	[property: string]: any;
 }
 
-export interface ItemsInCart {
-	_id: string;
-	// sku: string;
-	// category: Category;
-	// title1: string;
-	// title2: string;
-	// productName: string;
-	// strainName: string;
-	// unitOfWeight: string;
-	// quantity: number;
-	// unitPrice: number;
-	// totalPrice: number;
-	// unitCost: number;
-	// totalCost: number;
-	// itemDiscounts: ItemDiscounts;
-	// tax: Tax;
-}
+
 
 export interface Tax {
 	_id: string;
@@ -58,7 +42,6 @@ export interface Totals {
 }
 
 export interface ItemDiscounts {
-	_id: string;
 	name: string;
 	type: string;
 	discountAmount: number;

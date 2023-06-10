@@ -34,20 +34,20 @@ export interface Tax {
 
 export interface ItemDiscounts {
 	_id: string;
-	name: string;
-	type: string;
-	discountAmount: number;
-	discountType: string;
-	discountId: string;
-	ItemDiscounts: string;
-	dollarsOff: number;
-	penniesOff: number;
-	percentOff: number;
-	discounterName: number;
-	discounterId: string;
-	isCartDiscount: string;
-	couponCode: string;
-	quantity: number;
+	name?: string;
+	type?: string;
+	discountAmount?: number;
+	discountType?: string;
+	discountId?: string;
+	ItemDiscounts?: string;
+	dollarsOff?: number;
+	penniesOff?: number;
+	percentOff?: number;
+	discounterName?: string;
+	discounterId?: string;
+	isCartDiscount?: string;
+	couponCode?: string;
+	quantity?: number;
 }
 
 
