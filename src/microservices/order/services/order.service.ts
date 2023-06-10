@@ -366,6 +366,7 @@ export class OrderService {
 						},
 					},
 					count: { $sum: 1 },
+					totalAmount: { $sum: '$totals.finalTotal' },
 				},
 			},
 			{
@@ -378,6 +379,7 @@ export class OrderService {
 					_id: 0, // Exclude the _id field from the output
 					date: 1,
 					count: 1,
+					totalAmount: 1,
 				},
 			},
 		];
