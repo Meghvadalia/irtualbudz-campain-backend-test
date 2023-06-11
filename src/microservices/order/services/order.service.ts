@@ -14,6 +14,7 @@ import { Company } from 'src/model/company/entities/company.entity';
 import { POS } from 'src/model/pos/entities/pos.entity';
 import { Store } from 'src/model/store/entities/store.entity';
 import mongoose from 'mongoose';
+import { Console } from 'console';
 @Injectable()
 export class OrderService {
 	constructor(
@@ -27,82 +28,35 @@ export class OrderService {
 
 	async seedOrders(fromDate: Date, toDate: Date, importId: string) {
 		try {
+			const monarcCompanyData: ICompany =
+				await this.companyModel.findOne<ICompany>({
+					name: 'Monarc',
+				});
+
+			const posData: IPOS = await this.posModel.findOne<IPOS>({
+				_id: monarcCompanyData.posId,
+			});
 			console.log('fromDate', fromDate);
 			console.log('toDate', toDate);
 			console.log('importId', importId);
 			const options = {
 				method: 'get',
-				url: `${process.env.FLOWHUB_URL}/v1/orders/findByLocationId/${importId}`,
+				url: `${posData.liveUrl}/v1/orders/findByLocationId/${importId}`,
 				params: {
 					created_after: fromDate,
 					created_before: toDate,
 					page_size: 10000,
 				},
 				headers: {
-					key: process.env.FLOWHUB_KEY,
-					ClientId: process.env.FLOWHUB_CLIENT_ID,
+					key: monarcCompanyData.dataObject.key,
+					ClientId: monarcCompanyData.dataObject.clientId,
 					Accept: 'application/json',
 				},
 			};
 
-			const { data } = await axios.request(options);
-			// console.log(JSON.stringify(data.orders.map((x)=>x._id)))
-			let temp = data.orders.map((x) => ({
-				staffName: x.budtender,
-				locationId: x.locationId,
-			}));
-			// remove duplicate object
-			let staff = temp.filter(
-				(v, i, a) =>
-					a.findIndex((v2) =>
-						['staffName', 'locationId'].every((k) => v2[k] === v[k])
-					) === i
-			);
-			let staffFun = [];
-			let ItemFunction = [];
-			/* create function array for promise all
-			 * for loop pass object of order
-			 */
-			for (let index = 0; index < staff.length; index++) {
-				let element = staff[index];
-				staffFun.push(this.addStaff(element));
-			}
-			Promise.all(staffFun)
-				.then((satfCartData) => {
-					for (let index = 0; index < data.orders.length; index++) {
-						let element = data.orders[index];
-						ItemFunction.push(
-							this.addItemCart(
-								element.itemsInCart,
-								element.locationId,
-								element._id
-							)
-						);
-					}
-					let orderArrayFun = [];
-					Promise.all(ItemFunction).then((cart) => {
-						// console.log("cart",JSON.stringify(cart))
-						for (let k = 0; k < data.orders.length; k++) {
-							let element = data.orders[k];
-							// element.itemsInCart = cart[k];
-							delete element.itemsInCart;
-							element.itemsInCart = cart.filter(
-								(x) => x.id == element._id
-							)[0].data;
-							element.staffId = satfCartData.filter(
-								(x) => element.budtender == x.staffName
-							)[0]._id;
-							delete element.budtender;
-							orderArrayFun.push(this.addOrder(element));
-						}
-						Promise.all(orderArrayFun).then((order) => {
-							console.log('Order Done', order.length);
-						});
-					});
-				})
-				.catch((err) => {
-					console.log('err :', err);
-				});
+			this.processOrders(options).catch((err) => {
+				console.log('Error while processing orders:', err);
+			});
 		} catch (error) {
 			console.error('Error while seeding orders:', error);
 		}
@@ -525,5 +479,105 @@ export class OrderService {
 		let staffWiseOrderData = await this.orderModel.aggregate(pipeline);
 
 		return staffWiseOrderData;
+	}
+
+	// Pagination Wise Order List for all the order coming from the FLow Hub API
+
+	async processOrders(options) {
+		try {
+			console.log('====================================');
+			console.log('Processing Order Batch');
+			console.log('====================================');
+			let page = 1;
+			let allOrders = [];
+
+			while (true) {
+				options.params.page = page;
+				const { data } = await axios.request(options);
+				const orders = data.orders;
+
+				if (orders.length > 0) {
+					// Process orders in batches
+					await this.processOrderBatch(orders, page);
+					page++;
+				} else {
+					// All pages have been fetched
+					console.log('All orders fetched');
+					break;
+				}
+			}
+		} catch (error) {
+			console.log('====================================');
+			console.log(error);
+			console.log('====================================');
+		}
+	}
+	processOrderBatch(orders, page) {
+		try {
+			console.log('====================================');
+			console.log('Processing Order Batch number', page);
+			console.log('====================================');
+
+			let temp = orders.map((x) => ({
+				staffName: x.budtender,
+				locationId: x.locationId,
+			}));
+			// remove duplicate object
+			let staff = temp.filter(
+				(v, i, a) =>
+					a.findIndex((v2) =>
+						['staffName', 'locationId'].every((k) => v2[k] === v[k])
+					) === i
+			);
+			let staffFun = [];
+			let ItemFunction = [];
+			/* create function array for promise all
+			 * for loop pass object of order
+			 */
+			for (let index = 0; index < staff.length; index++) {
+				let element = staff[index];
+				staffFun.push(this.addStaff(element));
+			}
+			Promise.all(staffFun)
+				.then((satfCartData) => {
+					for (let index = 0; index < orders.length; index++) {
+						let element = orders[index];
+						ItemFunction.push(
+							this.addItemCart(
+								element.itemsInCart,
+								element.locationId,
+								element._id
+							)
+						);
+					}
+					let orderArrayFun = [];
+					Promise.all(ItemFunction).then((cart) => {
+						// console.log("cart",JSON.stringify(cart))
+						for (let k = 0; k < orders.length; k++) {
+							let element = orders[k];
+							// element.itemsInCart = cart[k];
+							delete element.itemsInCart;
+							element.itemsInCart = cart.filter(
+								(x) => x.id == element._id
+							)[0].data;
+							element.staffId = satfCartData.filter(
+								(x) => element.budtender == x.staffName
+							)[0]._id;
+							delete element.budtender;
+							orderArrayFun.push(this.addOrder(element));
+						}
+						Promise.all(orderArrayFun).then((order) => {
+							console.log('Order Done', order.length);
+						});
+					});
+				})
+				.catch((err) => {
+					console.log('err :', err);
+				});
+		} catch (error) {
+			console.log('====================================');
+			console.log(error);
+			console.log('====================================');
+		}
 	}
 }
