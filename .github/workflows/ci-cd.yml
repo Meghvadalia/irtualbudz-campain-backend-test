@@ -28,7 +28,7 @@ jobs:
         
       - name: Deploy to server using rsync
         run: |
-          rsync -avz --delete -e "ssh -p ${{ secrets.PORT }}" --exclude '.git' . ${{ secrets.USERNAME }}@${{ secrets.HOST }}:/var/www/html/monarc-backend/html
+           rsync -avz --delete -e "ssh -p ${{ secrets.PORT }} -vvv" --exclude '.git' . ${{ secrets.USERNAME }}@${{ secrets.HOST }}:/var/www/html/monarc-backend/html
         env:
           SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
 
