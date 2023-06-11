@@ -52,7 +52,12 @@ export class OrderService {
 				locationId: x.locationId,
 			}));
 			// remove duplicate object
-			let staff = temp.filter((v, i, a) => a.findIndex((v2) => ['staffName', 'locationId'].every((k) => v2[k] === v[k])) === i);
+			let staff = temp.filter(
+				(v, i, a) =>
+					a.findIndex((v2) =>
+						['staffName', 'locationId'].every((k) => v2[k] === v[k])
+					) === i
+			);
 			let staffFun = [];
 			let ItemFunction = [];
 			/* create function array for promise all
@@ -66,7 +71,13 @@ export class OrderService {
 				.then((satfCartData) => {
 					for (let index = 0; index < data.orders.length; index++) {
 						let element = data.orders[index];
-						ItemFunction.push(this.addItemCart(element.itemsInCart, element.locationId, element._id));
+						ItemFunction.push(
+							this.addItemCart(
+								element.itemsInCart,
+								element.locationId,
+								element._id
+							)
+						);
 					}
 					let orderArrayFun = [];
 					Promise.all(ItemFunction).then((cart) => {
@@ -75,8 +86,12 @@ export class OrderService {
 							let element = data.orders[k];
 							// element.itemsInCart = cart[k];
 							delete element.itemsInCart;
-							element.itemsInCart = cart.filter((x) => x.id == element._id)[0].data;
-							element.staffId = satfCartData.filter((x) => element.budtender == x.staffName)[0]._id;
+							element.itemsInCart = cart.filter(
+								(x) => x.id == element._id
+							)[0].data;
+							element.staffId = satfCartData.filter(
+								(x) => element.budtender == x.staffName
+							)[0]._id;
 							delete element.budtender;
 							orderArrayFun.push(this.addOrder(element));
 						}
@@ -97,12 +112,27 @@ export class OrderService {
 	async scheduleCronJob() {
 		try {
 			const currentDate = new Date();
-			const fromDate = new Date(currentDate.getFullYear(), currentDate.getMonth(), currentDate.getDate() - 1, 0, 0, 0);
-			const toDate = new Date(currentDate.getFullYear(), currentDate.getMonth(), currentDate.getDate(), 0, 0, 0);
+			const fromDate = new Date(
+				currentDate.getFullYear(),
+				currentDate.getMonth(),
+				currentDate.getDate() - 1,
+				0,
+				0,
+				0
+			);
+			const toDate = new Date(
+				currentDate.getFullYear(),
+				currentDate.getMonth(),
+				currentDate.getDate(),
+				0,
+				0,
+				0
+			);
 
-			const monarcCompanyData: ICompany = await this.companyModel.findOne<ICompany>({
-				name: 'Monarc',
-			});
+			const monarcCompanyData: ICompany =
+				await this.companyModel.findOne<ICompany>({
+					name: 'Monarc',
+				});
 
 			const posData: IPOS = await this.posModel.findOne<IPOS>({
 				_id: monarcCompanyData.posId,
@@ -136,7 +166,8 @@ export class OrderService {
 				console.log('Location ID:', locationIds[counter].locationId);
 				// // only for company location ID 150
 				if (locationIds[counter].locationId == 150) {
-					const customersCount = await this.orderModel.countDocuments();
+					const customersCount =
+						await this.orderModel.countDocuments();
 					if (customersCount === 0) {
 						console.log('Seeding data for the last 100 days...');
 						const hundredDaysAgo = new Date(
@@ -147,10 +178,18 @@ export class OrderService {
 							0,
 							0
 						);
-						this.seedOrders(hundredDaysAgo, toDate, locationIds[counter].importId);
+						this.seedOrders(
+							hundredDaysAgo,
+							toDate,
+							locationIds[counter].importId
+						);
 					} else {
 						console.log('Seeding data from the previous day...');
-						this.seedOrders(fromDate, toDate, locationIds[counter].importId);
+						this.seedOrders(
+							fromDate,
+							toDate,
+							locationIds[counter].importId
+						);
 					}
 				}
 
@@ -187,9 +226,11 @@ export class OrderService {
 			};
 			return this.staffModal.findOne(staffObject).then((res) => {
 				if (res == null) {
-					return this.staffModal.create(staffObject).then((staffRes) => {
-						resolve(staffRes);
-					});
+					return this.staffModal
+						.create(staffObject)
+						.then((staffRes) => {
+							resolve(staffRes);
+						});
 				} else {
 					resolve(res);
 				}
@@ -213,9 +254,11 @@ export class OrderService {
 						cart.storeId = locationId;
 						delete cart.id;
 						try {
-							return this.cartModal.create(cart).then((newItem) => {
-								resolve(newItem._id);
-							});
+							return this.cartModal
+								.create(cart)
+								.then((newItem) => {
+									resolve(newItem._id);
+								});
 						} catch (error) {
 							console.log('error', error);
 						}
@@ -231,18 +274,22 @@ export class OrderService {
 	 */
 	addOrder(element: any) {
 		return new Promise((resolve, reject) => {
-			return this.orderModel.findOne({ posOrderId: element._id }).then((res) => {
-				if (res == null) {
-					element.posOrderId = element._id;
-					// console.log("Id :",element._id, " ==> ",JSON.stringify(element.itemsInCart))
-					delete element._id;
-					return this.orderModel.create(element).then((orderRes) => {
-						resolve(orderRes);
-					});
-				} else {
-					// console.log("old")
-				}
-			});
+			return this.orderModel
+				.findOne({ posOrderId: element._id })
+				.then((res) => {
+					if (res == null) {
+						element.posOrderId = element._id;
+						// console.log("Id :",element._id, " ==> ",JSON.stringify(element.itemsInCart))
+						delete element._id;
+						return this.orderModel
+							.create(element)
+							.then((orderRes) => {
+								resolve(orderRes);
+							});
+					} else {
+						// console.log("old")
+					}
+				});
 		});
 	}
 
@@ -360,9 +407,9 @@ export class OrderService {
 				},
 			},
 		];
-		console.log(pipeline);
+
 		let dateWiseOrderData = await this.orderModel.aggregate(pipeline);
-		console.log('Data', dateWiseOrderData);
+
 		return dateWiseOrderData;
 	}
 
@@ -419,9 +466,7 @@ export class OrderService {
 		];
 
 		let brandWiseOrderData = await this.orderModel.aggregate(pipeline);
-		console.log('====================================');
-		console.log(brandWiseOrderData);
-		console.log('====================================');
+
 		return brandWiseOrderData;
 	}
 
@@ -478,9 +523,7 @@ export class OrderService {
 		];
 
 		let staffWiseOrderData = await this.orderModel.aggregate(pipeline);
-		console.log('====================================');
-		console.log(staffWiseOrderData);
-		console.log('====================================');
+
 		return staffWiseOrderData;
 	}
 }

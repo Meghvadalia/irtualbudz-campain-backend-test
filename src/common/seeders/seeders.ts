@@ -74,9 +74,7 @@ export class seederService {
 					)._id;
 					return { ...data, posId: posID };
 				});
-				console.log('====================================');
-				console.log(seededCompanyData);
-				console.log('====================================');
+
 				await this.companyModel.create(seededCompanyData);
 			}
 

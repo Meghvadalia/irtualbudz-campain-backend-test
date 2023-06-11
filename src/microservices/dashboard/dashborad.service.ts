@@ -17,24 +17,41 @@ export class DashboardService {
 	async getCalculatedData(query: { fromDate: string; toDate: string }) {
 		const age = await this.calculateAverageAge();
 
-		const sum = age.reduce((accumulator, currentValue) => accumulator + currentValue, 0);
+		const sum = age.reduce(
+			(accumulator, currentValue) => accumulator + currentValue,
+			0
+		);
 		const averageAge = (sum / age.length).toFixed(1);
 
-		const { averageSpend, loyaltyPointsConverted } = await this.calculateAverageSpendAndLoyaltyPoints();
+		const { averageSpend, loyaltyPointsConverted } =
+			await this.calculateAverageSpendAndLoyaltyPoints();
 
-		const { totalOrderAmount, percentageGrowth, totalOrders, orderGrowth, dateWiseOrderData } = await this.totalSales(query);
+		const {
+			totalOrderAmount,
+			percentageGrowth,
+			totalOrders,
+			orderGrowth,
+			dateWiseOrderData,
+		} = await this.totalSales(query);
 
 		const totalDiscounts = await this.totalDiscounts();
 
 		// const brandTotal = await this.calculatebrandTotal();
 
 		const topCategory = await this.topSellingCategory();
-		const { medCustomerRatio, recCustomerRatio } = await this.recVsMedCustomer();
+		const { medCustomerRatio, recCustomerRatio } =
+			await this.recVsMedCustomer();
 		const weekOrders = await this.getOrderCountsByDayOfWeek();
 		const hourlyData = await this.getOrderCountsByHour();
 
-		const brandWiseOrderData = await this.orderService.getBrandWiseSales(query.fromDate, query.toDate);
-		const staffWiseOrderData = await this.orderService.getEmployeeWiseSales(query.fromDate, query.toDate);
+		const brandWiseOrderData = await this.orderService.getBrandWiseSales(
+			query.fromDate,
+			query.toDate
+		);
+		const staffWiseOrderData = await this.orderService.getEmployeeWiseSales(
+			query.fromDate,
+			query.toDate
+		);
 
 		return {
 			overview: {
@@ -65,7 +82,7 @@ export class DashboardService {
 			operations: {
 				weekOrders,
 				hourlyData,
-				staffWiseOrderData
+				staffWiseOrderData,
 			},
 		};
 	}
@@ -81,7 +98,8 @@ export class DashboardService {
 
 			const hasBirthdayPassed =
 				now.getMonth() > birthDate.getMonth() ||
-				(now.getMonth() === birthDate.getMonth() && now.getDate() >= birthDate.getDate());
+				(now.getMonth() === birthDate.getMonth() &&
+					now.getDate() >= birthDate.getDate());
 			if (!hasBirthdayPassed) {
 				age--;
 			}
@@ -120,11 +138,20 @@ export class DashboardService {
 		const customerType = orderList.flatMap((order) => order.customerType);
 
 		const totalCount = customerType.length;
-		const recCustomerCount = customerType.reduce((count, type) => (type === 'recCustomer' ? count + 1 : count), 0);
+		const recCustomerCount = customerType.reduce(
+			(count, type) => (type === 'recCustomer' ? count + 1 : count),
+			0
+		);
 		const medCustomerCount = totalCount - recCustomerCount;
 
-		const recCustomerRatio = ((recCustomerCount / totalCount) * 100).toFixed(2);
-		const medCustomerRatio = ((medCustomerCount / totalCount) * 100).toFixed(2);
+		const recCustomerRatio = (
+			(recCustomerCount / totalCount) *
+			100
+		).toFixed(2);
+		const medCustomerRatio = (
+			(medCustomerCount / totalCount) *
+			100
+		).toFixed(2);
 
 		return {
 			recCustomerRatio,
@@ -135,9 +162,14 @@ export class DashboardService {
 	async calculateAverageSpendAndLoyaltyPoints() {
 		const orderList = await this.orderService.getOrders();
 
-		const payments = orderList.flatMap((order) => order.payments).map((payment) => payment.amount);
+		const payments = orderList
+			.flatMap((order) => order.payments)
+			.map((payment) => payment.amount);
 
-		const paymentSum = payments.reduce((accumulator, currentValue) => accumulator + currentValue, 0);
+		const paymentSum = payments.reduce(
+			(accumulator, currentValue) => accumulator + currentValue,
+			0
+		);
 		const average = (paymentSum / payments.length).toFixed(2);
 
 		const loyaltyPoints = orderList
@@ -145,7 +177,10 @@ export class DashboardService {
 			.map((payment) => payment.loyaltyPoints)
 			.filter((loyaltyPoints) => typeof loyaltyPoints === 'number');
 
-		const loyaltyPointsSum = loyaltyPoints.reduce((accumulator, currentValue) => accumulator + currentValue, 0);
+		const loyaltyPointsSum = loyaltyPoints.reduce(
+			(accumulator, currentValue) => accumulator + currentValue,
+			0
+		);
 
 		return {
 			averageSpend: average,
@@ -155,38 +190,59 @@ export class DashboardService {
 
 	async totalSales(query) {
 		const { fromDate, toDate } = query;
-		const formattedFromDate = dayjs(fromDate).format('YYYY-MM-DDT00:00:00.000[Z]');
-		const formattedToDate = dayjs(toDate).format('YYYY-MM-DDT23:59:59.999[Z]');
+		const formattedFromDate = dayjs(fromDate).format(
+			'YYYY-MM-DDT00:00:00.000[Z]'
+		);
+		const formattedToDate = dayjs(toDate).format(
+			'YYYY-MM-DDT23:59:59.999[Z]'
+		);
 
-		const { fromOrderList, toOrderList, orderList } = await this.orderService.getOrdersByDate(formattedFromDate, formattedToDate);
+		const { fromOrderList, toOrderList, orderList } =
+			await this.orderService.getOrdersByDate(
+				formattedFromDate,
+				formattedToDate
+			);
 
-		const ordersGrowth = ((toOrderList.length - fromOrderList.length) / fromOrderList.length) * 100;
+		const ordersGrowth =
+			((toOrderList.length - fromOrderList.length) /
+				fromOrderList.length) *
+			100;
 		const orderSum = toOrderList.length > fromOrderList.length ? '+' : '-';
 		const orderGrowth = `${orderSum}${Math.abs(ordersGrowth).toFixed(2)}%`;
 
-		const startOrderAmount = fromOrderList.flatMap((order) => order.payments).map((payment) => payment.amount);
-		const toOrderAmount = toOrderList.flatMap((order) => order.payments).map((payment) => payment.amount);
+		const startOrderAmount = fromOrderList
+			.flatMap((order) => order.payments)
+			.map((payment) => payment.amount);
+		const toOrderAmount = toOrderList
+			.flatMap((order) => order.payments)
+			.map((payment) => payment.amount);
 
-		const startOrderSum = +startOrderAmount.reduce((accumulator, currentValue) => accumulator + currentValue, 0);
-		const toOrderSum = +toOrderAmount.reduce((accumulator, currentValue) => accumulator + currentValue, 0);
+		const startOrderSum = +startOrderAmount.reduce(
+			(accumulator, currentValue) => accumulator + currentValue,
+			0
+		);
+		const toOrderSum = +toOrderAmount.reduce(
+			(accumulator, currentValue) => accumulator + currentValue,
+			0
+		);
 
-		const orderAmount = orderList.flatMap((order) => order.payments).map((payment) => payment.amount);
-		const totalOrderAmount = orderAmount.reduce((accumulator, currentValue) => accumulator + currentValue, 0);
+		const orderAmount = orderList
+			.flatMap((order) => order.payments)
+			.map((payment) => payment.amount);
+		const totalOrderAmount = orderAmount.reduce(
+			(accumulator, currentValue) => accumulator + currentValue,
+			0
+		);
 
 		const growth = ((toOrderSum - startOrderSum) / startOrderSum) * 100;
 		const sign = toOrderSum > startOrderSum ? '+' : '-';
 		const totalGrowth = `${sign}${Math.abs(growth).toFixed(2)}%`;
 
-		const dateWiseOrderData = await this.orderService.getOrderForEachDate(fromDate, toDate);
-		console.log('====================================');
-		console.log({
-			totalOrderAmount,
-			percentageGrowth: totalGrowth,
-			totalOrders: orderList.length,
-			orderGrowth,
-			dateWiseOrderData,
-		});
-		console.log('====================================');
+		const dateWiseOrderData = await this.orderService.getOrderForEachDate(
+			fromDate,
+			toDate
+		);
+
 		return {
 			totalOrderAmount,
 			percentageGrowth: totalGrowth,
@@ -206,45 +262,63 @@ export class DashboardService {
 			return counts;
 		}, []);
 
-		const dayOfWeekLabels = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+		const dayOfWeekLabels = [
+			'Sunday',
+			'Monday',
+			'Tuesday',
+			'Wednesday',
+			'Thursday',
+			'Friday',
+			'Saturday',
+		];
 
-		const orderCountsByDayOfWeek = dayOfWeekLabels.map((dayOfWeek, index) => {
-			const count = dayCounts[index] || 0;
-			return { dayOfWeek, count };
-		});
+		const orderCountsByDayOfWeek = dayOfWeekLabels.map(
+			(dayOfWeek, index) => {
+				const count = dayCounts[index] || 0;
+				return { dayOfWeek, count };
+			}
+		);
 
 		return orderCountsByDayOfWeek;
 	}
 
 	async getOrderCountsByHour() {
 		const orders = await this.orderService.currentDaysOrderList();
-		
+
 		const hourCounts = Array(12).fill(0); // Initialize count array for each hour from 10 AM to 9 PM
-	  
-		orders.forEach(order => {
-		  const createdAt = new Date(order.createdAt);
-		  const hour = createdAt.getUTCHours();
-		  if (hour >= 10 && hour <= 21) {
-			hourCounts[hour - 10]++;
-		  }
+
+		orders.forEach((order) => {
+			const createdAt = new Date(order.createdAt);
+			const hour = createdAt.getUTCHours();
+			if (hour >= 10 && hour <= 21) {
+				hourCounts[hour - 10]++;
+			}
 		});
-	  
-		const hourLabels = Array.from({ length: 12 }, (_, index) => (index + 10) % 12 + (index >= 6 ? ' PM' : ' AM'));
-	  
+
+		const hourLabels = Array.from(
+			{ length: 12 },
+			(_, index) => ((index + 10) % 12) + (index >= 6 ? ' PM' : ' AM')
+		);
+
 		const orderCountsByHour = hourLabels.map((hourLabel, index) => {
-		  const count = hourCounts[index];
-		  return { hour: hourLabel, count };
+			const count = hourCounts[index];
+			return { hour: hourLabel, count };
 		});
-	  
+
 		return orderCountsByHour;
-	  }
+	}
 
 	async totalDiscounts() {
 		const orderList = await this.orderService.getOrders();
 
-		const payments = orderList.flatMap((order) => order.totals).map((total) => total.totalDiscounts);
+		const payments = orderList
+			.flatMap((order) => order.totals)
+			.map((total) => total.totalDiscounts);
 
-		const totalDiscounts = payments.reduce((accumulator, currentValue) => accumulator + currentValue, 0);
+		const totalDiscounts = payments.reduce(
+			(accumulator, currentValue) => accumulator + currentValue,
+			0
+		);
 		return totalDiscounts.toFixed(2);
 	}
 
