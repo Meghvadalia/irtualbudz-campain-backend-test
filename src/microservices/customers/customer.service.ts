@@ -18,9 +18,10 @@ export class CustomerService {
 
 	async seedCustomers(fromDate: Date, toDate: Date) {
 		try {
-			const monarcCompanyData: ICompany = await this.companyModel.findOne<ICompany>({
-				name: 'Monarc',
-			});
+			const monarcCompanyData: ICompany =
+				await this.companyModel.findOne<ICompany>({
+					name: 'Monarc',
+				});
 
 			const options = {
 				method: 'get',
@@ -37,14 +38,18 @@ export class CustomerService {
 			console.log(data.customers[0]);
 
 			if (data.customers.length > 0) {
-				const customersWithCompanyId = data.customers.map((customer: ICustomer) => ({
-					...customer,
-					companyId: monarcCompanyData._id,
-					posId: monarcCompanyData.posId,
-				}));
+				const customersWithCompanyId = data.customers.map(
+					(customer: ICustomer) => ({
+						...customer,
+						companyId: monarcCompanyData._id,
+						posId: monarcCompanyData.posId,
+					})
+				);
 
 				await this.customerModel.insertMany(customersWithCompanyId);
-				console.log(`Seeded ${customersWithCompanyId.length} customers.`);
+				console.log(
+					`Seeded ${customersWithCompanyId.length} customers.`
+				);
 			} else {
 				console.log('No customers to seed.');
 			}
@@ -57,13 +62,34 @@ export class CustomerService {
 	async scheduleCronJob() {
 		try {
 			const currentDate = new Date();
-			const fromDate = new Date(currentDate.getFullYear(), currentDate.getMonth(), currentDate.getDate() - 1, 0, 0, 0);
-			const toDate = new Date(currentDate.getFullYear(), currentDate.getMonth(), currentDate.getDate(), 0, 0, 0);
+			const fromDate = new Date(
+				currentDate.getFullYear(),
+				currentDate.getMonth(),
+				currentDate.getDate() - 1,
+				0,
+				0,
+				0
+			);
+			const toDate = new Date(
+				currentDate.getFullYear(),
+				currentDate.getMonth(),
+				currentDate.getDate(),
+				0,
+				0,
+				0
+			);
 
 			const customersCount = await this.customerModel.countDocuments();
 			if (customersCount === 0) {
 				console.log('Seeding data for the last 100 days...');
-				const hundredDaysAgo = new Date(currentDate.getFullYear(), currentDate.getMonth(), currentDate.getDate() - 100, 0, 0, 0);
+				const hundredDaysAgo = new Date(
+					currentDate.getFullYear(),
+					currentDate.getMonth(),
+					currentDate.getDate() - 100,
+					0,
+					0,
+					0
+				);
 
 				await this.seedCustomers(hundredDaysAgo, toDate);
 			} else {
@@ -78,5 +104,34 @@ export class CustomerService {
 	async getCustomers() {
 		const users = await this.customerModel.find().exec();
 		return users;
+	}
+
+	async getAverageAge() {
+		const aggregationPipeline = [
+			{
+				$group: {
+					_id: null,
+					averageAge: {
+						$avg: {
+							$divide: [
+								{ $subtract: [new Date(), '$birthDate'] },
+								1000 * 60 * 60 * 24 * 365,
+							],
+						},
+					},
+				},
+			},
+			{
+				$project: {
+					_id: 0,
+					averageAge: { $round: ['$averageAge', 2] },
+				},
+			},
+		];
+
+		const result = await this.customerModel.aggregate(aggregationPipeline);
+		const averageAge = result.length > 0 ? result[0].averageAge : null;
+
+		return averageAge;
 	}
 }
