@@ -580,4 +580,38 @@ export class OrderService {
 			console.log('====================================');
 		}
 	}
+
+	async getAverageSpendAndLoyaltyPointsForAllCustomer() {
+		try {
+			const pipeline: PipelineStage[] = [
+				{
+					$group: {
+						_id: '$customerId',
+						averageSpend: { $avg: '$totals.finalTotal' },
+						totalPoints: { $sum: '$currentPoints' },
+					},
+				},
+				{
+					$group: {
+						_id: null,
+						averageSpend: { $avg: '$averageSpend' },
+						totalPointsConverted: { $sum: '$totalPoints' },
+					},
+				},
+				{
+					$project: {
+						_id: 0,
+						averageSpend: { $round: ['$averageSpend', 2] },
+						loyaltyPointsConverted: '$totalPointsConverted',
+					},
+				},
+			];
+			const result = await this.orderModel.aggregate(pipeline);
+
+			const averageSpendWithLoyalty =
+				result.length > 0 ? result[0] : null;
+
+			return averageSpendWithLoyalty;
+		} catch (error) {}
+	}
 }

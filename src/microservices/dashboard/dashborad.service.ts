@@ -155,32 +155,30 @@ export class DashboardService {
 	}
 
 	async calculateAverageSpendAndLoyaltyPoints() {
-		const orderList = await this.orderService.getOrders();
+		// const orderList = await this.orderService.getOrders();
 
-		const payments = orderList
-			.flatMap((order) => order.payments)
-			.map((payment) => payment.amount);
+		// const payments = orderList
+		// 	.flatMap((order) => order.payments)
+		// 	.map((payment) => payment.amount);
 
-		const paymentSum = payments.reduce(
-			(accumulator, currentValue) => accumulator + currentValue,
-			0
-		);
-		const average = (paymentSum / payments.length).toFixed(2);
+		// const paymentSum = payments.reduce(
+		// 	(accumulator, currentValue) => accumulator + currentValue,
+		// 	0
+		// );
+		// const average = (paymentSum / payments.length).toFixed(2);
 
-		const loyaltyPoints = orderList
-			.flatMap((order) => order.payments)
-			.map((payment) => payment.loyaltyPoints)
-			.filter((loyaltyPoints) => typeof loyaltyPoints === 'number');
+		// const loyaltyPoints = orderList
+		// 	.flatMap((order) => order.payments)
+		// 	.map((payment) => payment.loyaltyPoints)
+		// 	.filter((loyaltyPoints) => typeof loyaltyPoints === 'number');
 
-		const loyaltyPointsSum = loyaltyPoints.reduce(
-			(accumulator, currentValue) => accumulator + currentValue,
-			0
-		);
-
-		return {
-			averageSpend: average,
-			loyaltyPointsConverted: loyaltyPointsSum,
-		};
+		// const loyaltyPointsSum = loyaltyPoints.reduce(
+		// 	(accumulator, currentValue) => accumulator + currentValue,
+		// 	0
+		// );
+		const averageSpendWithLoyalty =
+			await this.orderService.getAverageSpendAndLoyaltyPointsForAllCustomer();
+		return averageSpendWithLoyalty;
 	}
 
 	async totalSales(query) {
