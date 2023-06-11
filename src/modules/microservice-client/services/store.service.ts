@@ -20,10 +20,9 @@ export class StoreService {
 
 	async seedStoreData() {
 		try {
-			const monarcCompanyData: ICompany =
-				await this.companyModel.findOne<ICompany>({
-					name: 'Monarc',
-				});
+			const monarcCompanyData: ICompany = await this.companyModel.findOne<ICompany>({
+				name: 'Monarc',
+			});
 
 			const posData: IPOS = await this.posModel.findOne<IPOS>({
 				_id: monarcCompanyData.posId,

@@ -2,10 +2,15 @@ export const DATABASE_REPOSITORY = {
 	USER_REPOSITORY: 'USER_REPOSITORY',
 };
 
-
-export const DATABASE_COLLECTION={
-	POS:'POS',
-	COMPANIES:"companies",
-	STORES:'stores',
-	
-}
+export const DATABASE_COLLECTION = {
+	POS: 'POS',
+	COMPANIES: 'companies',
+	STORES: 'stores',
+	CUSTOMER: 'customers',
+	ORDER: 'orders',
+	INVENTORY: 'inventories',
+	PRODUCT: 'products',
+	CART: 'cart',
+	STAFF: 'staff',
+	USER: 'users',
+};
