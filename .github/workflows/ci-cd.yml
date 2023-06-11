@@ -25,7 +25,10 @@ jobs:
 
       - name: Run tests
         run: npm run test
-        
+      - name: Disable host key checking
+        run: |
+          mkdir -p ~/.ssh
+          echo "StrictHostKeyChecking no" > ~/.ssh/config
       - name: Deploy to server using rsync
         run: |
            rsync -avz --delete -e "ssh -p ${{ secrets.PORT }} -vvv" --exclude '.git' . ${{ secrets.USERNAME }}@${{ secrets.HOST }}:/var/www/html/monarc-backend/html
