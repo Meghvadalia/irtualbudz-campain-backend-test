@@ -16,9 +16,8 @@ export interface IOrder {
 	staffId: string;
 	payments: Payments;
 	[property: string]: any;
+	posCreatedAt: Date;
 }
-
-
 
 export interface Tax {
 	_id: string;
