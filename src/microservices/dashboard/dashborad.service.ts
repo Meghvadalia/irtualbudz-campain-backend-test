@@ -15,13 +15,7 @@ export class DashboardService {
 	) {}
 
 	async getCalculatedData(query: { fromDate: string; toDate: string }) {
-		const age = await this.calculateAverageAge();
-
-		const sum = age.reduce(
-			(accumulator, currentValue) => accumulator + currentValue,
-			0
-		);
-		const averageAge = (sum / age.length).toFixed(1);
+		const averageAge = await this.calculateAverageAge();
 
 		const { averageSpend, loyaltyPointsConverted } =
 			await this.calculateAverageSpendAndLoyaltyPoints();
@@ -88,25 +82,26 @@ export class DashboardService {
 	}
 
 	async calculateAverageAge() {
-		const ageArray: number[] = [];
-		const users = await this.customerService.getCustomers();
+		// const ageArray: number[] = [];
+		// const users = await this.customerService.getCustomers();
 
-		users.map((user) => {
-			const birthDate = new Date(user.birthDate);
-			const now = new Date();
-			let age = now.getFullYear() - birthDate.getFullYear();
+		// users.map((user) => {
+		// 	const birthDate = new Date(user.birthDate);
+		// 	const now = new Date();
+		// 	let age = now.getFullYear() - birthDate.getFullYear();
 
-			const hasBirthdayPassed =
-				now.getMonth() > birthDate.getMonth() ||
-				(now.getMonth() === birthDate.getMonth() &&
-					now.getDate() >= birthDate.getDate());
-			if (!hasBirthdayPassed) {
-				age--;
-			}
+		// 	const hasBirthdayPassed =
+		// 		now.getMonth() > birthDate.getMonth() ||
+		// 		(now.getMonth() === birthDate.getMonth() &&
+		// 			now.getDate() >= birthDate.getDate());
+		// 	if (!hasBirthdayPassed) {
+		// 		age--;
+		// 	}
 
-			ageArray.push(age);
-		});
-		return ageArray;
+		// 	ageArray.push(age);
+		// });
+		const averageAge = await this.customerService.getAverageAge();
+		return averageAge;
 	}
 
 	async calculatebrandTotal() {
