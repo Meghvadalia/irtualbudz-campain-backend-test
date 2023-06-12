@@ -15,6 +15,13 @@ export class DashboardService {
 	) {}
 
 	async getCalculatedData(query: { fromDate: string; toDate: string }) {
+		const formattedFromDate = dayjs(query.fromDate).format(
+			'YYYY-MM-DDT00:00:00.000[Z]'
+		);
+		const formattedToDate = dayjs(query.toDate).format(
+			'YYYY-MM-DDT23:59:59.999[Z]'
+		);
+		query={fromDate:formattedFromDate,toDate:formattedToDate}
 		const averageAge = await this.calculateAverageAge(
 			query.fromDate,
 			query.toDate
@@ -169,12 +176,7 @@ export class DashboardService {
 
 	async totalSales(query) {
 		const { fromDate, toDate } = query;
-		const formattedFromDate = dayjs(fromDate).format(
-			'YYYY-MM-DDT00:00:00.000[Z]'
-		);
-		const formattedToDate = dayjs(toDate).format(
-			'YYYY-MM-DDT23:59:59.999[Z]'
-		);
+		
 
 		const {
 			totalOrderAmount,
@@ -184,8 +186,8 @@ export class DashboardService {
 			discountGrowth,
 			orderCountGrowth,
 		} = await this.orderService.totalOverViewCountForOrdersBetweenDate(
-			formattedFromDate,
-			formattedToDate
+			fromDate,
+			toDate
 		);
 
 		const dateWiseOrderData = await this.orderService.getOrderForEachDate(

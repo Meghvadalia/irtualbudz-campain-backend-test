@@ -480,8 +480,8 @@ export class OrderService {
 												'$posCreatedAt',
 												new Date(
 													new Date().setDate(
-														new Date().getDate() -
-															28
+														new Date(fromDate).getDate() -
+														14
 													)
 												),
 											],
@@ -491,7 +491,7 @@ export class OrderService {
 												'$posCreatedAt',
 												new Date(
 													new Date().setDate(
-														new Date().getDate() -
+														new Date(fromEndDate).getDate() -
 															14
 													)
 												),
