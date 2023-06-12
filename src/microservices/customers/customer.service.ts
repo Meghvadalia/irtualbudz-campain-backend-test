@@ -106,8 +106,18 @@ export class CustomerService {
 		return users;
 	}
 
-	async getAverageAge() {
+	async getAverageAge(fromDate, toDate) {
+		const fromStartDate = new Date(fromDate);
+		const toEndDate = new Date(toDate);
 		const aggregationPipeline = [
+			{
+				$match: {
+					createdAt: {
+						$gte: fromStartDate,
+						$lte: toEndDate,
+					},
+				},
+			},
 			{
 				$group: {
 					_id: null,
