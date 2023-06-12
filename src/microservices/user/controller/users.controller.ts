@@ -1,10 +1,10 @@
 import { Controller, SerializeOptions } from '@nestjs/common';
 import { GrpcMethod, Payload, RpcException } from '@nestjs/microservices';
 
-import { extendedUserGroupsForSerializing } from './serializers/user.serializer';
-import { UsersService } from './users.service';
-import { User } from './entities/user.entity';
-import { CreateUserDto, Login } from './dto/user.dto';
+import { extendedUserGroupsForSerializing } from '../serializers/user.serializer';
+import { UsersService } from '../service/users.service';
+import { User } from '../entities/user.entity';
+import { CreateUserDto, Login } from '../dto/user.dto';
 
 @Controller('users')
 @SerializeOptions({

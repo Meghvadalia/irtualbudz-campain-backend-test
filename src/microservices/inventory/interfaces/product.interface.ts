@@ -3,6 +3,7 @@ export interface IProduct {
 	companyId: string;
 	clientId: number;
 	productName: string;
+	posProductId: string;
 	productDescription: string;
 	priceInMinorUnits: number;
 	sku: string;

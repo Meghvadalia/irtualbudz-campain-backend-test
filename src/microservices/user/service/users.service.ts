@@ -1,9 +1,9 @@
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 
-import { User } from './entities/user.entity';
+import { User } from '../entities/user.entity';
 import { Model } from 'mongoose';
-import { CreateUserDto } from './dto/user.dto';
+import { CreateUserDto } from '../dto/user.dto';
 import { passwordService } from 'src/utils/password.util';
 import { jwtService } from 'src/utils/token.util';
 import { RedisService } from 'src/config/cache/config.service';

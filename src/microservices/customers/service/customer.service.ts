@@ -3,11 +3,11 @@ import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import axios from 'axios';
 
-import { Customer } from './entities/customer.entity';
+import { Customer } from '../entities/customer.entity';
 import { Cron } from '@nestjs/schedule';
 import { ICompany } from 'src/model/company/interface/company.interface';
 import { Company } from 'src/model/company/entities/company.entity';
-import { ICustomer } from './interfaces/customer.interface';
+import { ICustomer } from '../interfaces/customer.interface';
 
 @Injectable()
 export class CustomerService {
@@ -34,17 +34,16 @@ export class CustomerService {
 			};
 
 			const { data } = await axios.request(options);
-			console.log(data.customers[0]);
 
 			if (data.customers.length > 0) {
-				const customersWithCompanyId = data.customers.map((customer: ICustomer) => ({
+				const customers = data.customers.map((customer: ICustomer) => ({
 					...customer,
 					companyId: monarcCompanyData._id,
-					posId: monarcCompanyData.posId,
+					POSId: monarcCompanyData.posId,
 				}));
 
-				await this.customerModel.insertMany(customersWithCompanyId);
-				console.log(`Seeded ${customersWithCompanyId.length} customers.`);
+				await this.customerModel.insertMany(customers);
+				console.log(`Seeded ${customers.length} customers.`);
 			} else {
 				console.log('No customers to seed.');
 			}
@@ -73,10 +72,5 @@ export class CustomerService {
 		} catch (error) {
 			console.error('Error while scheduling cron job:', error);
 		}
-	}
-
-	async getCustomers() {
-		const users = await this.customerModel.find().exec();
-		return users;
 	}
 }

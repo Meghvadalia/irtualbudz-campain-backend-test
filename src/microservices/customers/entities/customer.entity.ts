@@ -13,11 +13,15 @@ export class Customer extends Model<ICustomer> {
 	@Prop({ required: true, unique: true })
 	id: string;
 
-	@Prop({ required: true, type: Types.ObjectId, ref: DATABASE_COLLECTION.COMPANIES })
+	@Prop({
+		required: true,
+		type: Types.ObjectId,
+		ref: DATABASE_COLLECTION.COMPANIES,
+	})
 	companyId: string;
 
-	// @Prop({ required: true, type: Types.ObjectId, ref: DATABASE_COLLECTION.POS })
-	// POSId: string;
+	@Prop({ required: true, type: Types.ObjectId, ref: DATABASE_COLLECTION.POS })
+	POSId: string;
 
 	// @Prop({ required: true, type: Types.ObjectId, ref: DATABASE_COLLECTION.STORES })
 	// storeId: string;
@@ -32,7 +36,7 @@ export class Customer extends Model<ICustomer> {
 	state: string;
 
 	@Prop()
-	birthDate: string;
+	birthDate: Date;
 
 	@Prop()
 	isLoyal: boolean;
@@ -60,6 +64,15 @@ export class Customer extends Model<ICustomer> {
 
 	@Prop()
 	country: string;
+
+	@Prop({ default: Date.now })
+	updatedAt: Date;
+
+	@Prop({ default: false })
+	isDeleted: boolean;
+
+	@Prop({ default: true })
+	isActive: boolean;
 }
 
 export const CustomerSchema = SchemaFactory.createForClass(Customer);

@@ -1,36 +1,52 @@
-import { Model } from 'mongoose';
+import { Model, Types } from 'mongoose';
 import { Prop, Schema, SchemaFactory, raw } from '@nestjs/mongoose';
-import { AppliesTo, ItemDiscounts, ItemsCart, Tax } from '../interfaces/cart.interface';
+import { AppliesTo, ItemDiscounts, ItemsCart } from '../interfaces/cart.interface';
 import { DATABASE_COLLECTION } from 'src/common/constants';
 
 @Schema({ collection: DATABASE_COLLECTION.CART, timestamps: true })
 export class Cart extends Model<ItemsCart> {
-	@Prop({required: true, unique: false })
+	@Prop({ required: true, unique: false })
 	posCartId: String;
+
+	// @Prop({ required: true, type: Types.ObjectId, ref: DATABASE_COLLECTION.PRODUCT })
+	// productId: String;
+
 	@Prop()
 	storeId: String;
+
 	@Prop()
 	sku: String;
+
 	@Prop()
 	category: String;
+
 	@Prop()
 	title1: String;
+
 	@Prop()
 	title2: String;
+
 	@Prop()
 	productName: String;
+
 	@Prop()
 	strainName: String;
+
 	@Prop()
 	unitOfWeight: String;
+
 	@Prop()
 	quantity: Number;
+
 	@Prop()
 	unitPrice: Number;
+
 	@Prop()
 	totalPrice: Number;
+
 	@Prop()
 	unitCost: Number;
+
 	@Prop()
 	totalCost: Number;
 
