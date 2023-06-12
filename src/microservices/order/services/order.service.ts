@@ -259,6 +259,7 @@ export class OrderService {
 		fourteenDaysAgo.setDate(fourteenDaysAgo.getDate() - 14);
 
 		const orders = await this.orderModel.find({
+			locationId: 'k5wsZpPcz4C92Q2mW',
 			createdAt: { $gte: fourteenDaysAgo, $lt: currentDate },
 		});
 
@@ -344,7 +345,7 @@ export class OrderService {
 					_id: 0, // Exclude the _id field from the output
 					date: 1,
 					count: 1,
-					totalAmount: 1,
+					totalAmount: { $round: ['$totalAmount', 2] },
 				},
 			},
 		];
@@ -401,14 +402,14 @@ export class OrderService {
 				$project: {
 					_id: 0, // Exclude the _id field from the output
 					brand: '$_id.brand',
-					totalAmount: 1,
+					totalAmount: { $round: ['$totalAmount', 2] },
 				},
 			},
 		];
 
 		let brandWiseOrderData = await this.orderModel.aggregate(pipeline);
 		console.log('====================================');
-		console.log(brandWiseOrderData);
+		console.log(' => ', brandWiseOrderData);
 		console.log('====================================');
 		return brandWiseOrderData;
 	}

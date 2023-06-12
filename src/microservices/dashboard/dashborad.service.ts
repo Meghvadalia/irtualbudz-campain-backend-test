@@ -15,10 +15,7 @@ export class DashboardService {
 	) {}
 
 	async getCalculatedData(query: { fromDate: string; toDate: string }) {
-		const age = await this.calculateAverageAge();
-
-		const sum = age.reduce((accumulator, currentValue) => accumulator + currentValue, 0);
-		const averageAge = (sum / age.length).toFixed(1);
+		const averageAge = await this.calculateAverageAge();
 
 		const { averageSpend, loyaltyPointsConverted } = await this.calculateAverageSpendAndLoyaltyPoints();
 
@@ -26,13 +23,14 @@ export class DashboardService {
 
 		const totalDiscounts = await this.totalDiscounts();
 
-		// const brandTotal = await this.calculatebrandTotal();
-
 		const topCategory = await this.topSellingCategory();
 		const { medCustomerRatio, recCustomerRatio } = await this.recVsMedCustomer();
 		const weekOrders = await this.getOrderCountsByDayOfWeek();
 
 		const brandWiseOrderData = await this.orderService.getBrandWiseSales(query.fromDate, query.toDate);
+		const hourWiseOrders = await this.hourWiseOrders();
+
+		const staffSales = await this.staffSales();
 
 		return {
 			overview: {
@@ -54,7 +52,7 @@ export class DashboardService {
 				topCategory,
 				recOrMedCustomer: {
 					newCustomer: medCustomerRatio,
-					returnningCustomer: recCustomerRatio,
+					returningCustomer: recCustomerRatio,
 				},
 			},
 			sales: {
@@ -62,8 +60,36 @@ export class DashboardService {
 			},
 			operations: {
 				weekOrders,
+				hourWiseOrders,
 			},
 		};
+	}
+
+	async staffSales() {
+		const orders = await this.orderService.fourteenDaysOrderList();
+		const staffSalesMap = {};
+
+		const payments = orders.flatMap((order) => order.payments).map((payment) => payment.amount);
+
+		const paymentSum = payments.reduce((accumulator, currentValue) => accumulator + currentValue, 0);
+		console.log({ paymentSum });
+
+		for (const order of orders) {
+			const { fullName, payments } = order;
+			const amount = payments.reduce((total, payment) => total + payment.amount, 0);
+
+			if (!staffSalesMap[fullName]) {
+				staffSalesMap[fullName] = amount;
+			} else {
+				staffSalesMap[fullName] += amount;
+			}
+		}
+
+		const staffSalesList = Object.entries(staffSalesMap).map(([fullName, totalAmount]) => {
+			return { [fullName]: totalAmount };
+		});
+
+		console.log(staffSalesList);
 	}
 
 	async calculateAverageAge() {
@@ -84,7 +110,10 @@ export class DashboardService {
 
 			ageArray.push(age);
 		});
-		return ageArray;
+		const sum = ageArray.reduce((accumulator, currentValue) => accumulator + currentValue, 0);
+		const averageAge = (sum / ageArray.length).toFixed(1);
+
+		return averageAge;
 	}
 
 	async calculatebrandTotal() {
@@ -212,6 +241,33 @@ export class DashboardService {
 		return orderCountsByDayOfWeek;
 	}
 
+	async hourWiseOrders() {
+		const orderList = (await this.orderService.fourteenDaysOrderList()).flatMap((order) => order.createdAt);
+		const hourWiseCounts = {};
+
+		for (const order of orderList) {
+			const orderHour = new Date(order).getHours();
+
+			if (hourWiseCounts.hasOwnProperty(orderHour)) {
+				hourWiseCounts[orderHour]++;
+			} else {
+				hourWiseCounts[orderHour] = 1;
+			}
+		}
+
+		const result = {};
+
+		for (const hour in hourWiseCounts) {
+			const startHour = Number(hour);
+			const endHour = (startHour + 1) % 24;
+			const count = hourWiseCounts[hour];
+			const interval = `${startHour}:00 to ${endHour}:00`;
+			result[interval] = count;
+		}
+
+		return [result];
+	}
+
 	async totalDiscounts() {
 		const orderList = await this.orderService.getOrders();
 
@@ -258,32 +314,4 @@ export class DashboardService {
 		}
 		return topCategory;
 	}
-
-	// async loyaltyPointsConverted() {
-	// 	const orderList = await this.orderService.getOrders();
-
-	// 	const loyaltyPoints = orderList
-	// 		.flatMap((order) => order.payments)
-	// 		.map((payment) => payment.loyaltyPoints)
-	// 		.filter((loyaltyPoints) => typeof loyaltyPoints === 'number');
-
-	// 	const loyaltyPointsSum = loyaltyPoints.reduce((accumulator, currentValue) => accumulator + currentValue, 0);
-
-	// 	return loyaltyPointsSum;
-	// }
-
-	// async calculateAverageSpend() {
-	// 	const orderList = await this.orderService.getOrders();
-
-	// 	const payments = orderList
-	// 		.flatMap((order) => {
-	// 			return order.payments;
-	// 		})
-	// 		.map((payment) => payment.amount);
-
-	// 	const paymentSum = payments.reduce((accumulator, currentValue) => accumulator + currentValue, 0);
-	// 	const average = (paymentSum / payments.length).toFixed(2);
-
-	// 	return average;
-	// }
 }
