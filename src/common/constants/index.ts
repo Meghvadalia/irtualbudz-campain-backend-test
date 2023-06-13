@@ -13,4 +13,5 @@ export const DATABASE_COLLECTION = {
 	CART: 'cart',
 	STAFF: 'staff',
 	USER: 'users',
+	SESSION: 'session',
 };

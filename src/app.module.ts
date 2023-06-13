@@ -7,7 +7,6 @@ import { UsersModule } from './microservices/user/users.module';
 import { InventoryModule } from './microservices/inventory';
 import { ScheduleModule } from '@nestjs/schedule';
 import { CustomerModule } from './microservices/customers/customer.module';
-// import { ProductModule } from './microservices/product';
 
 @Module({
 	imports: [

@@ -20,6 +20,8 @@ import { CustomerService } from './services/customer.service';
 import { Customer, CustomerSchema } from 'src/microservices/customers/entities/customer.entity';
 import { OrderService } from './services/order.service';
 import { Order, OrderSchema } from 'src/microservices/order/entities/order.entity';
+import { UserController } from './controllers/user.controller';
+import { JwtService } from '../../utils/token.util';
 
 @Module({
 	imports: [
@@ -37,7 +39,7 @@ import { Order, OrderSchema } from 'src/microservices/order/entities/order.entit
 		InventoryModule,
 		UsersModule,
 	],
-	controllers: [ClientOrderController, StoreController, DashboardController],
-	providers: [ClientOrderService, seederService, StoreService, DashboardService, CustomerService, OrderService],
+	controllers: [ClientOrderController, StoreController, DashboardController, UserController],
+	providers: [ClientOrderService, seederService, StoreService, DashboardService, CustomerService, OrderService, JwtService],
 })
 export class MicroserviceClientModule {}

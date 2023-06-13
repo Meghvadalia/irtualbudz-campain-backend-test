@@ -1,18 +1,11 @@
 import { Injectable } from '@nestjs/common';
 import { CustomerService } from '../services/customer.service';
 import { OrderService } from '../services/order.service';
-import { InjectModel } from '@nestjs/mongoose';
-import { Cart } from '../../../microservices/order/entities/cart.entity';
-import { Model } from 'mongoose';
 import * as dayjs from 'dayjs';
 
 @Injectable()
 export class DashboardService {
-	constructor(
-		@InjectModel(Cart.name) private cartModel: Model<Cart>,
-		private readonly customerService: CustomerService,
-		private readonly orderService: OrderService
-	) {}
+	constructor(private readonly customerService: CustomerService, private readonly orderService: OrderService) {}
 
 	async getCalculatedData(query: { fromDate: string; toDate: string }) {
 		const averageAge = await this.calculateAverageAge();
@@ -28,8 +21,6 @@ export class DashboardService {
 			discountGrowth,
 			orderCountGrowth,
 		} = await this.totalSales(query);
-
-		// const brandTotal = await this.calculatebrandTotal();
 
 		const topCategory = await this.topSellingCategory();
 		const { returningCustomer: returningCustomer, newCustomer } = await this.recVsMedCustomer();

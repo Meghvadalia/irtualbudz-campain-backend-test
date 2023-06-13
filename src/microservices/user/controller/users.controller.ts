@@ -6,7 +6,7 @@ import { UsersService } from '../service/users.service';
 import { User } from '../entities/user.entity';
 import { CreateUserDto, Login } from '../dto/user.dto';
 
-@Controller('users')
+@Controller()
 @SerializeOptions({
 	groups: extendedUserGroupsForSerializing,
 })
@@ -48,11 +48,26 @@ export class UsersController {
 		};
 	}
 
+	@GrpcMethod('UserService', 'Logout')
+	async logout(@Payload() payload: { userId: string }) {
+		const user = await this.usersService.logout(payload.userId);
+		return {
+			message: 'Logged-out successfully.',
+		};
+	}
+
 	@GrpcMethod('UserService', 'info')
-	async getUser(@Payload() payload: Login): Promise<User | void> {
+	async getUser(@Payload() payload): Promise<User | void> {
 		const { email } = payload;
-		const user = await this.usersService.getUser(email);
+		const user = await this.usersService.findByEmail(email);
 
 		return user;
+	}
+
+	@GrpcMethod('UserService', 'AccessToken')
+	async generateRefreshToken(@Payload() payload) {
+		const { accessToken } = payload;
+		const newToken = await this.usersService.generateNewAccessToken(accessToken);
+		return { accessToken: newToken };
 	}
 }

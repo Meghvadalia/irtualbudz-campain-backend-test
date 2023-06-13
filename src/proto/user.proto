@@ -5,6 +5,8 @@ package user;
 service UserService {
   rpc Signup (SignupRequest) returns (SignupResponse) {}
   rpc Login (LoginRequest) returns (LoginResponse) {}
+  rpc Logout (LogoutRequest) returns (LogoutResponse) {}
+  rpc AccessToken (RefreshTokenRequest) returns (RefreshTokenResponse) {}
 }
 
 message SignupRequest {
@@ -37,4 +39,20 @@ message User {
   string email = 3;
   string phone = 4;
   string token = 5;
+}
+
+message LogoutRequest {
+  string userId = 1;
+}
+
+message LogoutResponse {
+  string message = 1;
+}
+
+message RefreshTokenRequest{
+  string refreshToken = 1;
+}
+
+message RefreshTokenResponse{
+  string accessToken = 1;
 }

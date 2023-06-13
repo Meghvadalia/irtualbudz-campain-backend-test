@@ -1,5 +1,6 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
+import * as cookieParser from 'cookie-parser';
 import { MicroserviceOptions, Transport } from '@nestjs/microservices';
 import { OrderModule } from './microservices/order';
 import { join } from 'path';
@@ -9,6 +10,7 @@ import { CustomerModule } from './microservices/customers/customer.module';
 
 async function bootstrap() {
 	const app = await NestFactory.create(AppModule, { cors: true });
+	app.use(cookieParser());
 	await app.listen(8000);
 
 	const orderApp = await NestFactory.createMicroservice<MicroserviceOptions>(OrderModule, {

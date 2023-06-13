@@ -4,6 +4,7 @@ import Redis from 'ioredis';
 @Injectable()
 export class RedisService {
 	private readonly redisClient: Redis;
+	readonly sessionName = 'session';
 
 	constructor() {
 		this.redisClient = new Redis({
@@ -16,11 +17,15 @@ export class RedisService {
 		return this.redisClient;
 	}
 
-	async setValue(key: string, value: string): Promise<void> {
-		await this.redisClient.set(key, value);
+	async setValue(key: string, value: {}): Promise<void> {
+		await this.redisClient.hset(this.sessionName, key, JSON.stringify(value));
 	}
 
 	async getValue(key: string): Promise<string | null> {
-		return await this.redisClient.get(key);
+		return await this.redisClient.hget(this.sessionName, key);
+	}
+
+	async delValue(key: string): Promise<void> {
+		await this.redisClient.hdel(this.sessionName, key);
 	}
 }
