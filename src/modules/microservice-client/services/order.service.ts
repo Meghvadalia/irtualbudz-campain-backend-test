@@ -608,7 +608,7 @@ export class OrderService {
 														{
 															$subtract: ['$orders.orderCount', '$orderCount'],
 														},
-														{ $abs: '$orderCount' },
+														{ $abs: '$orders.orderCount' },
 													],
 												},
 												100,

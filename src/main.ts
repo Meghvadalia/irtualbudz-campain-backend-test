@@ -6,9 +6,13 @@ import { join } from 'path';
 import { UsersModule } from './microservices/user/users.module';
 import { InventoryModule } from './microservices/inventory';
 import { CustomerModule } from './microservices/customers/customer.module';
+import { AllExceptionsFilter } from './utils/request-response.utils';
+import helmet from 'helmet';
 
 async function bootstrap() {
 	const app = await NestFactory.create(AppModule, { cors: true });
+	app.useGlobalFilters(new AllExceptionsFilter());
+	app.use(helmet());
 	await app.listen(8000);
 
 	const orderApp = await NestFactory.createMicroservice<MicroserviceOptions>(OrderModule, {

@@ -1,13 +1,13 @@
-import { Module } from '@nestjs/common';
+import { MiddlewareConsumer, Module, NestModule } from '@nestjs/common';
 import { KafkaModule } from './modules/kafka';
 import { MicroserviceClientModule } from './modules/microservice-client';
 import { OrderModule } from './microservices/order';
 import { ConfigModule } from '@nestjs/config';
 import { UsersModule } from './microservices/user/users.module';
-import { InventoryModule } from './microservices/inventory';
+import { LoggingMiddleware } from './common/middlwares/logging.middleware';
 import { ScheduleModule } from '@nestjs/schedule';
-import { CustomerModule } from './microservices/customers/customer.module';
-// import { ProductModule } from './microservices/product';
+import { InventoryModule } from './microservices/inventory';
+import { CustomerModule } from './microservices/customers';
 
 @Module({
 	imports: [
@@ -24,11 +24,14 @@ import { CustomerModule } from './microservices/customers/customer.module';
 		OrderModule,
 		CustomerModule,
 		InventoryModule,
-		// ProductModule,
 		UsersModule,
 
 		// Client module
 		MicroserviceClientModule,
 	],
 })
-export class AppModule {}
+export class AppModule implements NestModule {
+	configure(consumer: MiddlewareConsumer) {
+		consumer.apply(LoggingMiddleware).forRoutes('*');
+	}
+}
