@@ -43,6 +43,6 @@ export class JwtService {
 	};
 
 	verifyRefreshToken = (token: string): string | jwt.JwtPayload => {
-		return jwt.verify(token, this.refreshTokenExpiry);
+		return jwt.verify(token, this.refreshTokenSecret);
 	};
 }

@@ -50,6 +50,7 @@ export class UsersController {
 
 	@GrpcMethod('UserService', 'Logout')
 	async logout(@Payload() payload: { userId: string }) {
+		console.log({ payload });
 		const user = await this.usersService.logout(payload.userId);
 		return {
 			message: 'Logged-out successfully.',
@@ -65,9 +66,9 @@ export class UsersController {
 	}
 
 	@GrpcMethod('UserService', 'AccessToken')
-	async generateRefreshToken(@Payload() payload) {
-		const { accessToken } = payload;
-		const newToken = await this.usersService.generateNewAccessToken(accessToken);
+	async generateAccessToken(@Payload() payload) {
+		const { refreshToken } = payload;
+		const newToken = await this.usersService.generateNewAccessToken(refreshToken);
 		return { accessToken: newToken };
 	}
 }

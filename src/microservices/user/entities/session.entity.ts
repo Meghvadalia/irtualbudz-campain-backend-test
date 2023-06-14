@@ -16,6 +16,9 @@ export class Session extends Model<ISession> {
 
 	@Prop({ required: true })
 	type: USER_TYPE;
+
+	@Prop({ type: Boolean, default: true })
+	status: boolean;
 }
 
 export const SessionSchema = SchemaFactory.createForClass(Session);

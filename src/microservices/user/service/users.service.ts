@@ -42,11 +42,10 @@ export class UsersService {
 				const refreshTokenPayload = {
 					id: user._id,
 					userType: user.type,
-					accessToken: token,
 				};
 				const refreshToken = this.jwtService.generateRefreshToken(refreshTokenPayload);
 
-				const session = await this.sessionService.createSession(user._id, { userId: user._id, type: 'ADMIN' });
+				await this.sessionService.createSession(user._id, { userId: user._id, type: 'ADMIN' });
 				return { user, token, refreshToken };
 			}
 
@@ -62,20 +61,21 @@ export class UsersService {
 		return user;
 	}
 
-	async generateNewAccessToken(accessToken: string) {
-		const decodedToken = this.jwtService.verifyAccessToken(accessToken);
+	async generateNewAccessToken(refreshToken: string) {
+		const decodedToken = this.jwtService.verifyRefreshToken(refreshToken);
 
 		// @ts-ignore
 		const user = await this.findById(decodedToken.id);
-		const payload = {
-			id: user._id,
-			type: user.userType,
-		};
 
 		if (user) {
+			const payload = {
+				id: user._id,
+				type: user.type,
+			};
 			const newToken = this.jwtService.generateAccessToken(payload);
 			return newToken;
 		}
+		return 'User not found.';
 	}
 
 	async logout(userId: string) {

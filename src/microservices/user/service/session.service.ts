@@ -7,10 +7,7 @@ import { RedisService } from 'src/config/cache/config.service';
 
 @Injectable()
 export class SessionService {
-	private readonly redisService;
-	constructor(@InjectModel(Session.name) private sessionModel: Model<Session>) {
-		this.redisService = new RedisService();
-	}
+	constructor(@InjectModel(Session.name) private sessionModel: Model<Session>, private readonly redisService: RedisService) {}
 
 	async createSession(userId: string, data: ISession) {
 		await this.expireByUser(userId);
@@ -25,7 +22,7 @@ export class SessionService {
 
 	async expireByUser(userId: string) {
 		try {
-			const result = await this.sessionModel.findOneAndDelete({ userId });
+			const result = await this.sessionModel.findOneAndUpdate({ userId }, { status: false });
 			await this.redisService.delValue(userId);
 			return result;
 		} catch (error) {
@@ -35,7 +32,7 @@ export class SessionService {
 
 	async logout(userId: string) {
 		try {
-			await this.sessionModel.findOneAndDelete({ userId });
+			await this.sessionModel.findOneAndUpdate({ userId }, { status: false });
 			await this.redisService.delValue(userId);
 		} catch (error) {}
 	}

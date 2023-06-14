@@ -2,9 +2,10 @@ import { BadRequestException, Body, Controller, HttpCode, OnModuleInit, Post, Re
 import { ClientGrpc, ClientProxyFactory, Transport } from '@nestjs/microservices';
 import { Observable, firstValueFrom } from 'rxjs';
 import { join } from 'path';
-import { Response } from 'express';
+import { Request, Response } from 'express';
 import { CreateUserDto, Login } from 'src/microservices/user/dto/user.dto';
-import { RolesGuard } from 'src/common/guards/auth.guard';
+import { Roles, RolesGuard } from 'src/common/guards/auth.guard';
+import { USER_TYPE } from 'src/microservices/user';
 
 interface IUserService {
 	Signup(data: any): Observable<any>;
@@ -63,10 +64,15 @@ export class UserController implements OnModuleInit {
 	}
 
 	@Post('logout')
+	@UseGuards(RolesGuard)
+	@Roles(USER_TYPE.ADMIN)
 	@HttpCode(200)
-	async logout(@Res() res: Response): Promise<any> {
+	async logout(@Res() res: Response, @Req() req: Request): Promise<any> {
 		try {
-			await firstValueFrom(this.userService.Logout('64882413ef6b67b2767ede82'));
+			// @ts-ignore
+			const user = req.user;
+			const request = { userId: user.id };
+			await firstValueFrom(this.userService.Logout(request));
 			return res.json({ message: 'Logged-out successfully.' });
 		} catch (error) {
 			console.trace(error);
@@ -79,7 +85,6 @@ export class UserController implements OnModuleInit {
 	@HttpCode(200)
 	async refreshToken(@Body() body: { refreshToken: string }, @Res() res: Response): Promise<any> {
 		try {
-			// const user
 			const request = { refreshToken: body.refreshToken };
 			const token = await firstValueFrom(this.userService.AccessToken(request));
 			return res.json(token);

@@ -29,7 +29,10 @@ export class RolesGuard implements CanActivate {
 			// @ts-ignore
 			const userRole = decoded.userType;
 
-			if (requiredRoles.includes(userRole)) return true;
+			if (requiredRoles.includes(userRole)) {
+				request.user = decoded;
+				return true;
+			}
 
 			return false;
 		} catch (error) {
