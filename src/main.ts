@@ -10,7 +10,7 @@ import { CustomerModule } from './microservices/customers/customer.module';
 import helmet from 'helmet';
 
 async function bootstrap() {
-	const app = await NestFactory.create(AppModule);
+	const app = await NestFactory.create(AppModule,{ cors: true });
 	app.useGlobalFilters(new AllExceptionsFilter());
 	app.use(helmet());
 	await app.listen(8000);
