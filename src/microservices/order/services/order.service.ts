@@ -15,6 +15,7 @@ import { POS } from 'src/model/pos/entities/pos.entity';
 import { Store } from 'src/model/store/entities/store.entity';
 import mongoose from 'mongoose';
 import { Console } from 'console';
+import { from } from 'rxjs';
 @Injectable()
 export class OrderService {
 	constructor(
@@ -480,8 +481,9 @@ export class OrderService {
 												'$posCreatedAt',
 												new Date(
 													new Date().setDate(
-														new Date(fromDate).getDate() -
-														14
+														new Date(
+															fromDate
+														).getDate() - 14
 													)
 												),
 											],
@@ -491,8 +493,9 @@ export class OrderService {
 												'$posCreatedAt',
 												new Date(
 													new Date().setDate(
-														new Date(fromEndDate).getDate() -
-															14
+														new Date(
+															fromEndDate
+														).getDate() - 14
 													)
 												),
 											],
@@ -886,176 +889,258 @@ export class OrderService {
 	}
 	async totalOverViewCountForOrdersBetweenDate(fromDate, toDate) {
 		try {
+			fromDate = new Date(fromDate);
+			toDate = new Date(toDate);
 			const pipeline: PipelineStage[] = [
 				{
 					$match: {
 						posCreatedAt: {
-							$gte: new Date(fromDate),
-							$lte: new Date(toDate),
+							$gte: fromDate,
+							$lte: toDate,
 						},
 					},
 				},
 				{
 					$group: {
-						_id: null,
-						totalOrderAmount: { $sum: '$totals.finalTotal' },
-						totalDiscounts: { $sum: '$totals.totalDiscounts' },
+						_id: {
+							$dateToString: {
+								format: '%Y-%m-%d',
+								date: '$posCreatedAt',
+							},
+						},
 						orderCount: { $sum: 1 },
-						minDate: { $min: '$posCreatedAt' },
-						maxDate: { $max: '$posCreatedAt' },
-					},
-				},
-				{
-					$project: {
-						_id: 0,
-						totalOrderAmount: 1,
-						totalDiscounts: 1,
-						orderCount: 1,
-						startDate: { $year: '$minDate' },
-						endDate: { $year: '$maxDate' },
+						orderAmount: { $sum: '$totals.finalTotal' },
+						discountAmount: { $sum: '$totals.totalDiscounts' },
 					},
 				},
 				{
 					$group: {
 						_id: null,
-						totalOrderAmount: { $sum: '$totalOrderAmount' },
-						totalDiscounts: { $sum: '$totalDiscounts' },
-						orderCount: { $sum: '$orderCount' },
-						startDate: { $min: '$startDate' },
-						endDate: { $max: '$endDate' },
-					},
-				},
-				{
-					$lookup: {
-						from: 'orders',
-						let: { startDate: '$startDate', endDate: '$endDate' },
-						pipeline: [
-							{
-								$match: {
-									$expr: {
-										$and: [
-											{
-												$gte: [
-													{ $year: '$posCreatedAt' },
-													'$$startDate',
-												],
-											},
-											{
-												$lte: [
-													{ $year: '$posCreatedAt' },
-													'$$endDate',
-												],
-											},
+						firstDayOrderCount: {
+							$sum: {
+								$cond: [
+									{
+										$eq: [
+											'$_id',
+											fromDate
+												.toISOString()
+												.split('T')[0],
 										],
 									},
-								},
+									'$orderCount',
+									0,
+								],
 							},
-							{
-								$group: {
-									_id: null,
-									totalOrderAmount: {
-										$sum: '$totals.finalTotal',
+						},
+						lastDayOrderCount: {
+							$sum: {
+								$cond: [
+									{
+										$eq: [
+											'$_id',
+											toDate.toISOString().split('T')[0],
+										],
 									},
-									totalDiscounts: {
-										$sum: '$totals.totalDiscounts',
-									},
-									orderCount: { $sum: 1 },
-								},
+									'$orderCount',
+									0,
+								],
 							},
-						],
-						as: 'orders',
+						},
+						firstDayOrderAmount: {
+							$sum: {
+								$cond: [
+									{
+										$eq: [
+											'$_id',
+											fromDate
+												.toISOString()
+												.split('T')[0],
+										],
+									},
+									'$orderAmount',
+									0,
+								],
+							},
+						},
+						lastDayOrderAmount: {
+							$sum: {
+								$cond: [
+									{
+										$eq: [
+											'$_id',
+											toDate.toISOString().split('T')[0],
+										],
+									},
+									'$orderAmount',
+									0,
+								],
+							},
+						},
+						firstDayDiscountAmount: {
+							$sum: {
+								$cond: [
+									{
+										$eq: [
+											'$_id',
+											fromDate
+												.toISOString()
+												.split('T')[0],
+										],
+									},
+									'$discountAmount',
+									0,
+								],
+							},
+						},
+						lastDayDiscountAmount: {
+							$sum: {
+								$cond: [
+									{
+										$eq: [
+											'$_id',
+											toDate.toISOString().split('T')[0],
+										],
+									},
+									'$discountAmount',
+									0,
+								],
+							},
+						},
+						orderCount: { $sum: '$orderCount' },
+						totalOrderAmount: { $sum: '$orderAmount' },
+						totalDiscounts: { $sum: '$discountAmount' },
 					},
-				},
-				{
-					$unwind: '$orders',
 				},
 				{
 					$project: {
 						_id: 0,
+
+						orderCount: 1,
+
 						totalOrderAmount: 1,
 						totalDiscounts: 1,
-						orderCount: 1,
-						orderGrowth: {
+						orderCountGrowth: {
 							$cond: [
-								{ $eq: ['$totalOrderAmount', 0] },
+								{ $eq: ['$firstDayOrderCount', 0] },
 								0,
 								{
-									$round: [
+									$multiply: [
 										{
-											$multiply: [
+											$cond: [
 												{
-													$divide: [
-														{
-															$subtract: [
-																'$orders.totalOrderAmount',
-																'$totalOrderAmount',
-															],
-														},
-														{
-															$abs: '$totalOrderAmount',
-														},
+													$gte: [
+														'$lastDayOrderCount',
+														'$firstDayOrderCount',
 													],
 												},
-												100,
+												1,
+												-1,
 											],
 										},
-										2,
+										{
+											$trunc: {
+												$multiply: [
+													{
+														$abs: {
+															$divide: [
+																{
+																	$subtract: [
+																		'$lastDayOrderCount',
+																		'$firstDayOrderCount',
+																	],
+																},
+																'$firstDayOrderCount',
+															],
+														},
+													},
+													100,
+												],
+											},
+										},
+									],
+								},
+							],
+						},
+						orderGrowth: {
+							$cond: [
+								{ $eq: ['$firstDayOrderAmount', 0] },
+								0,
+								{
+									$multiply: [
+										{
+											$cond: [
+												{
+													$gte: [
+														'$lastDayOrderAmount',
+														'$firstDayOrderAmount',
+													],
+												},
+												1,
+												-1,
+											],
+										},
+										{
+											$trunc: {
+												$multiply: [
+													{
+														$abs: {
+															$divide: [
+																{
+																	$subtract: [
+																		'$lastDayOrderAmount',
+																		'$firstDayOrderAmount',
+																	],
+																},
+																'$firstDayOrderAmount',
+															],
+														},
+													},
+													100,
+												],
+											},
+										},
 									],
 								},
 							],
 						},
 						discountGrowth: {
 							$cond: [
-								{ $eq: ['$totalDiscounts', 0] },
+								{ $eq: ['$firstDayDiscountAmount', 0] },
 								0,
 								{
-									$round: [
+									$multiply: [
 										{
-											$multiply: [
+											$cond: [
 												{
-													$divide: [
-														{
-															$subtract: [
-																'$orders.totalDiscounts',
-																'$totalDiscounts',
-															],
-														},
-														{
-															$abs: '$totalDiscounts',
-														},
+													$gte: [
+														'$lastDayDiscountAmount',
+														'$firstDayDiscountAmount',
 													],
 												},
-												100,
+												1,
+												-1,
 											],
 										},
-										2,
-									],
-								},
-							],
-						},
-						orderCountGrowth: {
-							$cond: [
-								{ $eq: ['$orderCount', 0] },
-								0,
-								{
-									$round: [
 										{
-											$multiply: [
-												{
-													$divide: [
-														{
-															$subtract: [
-																'$orders.orderCount',
-																'$orderCount',
+											$trunc: {
+												$multiply: [
+													{
+														$abs: {
+															$divide: [
+																{
+																	$subtract: [
+																		'$lastDayDiscountAmount',
+																		'$firstDayDiscountAmount',
+																	],
+																},
+																'$firstDayDiscountAmount',
 															],
 														},
-														{ $abs: '$orderCount' },
-													],
-												},
-												100,
-											],
+													},
+													100,
+												],
+											},
 										},
-										2,
 									],
 								},
 							],
