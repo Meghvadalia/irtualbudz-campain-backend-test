@@ -5,7 +5,10 @@ import { OrderModule } from './microservices/order';
 import { join } from 'path';
 import { UsersModule } from './microservices/user/users.module';
 import { AllExceptionsFilter } from './utils/request-response.utils';
+import { InventoryModule } from './microservices/inventory';
+import { CustomerModule } from './microservices/customers/customer.module';
 import helmet from 'helmet';
+
 async function bootstrap() {
 	const app = await NestFactory.create(AppModule);
 	app.useGlobalFilters(new AllExceptionsFilter());
@@ -40,6 +43,38 @@ async function bootstrap() {
 	);
 	await userApp.listen().then(() => {
 		console.log('User microservice is running');
+	});
+
+	const customerApp =
+		await NestFactory.createMicroservice<MicroserviceOptions>(
+			CustomerModule,
+			{
+				transport: Transport.GRPC,
+				options: {
+					package: 'customer',
+					protoPath: join(__dirname, './proto/customer.proto'),
+					url: 'localhost:8004',
+				},
+			}
+		);
+	await customerApp.listen().then(() => {
+		console.log('Customer microservice is running');
+	});
+
+	const InventoryApp =
+		await NestFactory.createMicroservice<MicroserviceOptions>(
+			InventoryModule,
+			{
+				transport: Transport.GRPC,
+				options: {
+					package: 'Inventory',
+					protoPath: join(__dirname, './proto/inventory.proto'),
+					url: 'localhost:8005',
+				},
+			}
+		);
+	await InventoryApp.listen().then(() => {
+		console.log('Inventory microservice is running');
 	});
 }
 bootstrap();

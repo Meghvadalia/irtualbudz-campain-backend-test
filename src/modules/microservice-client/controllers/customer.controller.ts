@@ -4,26 +4,21 @@ import { ClientGrpc, ClientProxyFactory, RpcException, Transport } from '@nestjs
 import { Observable, firstValueFrom } from 'rxjs';
 import { join } from 'path';
 
-interface IOrderService {
-	CreateOrder(data: any): Observable<any>;
-	GetOrder(data: any): Observable<any>;
-}
+interface ICustomerService {}
 
-@Controller('client-order')
-export class ClientOrderController implements OnModuleInit {
-	private orderService: IOrderService;
+@Controller('customer')
+export class CustomerController implements OnModuleInit {
 	private client: ClientGrpc;
-	private readonly orderMicroservice: ClientGrpc;
+	private readonly customerMicroservice: ClientGrpc;
 	constructor(private readonly clientOrderService: ClientOrderService) {}
 	onModuleInit() {
 		this.client = ClientProxyFactory.create({
 			transport: Transport.GRPC,
 			options: {
-				package: 'order',
-				protoPath: join(__dirname, '../../../proto/order.proto'),
-				url: 'localhost:8003',
+				package: 'customer',
+				protoPath: join(__dirname, '../../../proto/customer.proto'),
+				url: 'localhost:8004',
 			},
 		});
-		this.orderService = this.client.getService<IOrderService>('OrderService');
 	}
 }

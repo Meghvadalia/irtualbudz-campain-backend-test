@@ -4,9 +4,10 @@ import { Model } from 'mongoose';
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { USER_TYPE } from '../constants/user.constant';
 import { passwordService } from 'src/utils/password.util';
+import { DATABASE_COLLECTION } from 'src/common/constants';
 
 @Schema({
-	collection: 'User',
+	collection: DATABASE_COLLECTION.USER,
 	timestamps: true,
 })
 @ObjectType()
