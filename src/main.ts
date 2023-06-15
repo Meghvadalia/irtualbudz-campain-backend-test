@@ -15,11 +15,16 @@ async function bootstrap() {
 	app.use(helmet());
 	const whitelist = [
 		'http://localhost:3000' as string,
-		'https://monarc.virtualbudz.com/' as string,
+		'https://monarc.virtualbudz.com' as string,
 	  ];
 	app.enableCors({
 		origin:
 		   function (origin, callback) {
+           		if(!origin){
+                console.log('allower Cors from unknown',origin)
+                	callback(null,true)
+                return true;
+                }
 				if (whitelist.indexOf(origin) !== -1) {
 				  console.log('allowed cors for:', origin);
 				  callback(null, true);
