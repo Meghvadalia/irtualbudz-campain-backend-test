@@ -72,7 +72,7 @@ export class OrderService {
 			{
 				$match: {
 					posCreatedAt: {
-						$gte: fromStartDate, // Specify the "from" date in ISO format
+						$gte: fromStartDate,
 						$lte: fromEndDate,
 					},
 				},
@@ -458,14 +458,23 @@ export class OrderService {
 			console.log('====================================');
 		}
 	}
+
 	async totalOverViewCountForOrdersBetweenDate(fromDate, toDate) {
+		const startDateStartTime = new Date(fromDate);
+		const startDateEndTime = new Date(fromDate);
+		const endDateStartTime = new Date(toDate);
+		const endDateEndTime = new Date(toDate);
+
+		startDateEndTime.setUTCHours(23, 59, 59, 999);
+		endDateStartTime.setUTCHours(0, 0, 0, 0);
+
 		try {
 			const pipeline: PipelineStage[] = [
 				{
 					$match: {
 						posCreatedAt: {
-							$gte: new Date(fromDate),
-							$lte: new Date(toDate),
+							$gte: startDateStartTime,
+							$lte: endDateEndTime,
 						},
 					},
 				},
@@ -474,9 +483,73 @@ export class OrderService {
 						_id: null,
 						totalOrderAmount: { $sum: '$totals.finalTotal' },
 						totalDiscounts: { $sum: '$totals.totalDiscounts' },
-						orderCount: { $sum: 1 },
-						minDate: { $min: '$posCreatedAt' },
-						maxDate: { $max: '$posCreatedAt' },
+						totalOrders: { $sum: 1 },
+						fromDateTotalAmount: {
+							$sum: {
+								$cond: [
+									{
+										$lt: ['$posCreatedAt', startDateEndTime],
+									},
+									'$totals.finalTotal',
+									0,
+								],
+							},
+						},
+						toDateTotalAmount: {
+							$sum: {
+								$cond: [
+									{
+										$gte: ['$posCreatedAt', endDateStartTime],
+									},
+									'$totals.finalTotal',
+									0,
+								],
+							},
+						},
+						fromDateTotalDiscount: {
+							$sum: {
+								$cond: [
+									{
+										$lt: ['$posCreatedAt', startDateEndTime],
+									},
+									'$totals.totalDiscounts',
+									0,
+								],
+							},
+						},
+						toDateTotalDiscount: {
+							$sum: {
+								$cond: [
+									{
+										$gte: ['$posCreatedAt', endDateStartTime],
+									},
+									'$totals.totalDiscounts',
+									0,
+								],
+							},
+						},
+						fromDateOrderCount: {
+							$sum: {
+								$cond: [
+									{
+										$lt: ['$posCreatedAt', startDateEndTime],
+									},
+									1,
+									0,
+								],
+							},
+						},
+						toDateOrderCount: {
+							$sum: {
+								$cond: [
+									{
+										$gte: ['$posCreatedAt', endDateStartTime],
+									},
+									1,
+									0,
+								],
+							},
+						},
 					},
 				},
 				{
@@ -484,139 +557,83 @@ export class OrderService {
 						_id: 0,
 						totalOrderAmount: 1,
 						totalDiscounts: 1,
-						orderCount: 1,
-						startDate: { $year: '$minDate' },
-						endDate: { $year: '$maxDate' },
-					},
-				},
-				{
-					$group: {
-						_id: null,
-						totalOrderAmount: { $sum: '$totalOrderAmount' },
-						totalDiscounts: { $sum: '$totalDiscounts' },
-						orderCount: { $sum: '$orderCount' },
-						startDate: { $min: '$startDate' },
-						endDate: { $max: '$endDate' },
-					},
-				},
-				{
-					$lookup: {
-						from: 'orders',
-						let: { startDate: '$startDate', endDate: '$endDate' },
-						pipeline: [
-							{
-								$match: {
-									$expr: {
-										$and: [
-											{
-												$gte: [{ $year: '$posCreatedAt' }, '$$startDate'],
-											},
-											{
-												$lte: [{ $year: '$posCreatedAt' }, '$$endDate'],
-											},
-										],
-									},
-								},
-							},
-							{
-								$group: {
-									_id: null,
-									totalOrderAmount: {
-										$sum: '$totals.finalTotal',
-									},
-									totalDiscounts: {
-										$sum: '$totals.totalDiscounts',
-									},
-									orderCount: { $sum: 1 },
-								},
-							},
-						],
-						as: 'orders',
-					},
-				},
-				{
-					$unwind: '$orders',
-				},
-				{
-					$project: {
-						_id: 0,
-						totalOrderAmount: 1,
-						totalDiscounts: 1,
-						orderCount: 1,
-						orderGrowth: {
-							$cond: [
-								{ $eq: ['$totalOrderAmount', 0] },
-								0,
+						totalOrders: 1,
+						orderAmountGrowth: {
+							$round: [
 								{
-									$round: [
+									$multiply: [
 										{
-											$multiply: [
+											$divide: [
 												{
-													$divide: [
+													$subtract: ['$toDateTotalAmount', '$fromDateTotalAmount'],
+												},
+												{
+													$cond: [
 														{
-															$subtract: ['$orders.totalOrderAmount', '$totalOrderAmount'],
+															$eq: ['$fromDateTotalAmount', 0],
 														},
-														{
-															$abs: '$totalOrderAmount',
-														},
+														1,
+														'$fromDateTotalAmount',
 													],
 												},
-												100,
 											],
 										},
-										2,
+										100,
 									],
 								},
+								2,
 							],
 						},
 						discountGrowth: {
-							$cond: [
-								{ $eq: ['$totalDiscounts', 0] },
-								0,
+							$round: [
 								{
-									$round: [
+									$multiply: [
 										{
-											$multiply: [
+											$divide: [
 												{
-													$divide: [
+													$subtract: ['$toDateTotalDiscount', '$fromDateTotalDiscount'],
+												},
+												{
+													$cond: [
 														{
-															$subtract: ['$orders.totalDiscounts', '$totalDiscounts'],
+															$eq: ['$fromDateTotalDiscount', 0],
 														},
-														{
-															$abs: '$totalDiscounts',
-														},
+														1,
+														'$fromDateTotalDiscount',
 													],
 												},
-												100,
 											],
 										},
-										2,
+										100,
 									],
 								},
+								2,
 							],
 						},
 						orderCountGrowth: {
-							$cond: [
-								{ $eq: ['$orderCount', 0] },
-								0,
+							$round: [
 								{
-									$round: [
+									$multiply: [
 										{
-											$multiply: [
+											$divide: [
 												{
-													$divide: [
+													$subtract: ['$toDateOrderCount', '$fromDateOrderCount'],
+												},
+												{
+													$cond: [
 														{
-															$subtract: ['$orders.orderCount', '$orderCount'],
+															$eq: ['$fromDateOrderCount', 0],
 														},
-														{ $abs: '$orders.orderCount' },
+														1,
+														'$fromDateOrderCount',
 													],
 												},
-												100,
 											],
 										},
-										2,
+										100,
 									],
 								},
+								2,
 							],
 						},
 					},
@@ -624,22 +641,22 @@ export class OrderService {
 			];
 			const result = await this.orderModel.aggregate(pipeline);
 
-			const { totalOrderAmount, totalDiscounts, orderCount, orderGrowth, discountGrowth, orderCountGrowth } =
+			const { totalOrderAmount, totalDiscounts, totalOrders, orderAmountGrowth, discountGrowth, orderCountGrowth } =
 				result.length > 0
 					? result[0]
 					: {
 							totalOrderAmount: 0,
 							totalDiscounts: 0,
-							orderCount: 0,
-							orderGrowth: 0,
+							totalOrders: 0,
+							orderAmountGrowth: 0,
 							discountGrowth: 0,
 							orderCountGrowth: 0,
 					  };
 			return {
 				totalOrderAmount,
 				totalDiscounts,
-				orderCount,
-				orderGrowth,
+				totalOrders,
+				orderAmountGrowth,
 				discountGrowth,
 				orderCountGrowth,
 			};

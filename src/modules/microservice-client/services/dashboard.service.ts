@@ -96,16 +96,15 @@ export class DashboardService {
 		const formattedFromDate = dayjs(fromDate).format('YYYY-MM-DDT00:00:00.000[Z]');
 		const formattedToDate = dayjs(toDate).format('YYYY-MM-DDT23:59:59.999[Z]');
 
-		const { totalOrderAmount, totalDiscounts, orderCount, orderGrowth, discountGrowth, orderCountGrowth } =
+		const { totalOrderAmount, totalDiscounts, totalOrders, orderAmountGrowth, discountGrowth, orderCountGrowth } =
 			await this.orderService.totalOverViewCountForOrdersBetweenDate(formattedFromDate, formattedToDate);
 
-		const dateWiseOrderData = await this.orderService.getOrderForEachDate(fromDate, toDate);
+		const dateWiseOrderData = await this.orderService.getOrderForEachDate(formattedFromDate, formattedToDate);
 
 		return {
 			totalOrderAmount,
-			percentageOrderGrowth: orderGrowth,
-			totalOrders: orderCount,
-			orderGrowth,
+			percentageOrderGrowth: orderAmountGrowth,
+			totalOrders,
 			dateWiseOrderData,
 			totalDiscounts,
 			discountGrowth,
