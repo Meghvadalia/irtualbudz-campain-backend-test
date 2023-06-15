@@ -13,21 +13,18 @@ export class RolesGuard implements CanActivate {
 
 	canActivate(context: ExecutionContext): boolean | Promise<boolean> | Observable<boolean> {
 		const requiredRoles = this.reflector.getAllAndOverride<USER_TYPE[]>('roles', [context.getHandler(), context.getClass()]);
-		if (!requiredRoles) {
-			return true;
-		}
+		if (!requiredRoles) return true;
 
 		const request = context.switchToHttp().getRequest();
 		const bearerToken = request.headers.authorization;
-		if (!bearerToken || !bearerToken.startsWith('Bearer ')) {
-			return false;
-		}
+		if (!bearerToken || !bearerToken.startsWith('Bearer ')) return false;
 
 		const token = bearerToken.split(' ')[1];
 		try {
 			const decoded = this.jwtService.verifyAccessToken(token);
 			// @ts-ignore
 			const userRole = decoded.userType;
+			console.log(requiredRoles.includes(userRole));
 
 			if (requiredRoles.includes(userRole)) {
 				request.user = decoded;

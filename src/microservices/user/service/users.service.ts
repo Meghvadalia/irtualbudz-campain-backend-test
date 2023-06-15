@@ -51,7 +51,6 @@ export class UsersService {
 
 			return 'User not found';
 		} catch (error) {
-			console.trace(error);
 			throw new Error(error);
 		}
 	}

@@ -28,24 +28,25 @@ export class UsersController {
 
 	@GrpcMethod('UserService', 'Login')
 	async login(@Payload() payload: Login): Promise<any> {
-		const { email, password } = payload;
-		const {
-			user: { id, name, phone },
-			token,
-			refreshToken,
-		} = await this.usersService.login(email, password);
+		try {
+			const { email, password } = payload;
+			const { user, token, refreshToken } = await this.usersService.login(email, password);
 
-		return {
-			message: 'Logged-In successfully.',
-			user: {
-				email,
-				id,
-				name,
-				phone,
+			return {
+				message: 'Logged-In successfully.',
+				user: {
+					email: user.email,
+					id: user.id,
+					name: user.name,
+					phone: user.phone,
+				},
 				token,
-			},
-			refreshToken,
-		};
+				refreshToken,
+			};
+		} catch (error) {
+			console.trace(error);
+			throw new RpcException(error);
+		}
 	}
 
 	@GrpcMethod('UserService', 'Logout')

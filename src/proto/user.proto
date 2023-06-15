@@ -30,7 +30,8 @@ message LoginRequest {
 message LoginResponse {
   string message = 1;
   User user = 2;
-  string refreshToken = 3;
+  string token = 3;
+  string refreshToken = 4;
 }
 
 message User {
@@ -38,7 +39,6 @@ message User {
   string name = 2;
   string email = 3;
   string phone = 4;
-  string token = 5;
 }
 
 message LogoutRequest {

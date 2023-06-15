@@ -48,7 +48,6 @@ export class UserController implements OnModuleInit {
 	async login(@Body() loginData: Login, @Res({ passthrough: true }) res: Response): Promise<any> {
 		try {
 			const user = await firstValueFrom(this.userService.Login(loginData));
-
 			res.cookie('refreshToken', user.refreshToken, {
 				httpOnly: true,
 				sameSite: true,
@@ -56,9 +55,8 @@ export class UserController implements OnModuleInit {
 			});
 			delete user.refreshToken;
 
-			return res.json({ message: 'Login successful.', user });
+			return res.json({ message: 'Login successful.', data: user });
 		} catch (error) {
-			console.trace(error);
 			throw new Error('Login failed');
 		}
 	}
@@ -81,7 +79,6 @@ export class UserController implements OnModuleInit {
 	}
 
 	@Post('refresh_token')
-	@UseGuards(RolesGuard)
 	@HttpCode(200)
 	async refreshToken(@Body() body: { refreshToken: string }, @Res() res: Response): Promise<any> {
 		try {
