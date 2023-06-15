@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { MiddlewareConsumer, Module, NestModule } from '@nestjs/common';
 import { KafkaModule } from './modules/kafka';
 import { MicroserviceClientModule } from './modules/microservice-client';
 import { OrderModule } from './microservices/order';
@@ -8,7 +8,7 @@ import { InventoryModule } from './microservices/inventory';
 import { ScheduleModule } from '@nestjs/schedule';
 import { CustomerModule } from './microservices/customers/customer.module';
 import { DashboardModule } from './microservices/dashboard/dashboard.module';
-// import { ProductModule } from './microservices/product';
+import { LoggingMiddleware } from './common/middlwares/logging.middleware';
 
 @Module({
 	imports: [
@@ -33,4 +33,8 @@ import { DashboardModule } from './microservices/dashboard/dashboard.module';
 		MicroserviceClientModule,
 	],
 })
-export class AppModule {}
+export class AppModule implements NestModule {
+	configure(consumer: MiddlewareConsumer) {
+		consumer.apply(LoggingMiddleware).forRoutes('*');
+	}
+}

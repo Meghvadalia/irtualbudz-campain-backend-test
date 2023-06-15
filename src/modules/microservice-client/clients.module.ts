@@ -9,6 +9,7 @@ import { Company, CompanySchema } from 'src/model/company/entities/company.entit
 import { Store, StoreSchema } from 'src/model/store/entities/store.entity';
 import { StoreService } from './services/store.service';
 import { StoreController } from './controllers/store.controller';
+import { MetricsController } from './controllers/metrcis.controller';
 
 @Module({
 	imports: [
@@ -18,7 +19,12 @@ import { StoreController } from './controllers/store.controller';
 			{ name: Store.name, schema: StoreSchema },
 		]),
 	],
-	controllers: [ClientOrderController, UserController, StoreController],
+	controllers: [
+		ClientOrderController,
+		UserController,
+		StoreController,
+		MetricsController,
+	],
 	providers: [ClientOrderService, seederService, StoreService],
 })
 export class MicroserviceClientModule {}
