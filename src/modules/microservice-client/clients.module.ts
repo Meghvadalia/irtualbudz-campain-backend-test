@@ -20,7 +20,10 @@ import { CustomerService } from './services/customer.service';
 import { Customer, CustomerSchema } from 'src/microservices/customers/entities/customer.entity';
 import { OrderService } from './services/order.service';
 import { Order, OrderSchema } from 'src/microservices/order/entities/order.entity';
+import { UserController } from './controllers/user.controller';
+import { JwtService } from '../../utils/token.util';
 import { MetricsController } from './controllers/metrcis.controller';
+import { RedisService } from 'src/config/cache/config.service';
 
 @Module({
 	imports: [
@@ -38,7 +41,16 @@ import { MetricsController } from './controllers/metrcis.controller';
 		InventoryModule,
 		UsersModule,
 	],
-	controllers: [ClientOrderController, StoreController, DashboardController, MetricsController],
-	providers: [ClientOrderService, seederService, StoreService, DashboardService, CustomerService, OrderService],
+	controllers: [ClientOrderController, StoreController, DashboardController, UserController, MetricsController],
+	providers: [
+		ClientOrderService,
+		seederService,
+		StoreService,
+		DashboardService,
+		CustomerService,
+		OrderService,
+		JwtService,
+		RedisService,
+	],
 })
 export class MicroserviceClientModule {}

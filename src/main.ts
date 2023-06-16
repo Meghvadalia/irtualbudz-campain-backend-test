@@ -1,5 +1,6 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
+import * as cookieParser from 'cookie-parser';
 import { MicroserviceOptions, Transport } from '@nestjs/microservices';
 import { OrderModule } from './microservices/order';
 import { join } from 'path';
@@ -15,6 +16,7 @@ async function bootstrap() {
 	const app = await NestFactory.create(AppModule);
 	app.useGlobalFilters(new AllExceptionsFilter());
 	app.use(helmet());
+	app.use(cookieParser());
 	await app.listen(8000);
 
 	const orderApp = await NestFactory.createMicroservice<MicroserviceOptions>(OrderModule, {

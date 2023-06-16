@@ -2,35 +2,47 @@ import { Injectable } from '@nestjs/common';
 import * as jwt from 'jsonwebtoken';
 
 @Injectable()
-class JwtService {
-  generateAccessToken(payload: any): string {
-    try {
-      return jwt.sign(payload, process.env.ACCESS_TOKEN_SECRET!, {
-        expiresIn: process.env.ACCESS_TOKEN_EXPIRY,
-      });
-    } catch (error) {
-      throw new Error('Error generating token.');
-    }
-  }
+export class JwtService {
+	private readonly accessTokenSecret = process.env.ACCESS_TOKEN_SECRET;
+	private readonly accessTokenExpiry = process.env.ACCESS_TOKEN_EXPIRY;
+	private readonly refreshTokenSecret = process.env.REFRESH_TOKEN_SECRET;
+	private readonly refreshTokenExpiry = process.env.REFRESH_TOKEN_EXPIRY;
 
-  generateRefreshToken = (payload: object): string => {
-    try {
-      const token = jwt.sign(payload, process.env.REFRESH_TOKEN_SECRET!, {
-        expiresIn: process.env.REFRESH_TOKEN_EXPIRY as string,
-      });
-      return token;
-    } catch (error) {
-      throw new Error(error.message);
-    }
-  };
+	generateAccessToken(payload: any): string {
+		try {
+			return jwt.sign(payload, this.accessTokenSecret, {
+				expiresIn: this.accessTokenExpiry,
+			});
+		} catch (error) {
+			throw new Error('Error generating token.');
+		}
+	}
 
-  verifyAccessToken = (token: string): string | jwt.JwtPayload => {
-    return jwt.verify(token, process.env.ACCESS_TOKEN_SECRET!);
-  };
+	generateRefreshToken = (payload: object): string => {
+		try {
+			const token = jwt.sign(payload, this.refreshTokenSecret, {
+				expiresIn: this.refreshTokenExpiry as string,
+			});
+			return token;
+		} catch (error) {
+			throw new Error(error.message);
+		}
+	};
 
-  verifyRefreshToken = (token: string): string | jwt.JwtPayload => {
-    return jwt.verify(token, process.env.REFRESH_TOKEN_EXPIRY!);
-  };
+	verifyAccessToken = (token: string): string | jwt.JwtPayload => {
+		try {
+			const isTokenValid = jwt.verify(token, this.accessTokenSecret);
+			return isTokenValid;
+		} catch (error) {
+			if (error.name === 'TokenExpiredError') {
+				throw new Error('Access token has expired.');
+			} else {
+				throw new Error('Error verifying access token.');
+			}
+		}
+	};
+
+	verifyRefreshToken = (token: string): string | jwt.JwtPayload => {
+		return jwt.verify(token, this.refreshTokenSecret);
+	};
 }
-
-export const jwtService = new JwtService();

@@ -6,7 +6,7 @@ import { UsersService } from '../service/users.service';
 import { User } from '../entities/user.entity';
 import { CreateUserDto, Login } from '../dto/user.dto';
 
-@Controller('users')
+@Controller()
 @SerializeOptions({
 	groups: extendedUserGroupsForSerializing,
 })
@@ -20,7 +20,7 @@ export class UsersController {
 				newUser: { id, name, email, phone },
 			} = await this.usersService.register(payload);
 
-			return { message: 'SignUp successful', user: { email, id, name, phone } };
+			return { user: { email, id, name, phone } };
 		} catch (error) {
 			throw new RpcException(error);
 		}
@@ -28,31 +28,46 @@ export class UsersController {
 
 	@GrpcMethod('UserService', 'Login')
 	async login(@Payload() payload: Login): Promise<any> {
-		const { email, password } = payload;
-		const {
-			user: { id, name, phone },
-			token,
-			refreshToken,
-		} = await this.usersService.login(email, password);
+		try {
+			const { email, password } = payload;
+			const { user, token, refreshToken } = await this.usersService.login(email, password);
 
-		return {
-			message: 'Logged-In successfully.',
-			user: {
-				email,
-				id,
-				name,
-				phone,
+			return {
+				user: {
+					email: user.email,
+					id: user.id,
+					name: user.name,
+					phone: user.phone,
+				},
 				token,
-			},
-			refreshToken,
+				refreshToken,
+			};
+		} catch (error) {
+			console.trace(error);
+			throw new RpcException(error);
+		}
+	}
+
+	@GrpcMethod('UserService', 'Logout')
+	async logout(@Payload() payload: { userId: string }) {
+		await this.usersService.logout(payload.userId);
+		return {
+			message: 'Logged-out successfully.',
 		};
 	}
 
 	@GrpcMethod('UserService', 'info')
-	async getUser(@Payload() payload: Login): Promise<User | void> {
+	async getUser(@Payload() payload): Promise<User | void> {
 		const { email } = payload;
-		const user = await this.usersService.getUser(email);
+		const user = await this.usersService.findByEmail(email);
 
 		return user;
+	}
+
+	@GrpcMethod('UserService', 'AccessToken')
+	async generateAccessToken(@Payload() payload) {
+		const { refreshToken } = payload;
+		const newToken = await this.usersService.generateNewAccessToken(refreshToken);
+		return { accessToken: newToken };
 	}
 }
