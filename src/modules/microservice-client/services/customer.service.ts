@@ -8,8 +8,18 @@ import { Customer } from '../../../microservices/customers/entities/customer.ent
 export class CustomerService {
 	constructor(@InjectModel(Customer.name) private customerModel: Model<Customer>) {}
 
-	async getAverageAge() {
+	async getAverageAge(fromDate: string, toDate: string) {
+		const fromStartDate = new Date(fromDate);
+		const toEndDate = new Date(toDate);
 		const aggregationPipeline = [
+			{
+				$match: {
+					createdAt: {
+						$gte: fromStartDate,
+						$lte: toEndDate,
+					},
+				},
+			},
 			{
 				$group: {
 					_id: null,

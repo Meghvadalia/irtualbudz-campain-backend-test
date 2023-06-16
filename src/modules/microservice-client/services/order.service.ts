@@ -61,14 +61,16 @@ export class OrderService {
 		return dateWiseOrderData;
 	}
 
-	async getBrandWiseSales(locationId: string) {
+	async getBrandWiseSales(locationId: string, fromDate: string, toDate: string) {
+		const fromStartDate = new Date(fromDate);
+		const fromEndDate = new Date(toDate);
 		const pipeline: PipelineStage[] = [
 			{
 				$match: {
 					locationId: locationId,
 					posCreatedAt: {
-						$gte: new Date(new Date().setDate(new Date().getDate() - 14)),
-						$lte: new Date(),
+						$gte: fromStartDate,
+						$lte: fromEndDate,
 					},
 				},
 			},
@@ -122,14 +124,16 @@ export class OrderService {
 		return brandWiseOrderData;
 	}
 
-	async getEmployeeWiseSales(locationId: string) {
+	async getEmployeeWiseSales(locationId: string, fromDate: string, toDate: string) {
+		const fromStartDate = new Date(fromDate);
+		const fromEndDate = new Date(toDate);
 		const pipeline: PipelineStage[] = [
 			{
 				$match: {
 					locationId,
 					posCreatedAt: {
-						$gte: new Date(new Date().setDate(new Date().getDate() - 14)),
-						$lte: new Date(),
+						$gte: fromStartDate,
+						$lte: fromEndDate,
 					},
 				},
 			},
@@ -241,12 +245,18 @@ export class OrderService {
 		return staffWiseOrderData;
 	}
 
-	async getAverageSpendAndLoyaltyPointsForAllCustomer(locationId: string) {
+	async getAverageSpendAndLoyaltyPointsForAllCustomer(locationId: string, fromDate: string, toDate: string) {
+		const fromStartDate = new Date(fromDate);
+		const toEndDate = new Date(toDate);
 		try {
 			const pipeline: PipelineStage[] = [
 				{
 					$match: {
 						locationId,
+						posCreatedAt: {
+							$gte: fromStartDate,
+							$lte: toEndDate,
+						},
 					},
 				},
 				{
@@ -279,12 +289,18 @@ export class OrderService {
 		} catch (error) {}
 	}
 
-	async getTopCategory(locationId: string) {
+	async getTopCategory(locationId: string, fromDate: string, toDate: string) {
+		const fromStartDate = new Date(fromDate);
+		const toEndDate = new Date(toDate);
 		try {
 			const pipeline: PipelineStage[] = [
 				{
 					$match: {
 						locationId,
+						posCreatedAt: {
+							$gte: fromStartDate,
+							$lte: toEndDate,
+						},
 					},
 				},
 				{
@@ -331,12 +347,18 @@ export class OrderService {
 		} catch (error) {}
 	}
 
-	async getRecurringAndNewCustomerPercentage(locationId: string) {
+	async getRecurringAndNewCustomerPercentage(locationId: string, fromDate: string, toDate: string) {
+		const fromStartDate = new Date(fromDate);
+		const fromEndDate = new Date(toDate);
 		try {
 			const pipeline: PipelineStage[] = [
 				{
 					$match: {
 						locationId,
+						posCreatedAt: {
+							$gte: fromStartDate,
+							$lte: fromEndDate,
+						},
 					},
 				},
 				{
@@ -609,15 +631,17 @@ export class OrderService {
 		}
 	}
 
-	async getHourWiseDateForSpecificDateRange(locationId: string) {
+	async getHourWiseDateForSpecificDateRange(locationId: string, fromDate: string, toDate: string) {
 		try {
+			const fromStartDate = new Date(fromDate);
+			const toEndDate = new Date(toDate);
 			const pipeline: PipelineStage[] = [
 				{
 					$match: {
 						locationId,
 						posCreatedAt: {
-							$gte: new Date(new Date().setDate(new Date().getDate() - 14)),
-							$lte: new Date(),
+							$gte: fromStartDate,
+							$lte: toEndDate,
 						},
 					},
 				},
@@ -669,15 +693,17 @@ export class OrderService {
 		} catch (error) {}
 	}
 
-	async getWeeklyBusiestDataForSpecificRange(locationId: string) {
+	async getWeeklyBusiestDataForSpecificRange(locationId: string, fromDate: string, toDate: string) {
 		try {
+			const fromStartDate = new Date(fromDate);
+			const toEndDate = new Date(toDate);
 			const pipeline: PipelineStage[] = [
 				{
 					$match: {
 						locationId,
 						posCreatedAt: {
-							$gte: new Date(new Date().setDate(new Date().getDate() - 14)),
-							$lte: new Date(),
+							$gte: fromStartDate,
+							$lte: toEndDate,
 						},
 					},
 				},

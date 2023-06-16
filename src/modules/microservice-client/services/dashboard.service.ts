@@ -8,9 +8,13 @@ export class DashboardService {
 	constructor(private readonly customerService: CustomerService, private readonly orderService: OrderService) {}
 
 	async getCalculatedData(locationId: string, query: { fromDate: string; toDate: string }) {
-		const averageAge = await this.calculateAverageAge();
+		const averageAge = await this.calculateAverageAge(query.fromDate, query.toDate);
 
-		const { averageSpend, loyaltyPointsConverted } = await this.calculateAverageSpendAndLoyaltyPoints(locationId);
+		const { averageSpend, loyaltyPointsConverted } = await this.calculateAverageSpendAndLoyaltyPoints(
+			locationId,
+			query.fromDate,
+			query.toDate
+		);
 
 		const {
 			totalOrderAmount,
@@ -22,13 +26,17 @@ export class DashboardService {
 			orderCountGrowth,
 		} = await this.totalSales(locationId, query);
 
-		const topCategory = await this.topSellingCategory(locationId);
-		const { returningCustomer: returningCustomer, newCustomer } = await this.recVsMedCustomer(locationId);
-		const weekOrders = await this.getOrderCountsByDayOfWeek(locationId);
-		const hourlyData = await this.getOrderCountsByHour(locationId);
+		const topCategory = await this.topSellingCategory(locationId, query.fromDate, query.toDate);
+		const { returningCustomer: returningCustomer, newCustomer } = await this.recVsMedCustomer(
+			locationId,
+			query.fromDate,
+			query.toDate
+		);
+		const weekOrders = await this.getOrderCountsByDayOfWeek(locationId, query.fromDate, query.toDate);
+		const hourlyData = await this.getOrderCountsByHour(locationId, query.fromDate, query.toDate);
 
-		const brandWiseOrderData = await this.orderService.getBrandWiseSales(locationId);
-		const staffWiseOrderData = await this.orderService.getEmployeeWiseSales(locationId);
+		const brandWiseOrderData = await this.orderService.getBrandWiseSales(locationId, query.fromDate, query.toDate);
+		const staffWiseOrderData = await this.orderService.getEmployeeWiseSales(locationId, query.fromDate, query.toDate);
 
 		return {
 			overview: {
@@ -67,18 +75,22 @@ export class DashboardService {
 		};
 	}
 
-	async calculateAverageAge() {
-		const averageAge = await this.customerService.getAverageAge();
+	async calculateAverageAge(fromDate: string, toDate: string) {
+		const averageAge = await this.customerService.getAverageAge(fromDate, toDate);
 		return averageAge;
 	}
 
-	async recVsMedCustomer(locationId: string) {
-		const customerPercentage = this.orderService.getRecurringAndNewCustomerPercentage(locationId);
+	async recVsMedCustomer(locationId: string, fromDate: string, toDate: string) {
+		const customerPercentage = this.orderService.getRecurringAndNewCustomerPercentage(locationId, fromDate, toDate);
 		return customerPercentage;
 	}
 
-	async calculateAverageSpendAndLoyaltyPoints(locationId: string) {
-		const averageSpendWithLoyalty = await this.orderService.getAverageSpendAndLoyaltyPointsForAllCustomer(locationId);
+	async calculateAverageSpendAndLoyaltyPoints(locationId: string, fromDate: string, toDate: string) {
+		const averageSpendWithLoyalty = await this.orderService.getAverageSpendAndLoyaltyPointsForAllCustomer(
+			locationId,
+			fromDate,
+			toDate
+		);
 		return averageSpendWithLoyalty;
 	}
 
@@ -103,19 +115,19 @@ export class DashboardService {
 		};
 	}
 
-	async getOrderCountsByDayOfWeek(locationId: string) {
-		const orderCountsByDayOfWeek = await this.orderService.getWeeklyBusiestDataForSpecificRange(locationId);
+	async getOrderCountsByDayOfWeek(locationId: string, fromDate: string, toDate: string) {
+		const orderCountsByDayOfWeek = await this.orderService.getWeeklyBusiestDataForSpecificRange(locationId, fromDate, toDate);
 		return orderCountsByDayOfWeek;
 	}
 
-	async getOrderCountsByHour(locationId: string) {
-		const orderCountsByHour = await this.orderService.getHourWiseDateForSpecificDateRange(locationId);
+	async getOrderCountsByHour(locationId: string, fromDate: string, toDate: string) {
+		const orderCountsByHour = await this.orderService.getHourWiseDateForSpecificDateRange(locationId, fromDate, toDate);
 
 		return orderCountsByHour;
 	}
 
-	async topSellingCategory(locationId: string) {
-		const topCategory = await this.orderService.getTopCategory(locationId);
+	async topSellingCategory(locationId: string, fromDate: string, toDate: string) {
+		const topCategory = await this.orderService.getTopCategory(locationId, fromDate, toDate);
 		return topCategory;
 	}
 }
