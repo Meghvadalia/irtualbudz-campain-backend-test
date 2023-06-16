@@ -20,8 +20,8 @@ export class Customer extends Model<ICustomer> {
 	})
 	companyId: string;
 
-	// @Prop({ required: true, type: Types.ObjectId, ref: DATABASE_COLLECTION.POS })
-	// POSId: string;
+	@Prop({ required: true, type: Types.ObjectId, ref: DATABASE_COLLECTION.POS })
+	POSId: string;
 
 	// @Prop({ required: true, type: Types.ObjectId, ref: DATABASE_COLLECTION.STORES })
 	// storeId: string;

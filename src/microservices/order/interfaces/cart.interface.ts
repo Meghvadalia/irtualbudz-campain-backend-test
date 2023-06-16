@@ -1,7 +1,10 @@
+import { Schema } from 'mongoose';
+
 export interface ItemsCart {
-	_id: string;
-	posCartId:string;
-	locationId:string;
+	_id: Schema.Types.ObjectId;
+	posCartId: string;
+	locationId: Schema.Types.ObjectId;
+	productId: Schema.Types.ObjectId;
 	sku: string;
 	category: Category;
 	title1: string;
@@ -31,7 +34,6 @@ export interface Tax {
 	appliesTo: AppliesTo;
 }
 
-
 export interface ItemDiscounts {
 	_id: string;
 	name?: string;
@@ -49,7 +51,6 @@ export interface ItemDiscounts {
 	couponCode?: string;
 	quantity?: number;
 }
-
 
 export enum AppliesTo {
 	all = 'all',

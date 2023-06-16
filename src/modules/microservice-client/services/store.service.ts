@@ -1,6 +1,6 @@
-import { Inject, Injectable, OnModuleInit } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { Document, Model, Types } from 'mongoose';
+import { Model } from 'mongoose';
 import { Company } from 'src/model/company/entities/company.entity';
 import { ICompany } from 'src/model/company/interface/company.interface';
 import { POS } from 'src/model/pos/entities/pos.entity';
@@ -8,8 +8,8 @@ import { IPOS } from 'src/model/pos/interface/pos.interface';
 import { Store } from 'src/model/store/entities/store.entity';
 import { IStore } from 'src/model/store/interface/store.inteface';
 import axios from 'axios';
-import { throwError } from 'rxjs';
 import { IStoreResponseFlowHub } from 'src/common/interface';
+
 @Injectable()
 export class StoreService {
 	constructor(
