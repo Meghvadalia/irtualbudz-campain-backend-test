@@ -46,15 +46,9 @@ export class UserController implements OnModuleInit {
 
 	@Post('login')
 	@HttpCode(200)
-	async login(@Body() loginData: Login, @Res({ passthrough: true }) res: Response): Promise<any> {
+	async login(@Body() loginData: Login): Promise<any> {
 		try {
 			const user = await firstValueFrom(this.userService.Login(loginData));
-			res.cookie('refreshToken', user.refreshToken, {
-				httpOnly: true,
-				sameSite: true,
-				// secure: true,
-			});
-			delete user.refreshToken;
 
 			return sendSuccess(user, 'Log-in successful.');
 		} catch (error) {
