@@ -12,11 +12,30 @@ import { AllExceptionsFilter } from './utils/request-response.utils';
 import helmet from 'helmet';
 
 async function bootstrap() {
-	// mongoose.set('debug', true);
+	mongoose.set('debug', true);
 	const app = await NestFactory.create(AppModule);
 	app.useGlobalFilters(new AllExceptionsFilter());
 	app.use(helmet());
-	app.use(cookieParser());
+	const whitelist = ['http://localhost:3000' as string, 'https://monarc.virtualbudz.com' as string];
+	app.enableCors({
+		origin: function (origin, callback) {
+			if (!origin) {
+				console.log('allower Cors from unknown', origin);
+				callback(null, true);
+				return true;
+			}
+			if (whitelist.indexOf(origin) !== -1) {
+				console.log('allowed cors for:', origin);
+				callback(null, true);
+			} else {
+				console.log('blocked cors for:', origin);
+				callback(new Error('Not allowed by CORS'));
+			}
+		},
+		credentials: true,
+		methods: ['GET', 'PUT', 'POST', 'OPTIONS', 'PATCH'],
+	});
+
 	await app.listen(8000);
 
 	const orderApp = await NestFactory.createMicroservice<MicroserviceOptions>(OrderModule, {
