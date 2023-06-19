@@ -14,7 +14,6 @@ import { Company } from 'src/model/company/entities/company.entity';
 import { POS } from 'src/model/pos/entities/pos.entity';
 import { Store } from 'src/model/store/entities/store.entity';
 import { CustomerService } from 'src/microservices/customers';
-import * as moment from 'moment-timezone';
 
 @Injectable()
 export class OrderService {
