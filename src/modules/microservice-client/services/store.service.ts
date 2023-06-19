@@ -70,13 +70,4 @@ export class StoreService {
 			return error;
 		}
 	}
-
-	async storeList() {
-		try {
-			const stores = await this.storeModel.find().select(['-updatedAt', '-__v']);
-			return stores;
-		} catch (error) {
-			throw new Error(error);
-		}
-	}
 }
