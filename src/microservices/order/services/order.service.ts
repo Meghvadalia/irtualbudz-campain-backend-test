@@ -4,7 +4,7 @@ import { Model } from 'mongoose';
 import axios from 'axios';
 
 import { Order } from '../entities/order.entity';
-import { Cron, CronExpression } from '@nestjs/schedule';
+import { Cron } from '@nestjs/schedule';
 import { Cart } from '../entities/cart.entity';
 import { Staff } from '../entities/staff.entity';
 import { IStaff } from '../interfaces/staff.interface';
@@ -13,7 +13,6 @@ import { IPOS } from 'src/model/pos/interface/pos.interface';
 import { Company } from 'src/model/company/entities/company.entity';
 import { POS } from 'src/model/pos/entities/pos.entity';
 import { Store } from 'src/model/store/entities/store.entity';
-import { CustomerService } from 'src/microservices/customers';
 
 @Injectable()
 export class OrderService {
@@ -23,8 +22,7 @@ export class OrderService {
 		@InjectModel(Staff.name) private staffModal: Model<Staff>,
 		@InjectModel(Company.name) private companyModel: Model<Company>,
 		@InjectModel(POS.name) private posModel: Model<POS>,
-		@InjectModel(Store.name) private storeModel: Model<Store>,
-		private readonly customerService: CustomerService
+		@InjectModel(Store.name) private storeModel: Model<Store>
 	) {}
 
 	async seedOrders(fromDate: Date, toDate: Date, importId: string) {
@@ -62,9 +60,13 @@ export class OrderService {
 		}
 	}
 
-	@Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT)
+	@Cron('0 0 0 * * *')
 	async scheduleCronJob() {
 		try {
+			const currentDate = new Date();
+			const fromDate = new Date(currentDate.getFullYear(), currentDate.getMonth(), currentDate.getDate() - 1, 0, 0, 0);
+			const toDate = new Date(currentDate.getFullYear(), currentDate.getMonth(), currentDate.getDate(), 0, 0, 0);
+
 			const monarcCompanyData: ICompany = await this.companyModel.findOne<ICompany>({
 				name: 'Monarc',
 			});
@@ -86,35 +88,28 @@ export class OrderService {
 					return;
 				}
 
-				const location = locations[counter];
-				const storeTimeZone = location.timeZone;
-
-				const currentDate = new Date().toLocaleString(undefined, { timeZone: storeTimeZone });
-				const fromDate = new Date(currentDate);
-				fromDate.setDate(fromDate.getDate() - 1);
-				fromDate.setHours(0, 0, 0, 0);
-
-				const toDate = new Date(currentDate);
-				toDate.setHours(0, 0, 0, 0);
-
 				console.log('Location ID:', locationIds[counter].locationId);
-				if (location.location.locationId === 150) {
-					const customersCount = await this.orderModel.countDocuments();
-					if (customersCount === 0) {
-						console.log('Seeding data for the last 100 days...');
-						const hundredDaysAgo = new Date(currentDate);
-						hundredDaysAgo.setDate(hundredDaysAgo.getDate() - 100);
-						hundredDaysAgo.setHours(0, 0, 0, 0);
-						this.seedOrders(hundredDaysAgo, toDate, location.location.importId);
-					} else {
-						console.log('Seeding data from the previous day...');
-						this.seedOrders(fromDate, toDate, location.location.importId);
-					}
+				// if (locationIds[counter].locationId == 150) {
+				const customersCount = await this.orderModel.countDocuments();
+				if (customersCount === 0) {
+					console.log('Seeding data for the last 100 days...');
+					const hundredDaysAgo = new Date(
+						currentDate.getFullYear(),
+						currentDate.getMonth(),
+						currentDate.getDate() - 100,
+						0,
+						0,
+						0
+					);
+					this.seedOrders(hundredDaysAgo, toDate, locationIds[counter].importId);
+				} else {
+					console.log('Seeding data from the previous day...');
+					this.seedOrders(fromDate, toDate, locationIds[counter].importId);
 				}
+				// }
 
 				counter++;
 			};
-
 			const interval = setInterval(intervalFunction, intervalDuration);
 		} catch (error) {
 			console.error('Error while scheduling cron job:', error);
@@ -223,8 +218,7 @@ export class OrderService {
 			console.log('====================================');
 		}
 	}
-
-	async processOrderBatch(orders, page) {
+	processOrderBatch(orders, page) {
 		try {
 			console.log('====================================');
 			console.log('Processing Order Batch number', page);
@@ -234,21 +228,14 @@ export class OrderService {
 				staffName: x.budtender,
 				locationId: x.locationId,
 				posCreatedAt: new Date(x.createdAt),
-				customerId: x.customerId,
 			}));
-
-			let customerIds: Set<string> = new Set(temp.map((order) => order.customerId));
-			console.log(customerIds.size);
-			for (const customerId of customerIds) {
-				const order = orders.find((x) => x.customerId === customerId);
-				if (order) {
-					await this.customerService.seedCustomers(customerId, order.locationId);
-				}
-			}
-
+			// remove duplicate object
 			let staff = temp.filter((v, i, a) => a.findIndex((v2) => ['staffName', 'locationId'].every((k) => v2[k] === v[k])) === i);
 			let staffFun = [];
 			let ItemFunction = [];
+			/* create function array for promise all
+			 * for loop pass object of order
+			 */
 			for (let index = 0; index < staff.length; index++) {
 				let element = staff[index];
 				staffFun.push(this.addStaff(element));
