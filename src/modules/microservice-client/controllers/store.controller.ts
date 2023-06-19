@@ -15,15 +15,4 @@ export class StoreController {
 			throw new Error(error);
 		}
 	}
-
-	@Get('list')
-	@UseGuards(RolesGuard)
-	@Roles(USER_TYPE.ADMIN)
-	async storeList() {
-		try {
-			return await this.clientStoreService.storeList();
-		} catch (error) {
-			throw new Error(error);
-		}
-	}
 }
