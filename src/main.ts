@@ -1,6 +1,5 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
-import * as cookieParser from 'cookie-parser';
 import { MicroserviceOptions, Transport } from '@nestjs/microservices';
 import { OrderModule } from './microservices/order';
 import { join } from 'path';
@@ -12,7 +11,7 @@ import { AllExceptionsFilter } from './utils/request-response.utils';
 import helmet from 'helmet';
 
 async function bootstrap() {
-	mongoose.set('debug', true);
+	// mongoose.set('debug', true);
 	const app = await NestFactory.create(AppModule);
 	app.useGlobalFilters(new AllExceptionsFilter());
 	app.use(helmet());

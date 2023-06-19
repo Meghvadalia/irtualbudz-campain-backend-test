@@ -49,8 +49,8 @@ export class UsersController {
 	}
 
 	@GrpcMethod('UserService', 'Logout')
-	async logout(@Payload() payload: { userId: string }) {
-		await this.usersService.logout(payload.userId);
+	async logout(@Payload() payload: { userId: string; sessionId: string }) {
+		await this.usersService.logout(payload.userId, payload.sessionId);
 		return {
 			message: 'Logged-out successfully.',
 		};

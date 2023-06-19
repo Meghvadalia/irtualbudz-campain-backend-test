@@ -1,4 +1,4 @@
-import { Controller, Get, Param, Query, Res, UseGuards } from '@nestjs/common';
+import { Controller, Get, Param, Query, Req, Res, UseGuards } from '@nestjs/common';
 import { DashboardService } from '../services/dashboard.service';
 import { Response } from 'express';
 import { Roles, RolesGuard } from 'src/common/guards/auth.guard';

@@ -18,9 +18,6 @@ import { POS, POSSchema } from 'src/model/pos/entities/pos.entity';
 	],
 	exports: [CustomerService],
 	controllers: [CustomerController],
-	providers: [
-		CustomerService,
-		// UsersResolver,
-	],
+	providers: [CustomerService],
 })
 export class CustomerModule {}

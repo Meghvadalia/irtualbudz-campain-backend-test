@@ -64,7 +64,7 @@ export class UserController implements OnModuleInit {
 		try {
 			// @ts-ignore
 			const user = req.user;
-			const request = { userId: user.id };
+			const request = { userId: user.id, sessionId: user.sessionId };
 			const response = await firstValueFrom(this.userService.Logout(request));
 			return sendSuccess(null, 'Logged out successfully.');
 		} catch (error) {

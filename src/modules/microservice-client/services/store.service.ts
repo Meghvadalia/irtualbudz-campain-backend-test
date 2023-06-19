@@ -9,6 +9,7 @@ import { Store } from 'src/model/store/entities/store.entity';
 import { IStore } from 'src/model/store/interface/store.inteface';
 import axios from 'axios';
 import { IStoreResponseFlowHub } from 'src/common/interface';
+import { Cron } from '@nestjs/schedule';
 
 @Injectable()
 export class StoreService {
@@ -18,6 +19,7 @@ export class StoreService {
 		@InjectModel(POS.name) private posModel: Model<ICompany>
 	) {}
 
+	@Cron('0 0 0 * * *')
 	async seedStoreData() {
 		try {
 			const monarcCompanyData: ICompany = await this.companyModel.findOne<ICompany>({
@@ -66,6 +68,15 @@ export class StoreService {
 		} catch (error) {
 			console.log('Error While Seeding the Data For Store', error);
 			return error;
+		}
+	}
+
+	async storeList() {
+		try {
+			const stores = await this.storeModel.find().select(['-updatedAt', '-__v']);
+			return stores;
+		} catch (error) {
+			throw new Error(error);
 		}
 	}
 }

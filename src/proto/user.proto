@@ -41,6 +41,7 @@ message User {
 
 message LogoutRequest {
   string userId = 1;
+  string sessionId = 2;
 }
 
 message LogoutResponse {

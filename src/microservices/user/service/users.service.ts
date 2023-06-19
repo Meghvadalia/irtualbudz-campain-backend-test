@@ -34,18 +34,7 @@ export class UsersService {
 			const user = (await this.findByEmail(email)) as User;
 			const comparepassword = await passwordService.comparePasswords(password, user.password);
 			if (user && comparepassword) {
-				const accessTokenPayload = {
-					id: user._id,
-					userType: user.type,
-				};
-				const token = this.jwtService.generateAccessToken(accessTokenPayload);
-				const refreshTokenPayload = {
-					id: user._id,
-					userType: user.type,
-				};
-				const refreshToken = this.jwtService.generateRefreshToken(refreshTokenPayload);
-
-				await this.sessionService.createSession(user._id, { userId: user._id, type: 'ADMIN' });
+				const { token, refreshToken } = await this.sessionService.createSession(user._id, { userId: user._id, type: 'ADMIN' });
 				return { user, token, refreshToken };
 			}
 
@@ -65,11 +54,13 @@ export class UsersService {
 
 		// @ts-ignore
 		const user = await this.findById(decodedToken.id);
+		const session = await this.sessionService.findSession(user._id);
 
 		if (user) {
 			const payload = {
 				id: user._id,
-				type: user.type,
+				userType: user.type,
+				sessionId: session._id,
 			};
 			const newToken = this.jwtService.generateAccessToken(payload);
 			return newToken;
@@ -77,9 +68,9 @@ export class UsersService {
 		return 'User not found.';
 	}
 
-	async logout(userId: string) {
+	async logout(userId: string, sessionId: string) {
 		try {
-			await this.sessionService.logout(userId);
+			await this.sessionService.logout(userId, sessionId);
 		} catch (error) {}
 	}
 }

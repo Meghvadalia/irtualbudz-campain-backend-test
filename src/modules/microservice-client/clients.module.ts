@@ -22,7 +22,7 @@ import { OrderService } from './services/order.service';
 import { Order, OrderSchema } from 'src/microservices/order/entities/order.entity';
 import { UserController } from './controllers/user.controller';
 import { JwtService } from '../../utils/token.util';
-import { MetricsController } from './controllers/metrcis.controller';
+import { MetricsController } from './controllers/metrics.controller';
 import { RedisService } from 'src/config/cache/config.service';
 
 @Module({

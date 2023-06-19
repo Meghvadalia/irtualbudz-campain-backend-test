@@ -4,73 +4,55 @@ import { Model } from 'mongoose';
 import axios from 'axios';
 
 import { Customer } from '../entities/customer.entity';
-import { Cron } from '@nestjs/schedule';
 import { ICompany } from 'src/model/company/interface/company.interface';
 import { Company } from 'src/model/company/entities/company.entity';
 import { ICustomer } from '../interfaces/customer.interface';
+import { IPOS } from 'src/model/pos/interface/pos.interface';
+import { POS } from 'src/model/pos/entities/pos.entity';
 
 @Injectable()
 export class CustomerService {
 	constructor(
 		@InjectModel(Customer.name) private customerModel: Model<Customer>,
-		@InjectModel(Company.name) private companyModel: Model<Company>
+		@InjectModel(Company.name) private companyModel: Model<Company>,
+		@InjectModel(POS.name) private posModel: Model<POS>
 	) {}
 
-	async seedCustomers(fromDate: Date, toDate: Date) {
+	async seedCustomers(customerId: string, storeId: string) {
 		try {
-			const monarcCompanyData: ICompany = await this.companyModel.findOne<ICompany>({
-				name: 'Monarc',
-			});
+			const monarcCompanyData: ICompany = await this.companyModel.findOne<ICompany>({ name: 'Monarc' });
+			const posData: IPOS = await this.posModel.findOne<IPOS>({ _id: monarcCompanyData.posId });
 
 			const options = {
 				method: 'get',
-				url: `${process.env.FLOWHUB_URL}/v1/customers/`,
-				params: { created_after: fromDate, created_before: toDate },
+				url: `${posData.liveUrl}/v1/customers/${customerId}`,
 				headers: {
-					key: process.env.FLOWHUB_KEY,
-					ClientId: process.env.FLOWHUB_CLIENT_ID,
+					key: monarcCompanyData.dataObject.key,
+					ClientId: monarcCompanyData.dataObject.clientId,
 					Accept: 'application/json',
 				},
 			};
 
 			const { data } = await axios.request(options);
-
-			if (data.customers.length > 0) {
-				const customers = data.customers.map((customer: ICustomer) => ({
-					...customer,
-					companyId: monarcCompanyData._id,
-					POSId: monarcCompanyData.posId,
-				}));
-
-				await this.customerModel.insertMany(customers);
-				console.log(`Seeded ${customers.length} customers.`);
-			} else {
-				console.log('No customers to seed.');
-			}
+			await this.addCustomer(data, customerId, storeId, monarcCompanyData._id, monarcCompanyData.posId);
 		} catch (error) {
 			console.error('Error while seeding customers:', error);
 		}
 	}
 
-	@Cron('0 0 0 * * *')
-	async scheduleCronJob() {
-		try {
-			const currentDate = new Date();
-			const fromDate = new Date(currentDate.getFullYear(), currentDate.getMonth(), currentDate.getDate() - 1, 0, 0, 0);
-			const toDate = new Date(currentDate.getFullYear(), currentDate.getMonth(), currentDate.getDate(), 0, 0, 0);
+	async findCustomer(id: string) {
+		return this.customerModel.findOne({ id });
+	}
 
-			const customersCount = await this.customerModel.countDocuments();
-			if (customersCount === 0) {
-				console.log('Seeding data for the last 100 days...');
-				const hundredDaysAgo = new Date(currentDate.getFullYear(), currentDate.getMonth(), currentDate.getDate() - 100, 0, 0, 0);
+	async addCustomer(customerData: ICustomer, customerId: string, storeId: string, companyId: string, posId: string) {
+		const updatedCustomerData = {
+			...customerData,
+			id: customerId,
+			POSId: posId,
+			storeId,
+			companyId,
+		};
 
-				await this.seedCustomers(hundredDaysAgo, toDate);
-			} else {
-				console.log('Seeding data from the previous day...');
-				await this.seedCustomers(fromDate, toDate);
-			}
-		} catch (error) {
-			console.error('Error while scheduling cron job:', error);
-		}
+		await this.customerModel.create(updatedCustomerData);
 	}
 }
