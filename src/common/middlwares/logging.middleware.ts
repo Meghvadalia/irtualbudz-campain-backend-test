@@ -8,9 +8,7 @@ export class LoggingMiddleware implements NestMiddleware {
 	use(req: Request, res: Response, next: NextFunction) {
 		res.on('finish', () => {
 			const { method, originalUrl, body, statusCode } = req;
-			const logMessage = `Method: ${method} | URL: ${originalUrl} | Body: ${JSON.stringify(
-				body
-			)} | Status: ${statusCode}`;
+			const logMessage = `Method: ${method} | URL: ${originalUrl} | Body: ${JSON.stringify(body)} | Status: ${statusCode}`;
 			this.logger.log(logMessage);
 		});
 

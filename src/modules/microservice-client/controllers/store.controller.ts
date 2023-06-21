@@ -1,13 +1,11 @@
-import { Controller, Get } from '@nestjs/common';
-import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
-import { Store } from 'src/model/store/entities/store.entity';
-import { IStore } from 'src/model/store/interface/store.inteface';
+import { Controller, Get, UseGuards } from '@nestjs/common';
 import { StoreService } from '../services/store.service';
+import { Roles, RolesGuard } from 'src/common/guards/auth.guard';
+import { USER_TYPE } from 'src/microservices/user';
 
 @Controller('store')
 export class StoreController {
-	constructor(@InjectModel(Store.name) private storeModel: Model<IStore>, private readonly clientStoreService: StoreService) {}
+	constructor(private readonly clientStoreService: StoreService) {}
 
 	@Get('seed-stores')
 	async seedStoreList() {

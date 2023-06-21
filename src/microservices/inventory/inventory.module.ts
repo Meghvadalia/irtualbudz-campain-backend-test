@@ -1,13 +1,14 @@
 import { Module } from '@nestjs/common';
-import { InventoryController } from './controllers/inventory.controller';
-import { InventoryService } from './services/inventory.service';
 import { MongooseModule } from '@nestjs/mongoose';
+
 import { Inventory, InventorySchema } from './entities/inventory.entity';
 import { DatabaseProviderModule } from 'src/providers/database/mongodb.module';
 import { Product, ProductSchema } from './entities/product.entity';
 import { Company, CompanySchema } from 'src/model/company/entities/company.entity';
 import { POS, POSSchema } from 'src/model/pos/entities/pos.entity';
 import { Store, StoreSchema } from 'src/model/store/entities/store.entity';
+import { InventoryController } from './controllers/inventory.controller';
+import { InventoryService } from './services/inventory.service';
 
 @Module({
 	imports: [

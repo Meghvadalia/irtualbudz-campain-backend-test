@@ -12,8 +12,14 @@ export class Product extends Model<IProduct> {
 	@Prop({ required: true, type: Types.ObjectId, ref: DATABASE_COLLECTION.COMPANIES })
 	companyId: string;
 
+	@Prop({ required: true, type: Types.ObjectId, ref: DATABASE_COLLECTION.POS })
+	POSId: string;
+
 	@Prop({ trim: true })
 	productName: string;
+
+	@Prop({ trim: true, unique: true })
+	posProductId: string;
 
 	@Prop({ trim: true })
 	productDescription: string;

@@ -5,12 +5,9 @@ import { OrderModule } from './microservices/order';
 import { ConfigModule } from '@nestjs/config';
 import { UsersModule } from './microservices/user/users.module';
 import { LoggingMiddleware } from './common/middlwares/logging.middleware';
-// import { InventoryModule } from './microservices/inventory';
-import { InventoryModule } from './microservices/inventory';
 import { ScheduleModule } from '@nestjs/schedule';
+import { InventoryModule } from './microservices/inventory';
 import { CustomerModule } from './microservices/customers/customer.module';
-import { DashboardModule } from './microservices/dashboard/dashboard.module';
-// import { ProductModule } from './microservices/product';
 
 @Module({
 	imports: [
@@ -27,9 +24,7 @@ import { DashboardModule } from './microservices/dashboard/dashboard.module';
 		OrderModule,
 		CustomerModule,
 		InventoryModule,
-		// ProductModule,
 		UsersModule,
-		DashboardModule,
 
 		// Client module
 		MicroserviceClientModule,

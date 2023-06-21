@@ -3,10 +3,9 @@ import { IAddress, IhoursOfOperation } from 'src/common/interface';
 import { ILocation } from './../../../common/interface/index';
 import { Schema, Prop, SchemaFactory } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
-import { Company } from 'src/model/company/entities/company.entity';
 import { DATABASE_COLLECTION } from 'src/common/constants';
 
-@Schema({ collection: DATABASE_COLLECTION.STORES })
+@Schema({ collection: DATABASE_COLLECTION.STORES, timestamps: true })
 export class Store extends Model<IStore> {
 	@Prop({ required: true, type: Object })
 	location: ILocation;
@@ -39,9 +38,6 @@ export class Store extends Model<IStore> {
 	email: string;
 
 	licenseType: string[];
-
-	@Prop({ default: Date.now })
-	updatedAt: Date;
 
 	@Prop({ default: false })
 	isDeleted: boolean;

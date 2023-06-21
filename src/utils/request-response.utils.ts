@@ -1,18 +1,8 @@
-import {
-	ValidationPipe,
-	BadRequestException,
-	HttpException,
-	HttpStatus,
-	ArgumentsHost,
-	Catch,
-} from '@nestjs/common';
+import { BadRequestException, HttpException, HttpStatus, ArgumentsHost, Catch } from '@nestjs/common';
 import { plainToClass } from 'class-transformer';
 import { validate, ValidationError } from 'class-validator';
 import { Response } from 'express';
-export async function validateRequest<T extends object>(
-	data: T,
-	dtoClass: new () => T
-): Promise<void> {
+export async function validateRequest<T extends object>(data: T, dtoClass: new () => T): Promise<void> {
 	const transformedData = plainToClass(dtoClass, data);
 	const errors = await validate(transformedData);
 
@@ -35,11 +25,7 @@ export function formatValidationErrors(errors: ValidationError[]): string {
 		.join(', ');
 }
 
-export function sendSuccess<T>(
-	data: T,
-	message: string = 'Success',
-	statusCode: number = HttpStatus.OK
-): ApiResponse<T> {
+export function sendSuccess<T>(data: T, message: string = 'Success', statusCode: number = HttpStatus.OK): ApiResponse<T> {
 	return {
 		status: 'success',
 		statusCode,
@@ -48,10 +34,7 @@ export function sendSuccess<T>(
 	};
 }
 
-export function sendError<T>(
-	message: string,
-	statusCode: number
-): ApiResponse<T> {
+export function sendError<T>(message: string, statusCode: number): ApiResponse<T> {
 	return {
 		status: 'error',
 		statusCode,
@@ -72,14 +55,8 @@ export class AllExceptionsFilter {
 	catch(exception: any, host: ArgumentsHost) {
 		const ctx = host.switchToHttp();
 		const response = ctx.getResponse<Response>();
-		const status =
-			exception instanceof HttpException
-				? exception.getStatus()
-				: HttpStatus.INTERNAL_SERVER_ERROR;
-		const message =
-			exception instanceof HttpException
-				? exception.message
-				: 'Internal Server Error';
+		const status = exception instanceof HttpException ? exception.getStatus() : HttpStatus.INTERNAL_SERVER_ERROR;
+		const message = exception instanceof HttpException ? exception.message : 'Internal Server Error';
 
 		response.status(status).json(sendError(message, status));
 	}

@@ -1,4 +1,4 @@
-import { CustomerService } from '../customer.service';
+import { CustomerService } from '../service/customer.service';
 import { Resolver, Query, Mutation, Args, Int } from '@nestjs/graphql';
 import { Customer } from '../entities/customer.entity';
 // import { UserDto } from '../dto/customer.dto';
