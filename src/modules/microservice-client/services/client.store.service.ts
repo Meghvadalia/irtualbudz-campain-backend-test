@@ -12,7 +12,7 @@ import { IStoreResponseFlowHub } from 'src/common/interface';
 import { Cron } from '@nestjs/schedule';
 
 @Injectable()
-export class StoreService {
+export class ClientStoreService {
 	constructor(
 		@InjectModel(Store.name) private storeModel: Model<IStore>,
 		@InjectModel(Company.name) private companyModel: Model<ICompany>,
@@ -68,6 +68,14 @@ export class StoreService {
 		} catch (error) {
 			console.log('Error While Seeding the Data For Store', error);
 			return error;
+		}
+	}
+
+	async getStores() {
+		try {
+			return await this.storeModel.find({});
+		} catch (error) {
+			throw error;
 		}
 	}
 }

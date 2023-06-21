@@ -16,7 +16,7 @@ interface IUserService {
 }
 
 @Controller('user')
-export class UserController implements OnModuleInit {
+export class ClientUserController implements OnModuleInit {
 	private userService: IUserService;
 	private client: ClientGrpc;
 	constructor() {}

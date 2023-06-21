@@ -1,13 +1,13 @@
 import { Controller, Get, Param, Query, Req, Res, UseGuards } from '@nestjs/common';
-import { DashboardService } from '../services/dashboard.service';
+import { ClientDashboardService } from '../services/client.dashboard.service';
 import { Response } from 'express';
 import { Roles, RolesGuard } from 'src/common/guards/auth.guard';
 
 import { USER_TYPE } from 'src/microservices/user';
 
 @Controller('dashboard')
-export class DashboardController {
-	constructor(private readonly dashboardService: DashboardService) {}
+export class ClientDashboardController {
+	constructor(private readonly dashboardService: ClientDashboardService) {}
 
 	@Get('/:locationId')
 	@UseGuards(RolesGuard)
