@@ -13,16 +13,15 @@ import { DATABASE_COLLECTION } from 'src/common/constants';
 export class POS extends Model<IPOS> {
 	@Prop({ trim: true, required: true, unique: true })
 	name: String;
+
 	@Prop({ trim: true, required: true })
 	liveUrl: String;
-	@Prop({ trim: true, required: true })
+
+	@Prop({ trim: true })
 	stagingUrl: String;
+
 	@Prop({ trim: true })
 	documentationUrl: String;
-	
-
-	@Prop({ default: Date.now })
-	updatedAt: Date;
 
 	@Prop({ default: false })
 	isDeleted: boolean;

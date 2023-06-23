@@ -2,6 +2,7 @@ import { BadRequestException, HttpException, HttpStatus, ArgumentsHost, Catch } 
 import { plainToClass } from 'class-transformer';
 import { validate, ValidationError } from 'class-validator';
 import { Response } from 'express';
+
 export async function validateRequest<T extends object>(data: T, dtoClass: new () => T): Promise<void> {
 	const transformedData = plainToClass(dtoClass, data);
 	const errors = await validate(transformedData);

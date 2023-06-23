@@ -4,6 +4,7 @@ import { Response } from 'express';
 import { Roles, RolesGuard } from 'src/common/guards/auth.guard';
 
 import { USER_TYPE } from 'src/microservices/user';
+import { sendSuccess } from 'src/utils/request-response.utils';
 
 @Controller('dashboard')
 export class DashboardController {
@@ -12,15 +13,11 @@ export class DashboardController {
 	@Get('/:locationId')
 	@UseGuards(RolesGuard)
 	@Roles(USER_TYPE.ADMIN)
-	async getCalculatedData(
-		@Param('locationId') locationId: string,
-		@Query() query: { fromDate: string; toDate: string },
-		@Res() res: Response
-	) {
+	async getCalculatedData(@Param('locationId') locationId: string, @Query() query: { fromDate: string; toDate: string }) {
 		try {
 			const { customer, overview, sales, operations } = await this.dashboardService.getCalculatedData(locationId, query);
 
-			return res.json({ overview, customer, sales, operations });
+			return sendSuccess({ overview, customer, sales, operations });
 		} catch (error) {
 			throw new Error(error);
 		}

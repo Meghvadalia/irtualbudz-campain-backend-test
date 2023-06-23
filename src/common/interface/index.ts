@@ -25,7 +25,7 @@ export interface ILocation {
 }
 
 export interface IFlowhubHeaderInterface {
-	clientId: number;
+	clientId?: number;
 	key: string;
 }
 

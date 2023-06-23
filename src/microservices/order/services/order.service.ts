@@ -89,7 +89,6 @@ export class OrderService {
 				}
 
 				console.log('Location ID:', locationIds[counter].locationId);
-				// if (locationIds[counter].locationId == 150) {
 				const customersCount = await this.orderModel.countDocuments();
 				if (customersCount === 0) {
 					console.log('Seeding data for the last 100 days...');
@@ -106,7 +105,6 @@ export class OrderService {
 					console.log('Seeding data from the previous day...');
 					this.seedOrders(fromDate, toDate, locationIds[counter].importId);
 				}
-				// }
 
 				counter++;
 			};

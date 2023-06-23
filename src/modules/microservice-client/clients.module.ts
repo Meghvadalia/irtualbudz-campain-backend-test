@@ -1,7 +1,7 @@
 import { Module } from '@nestjs/common';
 import { ClientOrderController } from './controllers/client.order.controller';
 import { ClientOrderService } from './services/client.order.service';
-import { seederService } from 'src/common/seeders/seeders';
+import { SeederService } from 'src/common/seeders/seeders';
 import { POS, POSSchema } from 'src/model/pos/entities/pos.entity';
 import { MongooseModule } from '@nestjs/mongoose';
 import { Company, CompanySchema } from 'src/model/company/entities/company.entity';
@@ -44,7 +44,7 @@ import { RedisService } from 'src/config/cache/config.service';
 	controllers: [ClientOrderController, StoreController, DashboardController, UserController, MetricsController],
 	providers: [
 		ClientOrderService,
-		seederService,
+		SeederService,
 		StoreService,
 		DashboardService,
 		CustomerService,

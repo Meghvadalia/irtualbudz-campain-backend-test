@@ -1,13 +1,13 @@
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { log } from 'console';
 import { Model } from 'mongoose';
 import { Company } from 'src/model/company/entities/company.entity';
-import { ICompany } from 'src/model/company/interface/company.interface';
 import { POS } from 'src/model/pos/entities/pos.entity';
-import { IPOS } from 'src/model/pos/interface/pos.interface';
+import { posData } from './pos';
+import { companyData } from './company';
+
 @Injectable()
-export class seederService {
+export class SeederService {
 	constructor(
 		@InjectModel(POS.name)
 		private posModel: Model<POS>,
@@ -21,72 +21,59 @@ export class seederService {
 
 	async seedPOS() {
 		try {
-			const posSeedData: IPOS = {
-				name: 'flowhub',
-				liveUrl: 'https://api.flowhub.co/',
-				stagingUrl:
-					'https://stoplight.io/mocks/flowhub/public-developer-portal/24055485',
-				documentationUrl:
-					'https://flowhub.stoplight.io/docs/public-developer-portal',
-			};
-			let checkExistingPOS: Array<IPOS> = await this.posModel.find({
-				name: 'flowhub',
-			});
-			if (checkExistingPOS.length == 0) {
-				await this.posModel.create(posSeedData);
+			for (const pos of posData) {
+				const existingPOS = await this.posModel.findOne({ name: pos.name });
+
+				if (!existingPOS) {
+					await this.posModel.create(pos);
+				}
 			}
-			// Add more objects as needed
 
 			console.log('POS seeding Done');
 		} catch (error) {
-			console.log('Error Seeding POS collection:', error);
+			console.error('Error Seeding POS collection:', error);
 		}
 	}
+
 	async seedCompany() {
 		try {
-			// Retrieve the Pos documents
-			const companySeedData: Array<ICompany> = [
-				{
-					name: 'Monarc',
-					posId: '',
-					totalStore: 0,
-					dataObject: {
-						clientId: 20,
-						key: 'c6c3f269-33e6-43ea-922e-4ab83d4ba0d7',
-					},
-				},
-				// Add more objects as needed
-			];
-			let checkExistingPOS: Array<IPOS> = await this.companyModel.find({
-				name: 'Monarc',
-			});
-			if (checkExistingPOS.length == 0) {
-				const posDocuments = await this.posModel.find({
-					name: 'flowhub',
-				});
+			for (const company of companyData) {
+				const existingCompany = await this.companyModel.findOne({ name: company.name });
 
-				// Create the companySeedData with posID referencing the Pos documents
-				const seededCompanyData = companySeedData.map((data) => {
-					const { posId } = data;
+				if (!existingCompany) {
+					let posName: string;
+					if (company.name === 'Monarc') {
+						posName = 'flowhub';
+					} else if (company.name === 'Dutchie') {
+						posName = 'dutchie';
+					}
 
-					const posID = posDocuments.find(
-						(pos) => pos.name === 'flowhub'
-					)._id;
-					return { ...data, posId: posID };
-				});
+					const matchingPOS = await this.posModel.findOne({ name: posName });
 
-				await this.companyModel.create(seededCompanyData);
+					if (matchingPOS) {
+						await this.companyModel.create({
+							name: company.name,
+							posId: matchingPOS._id,
+							totalStore: company.totalStore,
+							dataObject: company.dataObject,
+						});
+					}
+				}
 			}
 
-			console.log('Company collection seeded successfully.');
+			console.log('Company seeding Done');
 		} catch (error) {
 			console.error('Error seeding Company collection:', error);
 		}
 	}
+
 	async seedCollections() {
-		await this.seedPOS();
-		setTimeout(async () => {
+		try {
+			await this.seedPOS();
 			await this.seedCompany();
-		}, 500);
+			console.log('Seeding completed successfully');
+		} catch (error) {
+			console.error('Error seeding collections:', error);
+		}
 	}
 }
