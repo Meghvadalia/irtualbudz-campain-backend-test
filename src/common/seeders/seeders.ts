@@ -5,14 +5,15 @@ import { Company } from 'src/model/company/entities/company.entity';
 import { POS } from 'src/model/pos/entities/pos.entity';
 import { posData } from './pos';
 import { companyData } from './company';
+import { User } from 'src/microservices/user/entities/user.entity';
+import { superAdmin } from './user';
 
 @Injectable()
 export class SeederService {
 	constructor(
-		@InjectModel(POS.name)
-		private posModel: Model<POS>,
-		@InjectModel(Company.name)
-		private companyModel: Model<Company>
+		@InjectModel(POS.name) private posModel: Model<POS>,
+		@InjectModel(Company.name) private companyModel: Model<Company>,
+		@InjectModel(User.name) private userModel: Model<User>
 	) {
 		setTimeout(() => {
 			this.seedCollections();
@@ -44,7 +45,7 @@ export class SeederService {
 					let posName: string;
 					if (company.name === 'Monarc') {
 						posName = 'flowhub';
-					} else if (company.name === 'Dutchie') {
+					} else if (company.name === 'Virtual Budz') {
 						posName = 'dutchie';
 					}
 
@@ -67,10 +68,23 @@ export class SeederService {
 		}
 	}
 
+	async seedUser() {
+		try {
+			const userExists = await this.userModel.findOne({ email: superAdmin.email });
+
+			if (!userExists) {
+				await this.userModel.create({ ...superAdmin });
+			}
+		} catch (error) {
+			console.error('Error seeding User collection:', error);
+		}
+	}
+
 	async seedCollections() {
 		try {
 			await this.seedPOS();
 			await this.seedCompany();
+			await this.seedUser();
 			console.log('Seeding completed successfully');
 		} catch (error) {
 			console.error('Error seeding collections:', error);

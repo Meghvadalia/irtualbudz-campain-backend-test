@@ -24,6 +24,7 @@ import { UserController } from './controllers/user.controller';
 import { JwtService } from '../../utils/token.util';
 import { MetricsController } from './controllers/metrics.controller';
 import { RedisService } from 'src/config/cache/config.service';
+import { User, UserSchema } from 'src/microservices/user/entities/user.entity';
 
 @Module({
 	imports: [
@@ -35,6 +36,7 @@ import { RedisService } from 'src/config/cache/config.service';
 			{ name: Product.name, schema: ProductSchema },
 			{ name: Customer.name, schema: CustomerSchema },
 			{ name: Order.name, schema: OrderSchema },
+			{ name: User.name, schema: UserSchema },
 		]),
 		CustomerModule,
 		OrderModule,

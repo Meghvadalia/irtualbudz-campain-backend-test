@@ -1,9 +1,9 @@
 import { Injectable, CanActivate, ExecutionContext } from '@nestjs/common';
 import { SetMetadata } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
-import { USER_TYPE } from 'src/microservices/user';
 import { JwtService } from '../../utils/token.util';
 import { RedisService } from 'src/config/cache/config.service';
+import { USER_TYPE, USER_TYPE_ORDER } from 'src/microservices/user/constants/user.constant';
 
 export const Roles = (...roles: string[]) => SetMetadata('roles', roles);
 
@@ -30,18 +30,24 @@ export class RolesGuard implements CanActivate {
 			const userRole = decoded.userType;
 
 			if (requiredRoles.includes(userRole)) {
-				request.user = decoded;
-				// @ts-ignore
-				const userId = decoded.id;
-				const loggedIn = await this.redisService.getValue(userId);
-				if (!loggedIn) {
-					return false;
+				const requestingUserRoleOrder = USER_TYPE_ORDER[userRole];
+				const requiredRolesOrder = requiredRoles.map((role) => USER_TYPE_ORDER[role]);
+
+				const isAllowed = requiredRolesOrder.every((roleOrder) => roleOrder > requestingUserRoleOrder);
+
+				if (isAllowed) {
+					request.user = decoded;
+					// @ts-ignore
+					const userId = decoded.userId;
+					const loggedIn = await this.redisService.getValue(userId);
+					if (!loggedIn) return false;
+					return true;
 				}
-				return true;
 			}
 
 			return false;
 		} catch (error) {
+			console.trace(error);
 			return false;
 		}
 	}

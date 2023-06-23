@@ -5,8 +5,8 @@ import { join } from 'path';
 import { Request, Response } from 'express';
 import { CreateUserDto, Login } from 'src/microservices/user/dto/user.dto';
 import { Roles, RolesGuard } from 'src/common/guards/auth.guard';
-import { USER_TYPE } from 'src/microservices/user';
 import { sendSuccess } from 'src/utils/request-response.utils';
+import { USER_TYPE } from 'src/microservices/user/constants/user.constant';
 
 interface IUserService {
 	Signup(data: any): Observable<any>;
@@ -34,6 +34,8 @@ export class UserController implements OnModuleInit {
 	}
 
 	@Post('register')
+	@UseGuards(RolesGuard)
+	@Roles(USER_TYPE.SUPER_ADMIN, USER_TYPE.ADMIN, USER_TYPE.COMPANY_ADMIN, USER_TYPE.STORE_ADMIN)
 	@HttpCode(201)
 	async register(@Body() userData: CreateUserDto): Promise<any> {
 		try {

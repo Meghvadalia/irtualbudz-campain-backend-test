@@ -32,9 +32,9 @@ export class UsersService {
 	async login(email: string, password: string): Promise<any> {
 		try {
 			const user = (await this.findByEmail(email)) as User;
-			const comparepassword = await passwordService.comparePasswords(password, user.password);
-			if (user && comparepassword) {
-				const { token, refreshToken } = await this.sessionService.createSession(user._id, { userId: user._id, type: 'ADMIN' });
+			const comparePassword = await passwordService.comparePasswords(password, user.password);
+			if (user && comparePassword) {
+				const { token, refreshToken } = await this.sessionService.createSession(user._id, { userId: user._id, type: user.type });
 				return { user, token, refreshToken };
 			}
 

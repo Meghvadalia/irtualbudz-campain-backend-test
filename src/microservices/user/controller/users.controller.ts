@@ -35,7 +35,7 @@ export class UsersController {
 			return {
 				user: {
 					email: user.email,
-					id: user.id,
+					userId: user.id,
 					name: user.name,
 					phone: user.phone,
 				},

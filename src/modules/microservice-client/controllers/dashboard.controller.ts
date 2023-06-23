@@ -1,10 +1,10 @@
-import { Controller, Get, Param, Query, Req, Res, UseGuards } from '@nestjs/common';
+import { Controller, Get, Param, Query, UseGuards } from '@nestjs/common';
 import { DashboardService } from '../services/dashboard.service';
 import { Response } from 'express';
 import { Roles, RolesGuard } from 'src/common/guards/auth.guard';
 
-import { USER_TYPE } from 'src/microservices/user';
 import { sendSuccess } from 'src/utils/request-response.utils';
+import { USER_TYPE } from 'src/microservices/user/constants/user.constant';
 
 @Controller('dashboard')
 export class DashboardController {

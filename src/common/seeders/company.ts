@@ -9,7 +9,7 @@ export const companyData = [
 		},
 	},
 	{
-		name: 'Dutchie',
+		name: 'Virtual Budz',
 		posId: '',
 		totalStore: 0,
 		dataObject: {
