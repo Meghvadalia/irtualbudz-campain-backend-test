@@ -3,7 +3,7 @@ import { SetMetadata } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { JwtService } from '../../utils/token.util';
 import { RedisService } from 'src/config/cache/config.service';
-import { USER_TYPE, USER_TYPE_ORDER } from 'src/microservices/user/constants/user.constant';
+import { defineAbilitiesFor } from '../utils/appAbility';
 
 export const Roles = (...roles: string[]) => SetMetadata('roles', roles);
 
@@ -16,8 +16,7 @@ export class RolesGuard implements CanActivate {
 	) {}
 
 	async canActivate(context: ExecutionContext): Promise<boolean> {
-		const requiredRoles = this.reflector.getAllAndOverride<USER_TYPE[]>('roles', [context.getHandler(), context.getClass()]);
-		if (!requiredRoles) return true;
+		const requiredRoles = this.reflector.getAllAndOverride<string[]>('roles', [context.getHandler(), context.getClass()]);
 
 		const request = context.switchToHttp().getRequest();
 		const bearerToken = request.headers.authorization;
@@ -29,25 +28,22 @@ export class RolesGuard implements CanActivate {
 			// @ts-ignore
 			const userRole = decoded.userType;
 
-			if (requiredRoles.includes(userRole)) {
-				const requestingUserRoleOrder = USER_TYPE_ORDER[userRole];
-				const requiredRolesOrder = requiredRoles.map((role) => USER_TYPE_ORDER[role]);
+			request.user = decoded;
 
-				const isAllowed = requiredRolesOrder.every((roleOrder) => roleOrder > requestingUserRoleOrder);
+			const user = { role: userRole };
+			const abilities = defineAbilitiesFor(user);
 
-				if (isAllowed) {
-					request.user = decoded;
-					// @ts-ignore
-					const userId = decoded.userId;
-					const loggedIn = await this.redisService.getValue(userId);
-					if (!loggedIn) return false;
-					return true;
-				}
-			}
+			const canAccess = requiredRoles.some((role) => abilities.can(role, 'any'));
 
-			return false;
+			if (!canAccess) return false;
+
+			// @ts-ignore
+			const userId = decoded.userId;
+			const loggedIn = await this.redisService.getValue(userId);
+			if (!loggedIn) return false;
+
+			return true;
 		} catch (error) {
-			console.trace(error);
 			return false;
 		}
 	}

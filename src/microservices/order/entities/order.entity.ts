@@ -26,9 +26,6 @@ export class Order extends Model<IOrder> {
 	@Prop({})
 	orderType: string;
 
-	@Prop()
-	orderId: string;
-
 	@Prop(
 		raw({
 			finalTotal: { type: Number },
@@ -78,11 +75,3 @@ export class Order extends Model<IOrder> {
 }
 
 export const OrderSchema = SchemaFactory.createForClass(Order);
-OrderSchema.pre('save', async function (next) {
-	const user = this;
-	try {
-		next();
-	} catch (error) {
-		return next(error);
-	}
-});

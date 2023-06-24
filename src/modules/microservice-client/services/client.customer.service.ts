@@ -5,7 +5,7 @@ import { Model } from 'mongoose';
 import { Customer } from '../../../microservices/customers/entities/customer.entity';
 
 @Injectable()
-export class CustomerService {
+export class ClientCustomerService {
 	constructor(@InjectModel(Customer.name) private customerModel: Model<Customer>) {}
 
 	async getAverageAge(fromDate: string, toDate: string) {

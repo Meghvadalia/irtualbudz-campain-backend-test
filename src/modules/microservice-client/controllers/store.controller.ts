@@ -1,9 +1,9 @@
 import { Controller, Get } from '@nestjs/common';
-import { StoreService } from '../services/store.service';
+import { ClientStoreService } from '../services/client.store.service';
 
 @Controller('store')
 export class StoreController {
-	constructor(private readonly clientStoreService: StoreService) {}
+	constructor(private readonly clientStoreService: ClientStoreService) {}
 
 	@Get('seed-stores')
 	async seedStoreList() {

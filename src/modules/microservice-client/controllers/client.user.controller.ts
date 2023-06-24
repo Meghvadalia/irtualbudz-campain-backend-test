@@ -16,7 +16,7 @@ interface IUserService {
 }
 
 @Controller('user')
-export class UserController implements OnModuleInit {
+export class ClientUserController implements OnModuleInit {
 	private userService: IUserService;
 	private client: ClientGrpc;
 	constructor() {}
@@ -35,7 +35,7 @@ export class UserController implements OnModuleInit {
 
 	@Post('register')
 	@UseGuards(RolesGuard)
-	@Roles(USER_TYPE.SUPER_ADMIN, USER_TYPE.ADMIN, USER_TYPE.COMPANY_ADMIN, USER_TYPE.STORE_ADMIN)
+	@Roles(USER_TYPE.SUPER_ADMIN, USER_TYPE.ADMIN, USER_TYPE.COMPANY_ADMIN)
 	@HttpCode(201)
 	async register(@Body() userData: CreateUserDto): Promise<any> {
 		try {

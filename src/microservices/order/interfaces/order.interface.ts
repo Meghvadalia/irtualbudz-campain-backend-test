@@ -6,7 +6,6 @@ export interface IOrder {
 	Name: string;
 	orderStatus: string;
 	orderType: string;
-	orderId: string;
 	totals: Totals;
 	itemsInCart: Array<string>;
 	customerType: CustomerType;

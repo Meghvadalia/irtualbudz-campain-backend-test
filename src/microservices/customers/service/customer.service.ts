@@ -19,7 +19,11 @@ export class CustomerService {
 		@InjectModel(POS.name) private posModel: Model<POS>
 	) {}
 
-	async seedCustomers(fromDate: Date, toDate: Date) {
+	async seedCustomers(
+		customerId: string,
+		storeId: string
+		// fromDate: Date, toDate: Date
+	) {
 		try {
 			const monarcCompanyData: ICompany = await this.companyModel.findOne<ICompany>({
 				name: 'Monarc',
@@ -31,8 +35,8 @@ export class CustomerService {
 
 			const options = {
 				method: 'get',
-				url: `${posData.liveUrl}/v1/customers/`,
-				params: { created_after: fromDate, created_before: toDate },
+				url: `${posData.liveUrl}/v1/customers/${customerId}`,
+				// params: { created_after: fromDate, created_before: toDate },
 				headers: {
 					key: monarcCompanyData.dataObject.key,
 					ClientId: monarcCompanyData.dataObject.clientId,
@@ -41,43 +45,49 @@ export class CustomerService {
 			};
 
 			const { data } = await axios.request(options);
+			data.storeId = storeId;
+			data.companyId = monarcCompanyData._id;
+			data.POSId = monarcCompanyData.posId;
+			data.id = customerId;
 
-			if (data.customers.length > 0) {
-				const customers = data.customers.map((customer: ICustomer) => ({
-					...customer,
-					companyId: monarcCompanyData._id,
-					POSId: monarcCompanyData.posId,
-				}));
+			await this.customerModel.create(data);
 
-				await this.customerModel.insertMany(customers);
-				console.log(`Seeded ${customers.length} customers.`);
-			} else {
-				console.log('No customers to seed.');
-			}
+			// if (data.customers.length > 0) {
+			// 	const customers = data.customers.map((customer: ICustomer) => ({
+			// 		...customer,
+			// 		companyId: monarcCompanyData._id,
+			// 		POSId: monarcCompanyData.posId,
+			// 	}));
+
+			// 	await this.customerModel.insertMany(customers);
+			// console.log(`Seeded ${customers.length} customers.`);
+			// } else {
+			// 	console.log('No customers to seed.');
+			// }
 		} catch (error) {
 			console.error('Error while seeding customers:', error);
 		}
 	}
 
-	@Cron('0 0 0 * * *')
-	async scheduleCronJob() {
-		try {
-			const currentDate = new Date();
-			const fromDate = new Date(currentDate.getFullYear(), currentDate.getMonth(), currentDate.getDate() - 1, 0, 0, 0);
-			const toDate = new Date(currentDate.getFullYear(), currentDate.getMonth(), currentDate.getDate(), 0, 0, 0);
+	// @Cron('0 0 0 * * *')
+	// async scheduleCronJob() {
+	// 	try {
+	// 		const currentDate = new Date();
+	// 		const fromDate = new Date(currentDate.getFullYear(), currentDate.getMonth(), currentDate.getDate() - 1, 0, 0, 0);
+	// 		const toDate = new Date(currentDate.getFullYear(), currentDate.getMonth(), currentDate.getDate(), 0, 0, 0);
 
-			const customersCount = await this.customerModel.countDocuments();
-			if (customersCount === 0) {
-				console.log('Seeding data for the last 100 days...');
-				const hundredDaysAgo = new Date(currentDate.getFullYear(), currentDate.getMonth(), currentDate.getDate() - 100, 0, 0, 0);
+	// 		const customersCount = await this.customerModel.countDocuments();
+	// 		if (customersCount === 0) {
+	// 			console.log('Seeding data for the last 100 days...');
+	// 			const hundredDaysAgo = new Date(currentDate.getFullYear(), currentDate.getMonth(), currentDate.getDate() - 100, 0, 0, 0);
 
-				await this.seedCustomers(hundredDaysAgo, toDate);
-			} else {
-				console.log('Seeding data from the previous day...');
-				await this.seedCustomers(fromDate, toDate);
-			}
-		} catch (error) {
-			console.error('Error while scheduling cron job:', error);
-		}
-	}
+	// 			await this.seedCustomers(hundredDaysAgo, toDate);
+	// 		} else {
+	// 			console.log('Seeding data from the previous day...');
+	// 			await this.seedCustomers(fromDate, toDate);
+	// 		}
+	// 	} catch (error) {
+	// 		console.error('Error while scheduling cron job:', error);
+	// 	}
+	// }
 }

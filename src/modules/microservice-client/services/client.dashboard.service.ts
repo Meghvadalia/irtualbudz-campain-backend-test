@@ -1,11 +1,11 @@
 import { Injectable } from '@nestjs/common';
-import { CustomerService } from '../services/customer.service';
-import { OrderService } from '../services/order.service';
+import { ClientCustomerService } from './client.customer.service';
+import { ClientOrderService } from './client.order.service';
 import * as dayjs from 'dayjs';
 
 @Injectable()
-export class DashboardService {
-	constructor(private readonly customerService: CustomerService, private readonly orderService: OrderService) {}
+export class ClientDashboardService {
+	constructor(private readonly customerService: ClientCustomerService, private readonly orderService: ClientOrderService) {}
 
 	async getCalculatedData(locationId: string, query: { fromDate: string; toDate: string }) {
 		const averageAge = await this.calculateAverageAge(query.fromDate, query.toDate);
