@@ -14,7 +14,7 @@ import { Cart, CartSchema } from 'src/microservices/order/entities/cart.entity';
 import { Product, ProductSchema } from 'src/microservices/inventory/entities/product.entity';
 import { CustomerModule } from 'src/microservices/customers/customer.module';
 import { OrderModule } from 'src/microservices/order';
-import { InventoryModule } from 'src/microservices/inventory';
+import { Inventory, InventoryModule, InventorySchema } from 'src/microservices/inventory';
 import { UsersModule } from 'src/microservices/user/users.module';
 import { ClientCustomerService } from './services/client.customer.service';
 import { Customer, CustomerSchema } from 'src/microservices/customers/entities/customer.entity';
@@ -24,6 +24,9 @@ import { JwtService } from '../../utils/token.util';
 import { MetricsController } from './controllers/metrics.controller';
 import { RedisService } from 'src/config/cache/config.service';
 import { User, UserSchema } from 'src/microservices/user/entities/user.entity';
+import { DutchieDataSeeder } from './controllers/dutchie';
+import { DutchieService } from './services/dutchie.service';
+import { Staff, StaffSchema } from 'src/microservices/order/entities/staff.entity';
 
 @Module({
 	imports: [
@@ -36,13 +39,22 @@ import { User, UserSchema } from 'src/microservices/user/entities/user.entity';
 			{ name: Customer.name, schema: CustomerSchema },
 			{ name: Order.name, schema: OrderSchema },
 			{ name: User.name, schema: UserSchema },
+			{ name: Inventory.name, schema: InventorySchema },
+			{ name: Staff.name, schema: StaffSchema },
 		]),
 		CustomerModule,
 		OrderModule,
 		InventoryModule,
 		UsersModule,
 	],
-	controllers: [ClientOrderController, ClientStoreController, ClientDashboardController, ClientUserController, MetricsController],
+	controllers: [
+		ClientOrderController,
+		ClientStoreController,
+		ClientDashboardController,
+		ClientUserController,
+		MetricsController,
+		DutchieDataSeeder,
+	],
 	providers: [
 		ClientOrderService,
 		SeederService,
@@ -51,6 +63,7 @@ import { User, UserSchema } from 'src/microservices/user/entities/user.entity';
 		ClientCustomerService,
 		JwtService,
 		RedisService,
+		DutchieService,
 	],
 })
 export class MicroserviceClientModule {}

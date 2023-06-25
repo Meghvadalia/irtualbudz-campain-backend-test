@@ -7,6 +7,6 @@ export const posData = [
 	},
 	{
 		name: 'dutchie',
-		liveUrl: 'https://api.pos.dutchie.com/util/AuthorizationHeader',
+		liveUrl: 'https://api.pos.dutchie.com',
 	},
 ];
