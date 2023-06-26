@@ -153,22 +153,27 @@ export class DutchieService {
 			const data = await this.makeRequest(url, token);
 
 			const productsArray: IProduct[] = [];
-			// data.map((d) =>
-			// 	productsArray.push({
-			// 		productName: d.productName,
-			// 		productDescription: d.description,
-			// 		brand: d.brandName,
-			// 		category: d.category,
-			// 		posProductId: d.productId,
-			// 		productPictureURL: d.imageUrl,
-			// 		productWeight: d.netWeight,
-			// 		sku: d.sku,
-			// 		posId,
-			// 		companyId,
-			// 		productUnitOfMeasure: d.defaultUnit,
-			// 		priceInMinorUnits: d.price * 100,
-			// 	})
-			// );
+			data.map((d) =>
+				productsArray.push({
+					productName: d.productName,
+					productDescription: d.description,
+					brand: d.brandName,
+					category: d.category,
+					posProductId: d.productId,
+					productPictureURL: d.imageUrl,
+					productWeight: d.netWeight,
+					sku: d.sku,
+					posId,
+					companyId,
+					productUnitOfMeasure: d.defaultUnit,
+					priceInMinorUnits: d.price * 100,
+					purchaseCategory,
+					speciesName: d.strainType,
+					isMixAndMatch: null,
+					isStackable: null,
+					weightTierInformation,
+				})
+			);
 		} catch (error) {
 			console.error('Failed to seed products:', error);
 		}
