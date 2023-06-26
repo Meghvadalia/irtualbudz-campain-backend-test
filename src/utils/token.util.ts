@@ -29,7 +29,7 @@ export class JwtService {
 		}
 	};
 
-	verifyAccessToken = (token: string): string | jwt.JwtPayload => {
+	verifyAccessToken = (token: string): string | jwt.JwtPayload | any => {
 		try {
 			const isTokenValid = jwt.verify(token, this.accessTokenSecret);
 			return isTokenValid;
@@ -42,7 +42,7 @@ export class JwtService {
 		}
 	};
 
-	verifyRefreshToken = (token: string): string | jwt.JwtPayload => {
+	verifyRefreshToken = (token: string): string | jwt.JwtPayload | any => {
 		return jwt.verify(token, this.refreshTokenSecret);
 	};
 }

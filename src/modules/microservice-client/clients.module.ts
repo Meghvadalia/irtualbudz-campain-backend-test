@@ -24,6 +24,7 @@ import { JwtService } from '../../utils/token.util';
 import { MetricsController } from './controllers/metrics.controller';
 import { RedisService } from 'src/config/cache/config.service';
 import { User, UserSchema } from 'src/microservices/user/entities/user.entity';
+import { UserAbilityFactory } from 'src/common/utils/appAbility';
 
 @Module({
 	imports: [
@@ -51,6 +52,7 @@ import { User, UserSchema } from 'src/microservices/user/entities/user.entity';
 		ClientCustomerService,
 		JwtService,
 		RedisService,
+		UserAbilityFactory,
 	],
 })
 export class MicroserviceClientModule {}

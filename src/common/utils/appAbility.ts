@@ -1,23 +1,65 @@
-import { AbilityBuilder, createMongoAbility } from '@casl/ability';
-import { USER_TYPE, USER_TYPE_ORDER } from 'src/microservices/user/constants/user.constant';
+import { AbilityBuilder, InferSubjects, MongoAbility, createMongoAbility } from '@casl/ability';
+import { Injectable } from '@nestjs/common';
+import { USER_TYPE } from 'src/microservices/user/constants/user.constant';
+import { User } from 'src/microservices/user/entities/user.entity';
 
-export function defineAbilitiesFor(user) {
-	const { can, build } = new AbilityBuilder(createMongoAbility);
+type Actions = 'manage' | 'create' | 'read' | 'update' | 'delete';
+type Subjects = InferSubjects<typeof User> | 'all';
 
-	if (user.role === USER_TYPE.SUPER_ADMIN) {
-		can('manage', 'all');
-	} else if (user.role === USER_TYPE.ADMIN) {
-		can('create', 'User', { type: { $gte: USER_TYPE_ORDER.ADMIN } });
-		can('create', 'User', { type: USER_TYPE.COMPANY_ADMIN });
-	} else if (user.role === USER_TYPE.COMPANY_ADMIN) {
-		can('create', 'User', { type: { $gte: USER_TYPE_ORDER.COMPANY_ADMIN } });
-		can('create', 'User', { type: USER_TYPE.STORE_ADMIN });
-	} else if (user.role === USER_TYPE.STORE_ADMIN) {
-		can('create', 'User', { type: { $gte: USER_TYPE_ORDER.STORE_ADMIN } });
-		can('create', 'User', { type: USER_TYPE.MANAGER });
-	} else if (user.role === USER_TYPE.MANAGER) {
-		can('create', 'User', { type: USER_TYPE.MANAGER });
+type AppAbility = MongoAbility<[Actions, Subjects]>;
+
+const { can, cannot, build } = new AbilityBuilder<AppAbility>(createMongoAbility);
+
+@Injectable()
+export class UserAbilityFactory {
+	createForUser(userType: USER_TYPE): MongoAbility {
+		try {
+			if (userType === USER_TYPE.SUPER_ADMIN) {
+				can('manage', 'all');
+			}
+
+			if (userType === USER_TYPE.ADMIN) {
+				cannot('create', User, {
+					userType: {
+						$eq: [USER_TYPE.SUPER_ADMIN],
+					},
+				});
+
+				can('create', User, {
+					userType: {
+						$eq: [USER_TYPE.COMPANY_ADMIN, USER_TYPE.STORE_ADMIN],
+					},
+				});
+			}
+
+			if (userType === USER_TYPE.COMPANY_ADMIN) {
+				console.log('in the Company Admin');
+				can('create', User, {
+					userType: {
+						$in: [USER_TYPE.STORE_ADMIN, USER_TYPE.MANAGER],
+					},
+				});
+
+				cannot('create', User, {
+					userType: {
+						$in: [USER_TYPE.SUPER_ADMIN, USER_TYPE.ADMIN],
+					},
+				});
+			}
+
+			if (userType === USER_TYPE.STORE_ADMIN) {
+				can('create', User, {
+					userType: USER_TYPE.MANAGER,
+				});
+			}
+
+			if (userType === USER_TYPE.MANAGER) {
+			}
+
+			return build();
+		} catch (error) {
+			console.trace(error);
+			throw error;
+		}
 	}
-
-	return build();
 }
