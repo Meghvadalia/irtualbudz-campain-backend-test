@@ -8,11 +8,10 @@ type Subjects = InferSubjects<typeof User> | 'all';
 
 type AppAbility = MongoAbility<[Actions, Subjects]>;
 
-const { can, cannot, build } = new AbilityBuilder<AppAbility>(createMongoAbility);
-
 @Injectable()
 export class UserAbilityFactory {
 	createForUser(userType: USER_TYPE): MongoAbility {
+		const { can, cannot, build } = new AbilityBuilder<AppAbility>(createMongoAbility);
 		try {
 			if (userType === USER_TYPE.SUPER_ADMIN) {
 				can('manage', 'all');
@@ -21,13 +20,13 @@ export class UserAbilityFactory {
 			if (userType === USER_TYPE.ADMIN) {
 				cannot('create', User, {
 					userType: {
-						$eq: [USER_TYPE.SUPER_ADMIN],
+						$eq: USER_TYPE.SUPER_ADMIN,
 					},
 				});
 
 				can('create', User, {
 					userType: {
-						$eq: [USER_TYPE.COMPANY_ADMIN, USER_TYPE.STORE_ADMIN],
+						$in: [USER_TYPE.COMPANY_ADMIN, USER_TYPE.STORE_ADMIN],
 					},
 				});
 			}
