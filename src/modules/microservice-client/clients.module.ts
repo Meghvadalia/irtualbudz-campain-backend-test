@@ -14,7 +14,7 @@ import { Cart, CartSchema } from 'src/microservices/order/entities/cart.entity';
 import { Product, ProductSchema } from 'src/microservices/inventory/entities/product.entity';
 import { CustomerModule } from 'src/microservices/customers/customer.module';
 import { OrderModule } from 'src/microservices/order';
-import { Inventory, InventoryModule, InventorySchema } from 'src/microservices/inventory';
+import { Inventory, InventoryModule, InventorySchema, InventoryService } from 'src/microservices/inventory';
 import { UsersModule } from 'src/microservices/user/users.module';
 import { ClientCustomerService } from './services/client.customer.service';
 import { Customer, CustomerSchema } from 'src/microservices/customers/entities/customer.entity';
@@ -64,6 +64,7 @@ import { Staff, StaffSchema } from 'src/microservices/order/entities/staff.entit
 		JwtService,
 		RedisService,
 		DutchieService,
+		InventoryService,
 	],
 })
 export class MicroserviceClientModule {}

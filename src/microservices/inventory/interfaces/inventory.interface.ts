@@ -3,13 +3,14 @@ export interface IInventory {
 	posId: string;
 	posProductId: string;
 	productId: string;
-	clientId: string;
 	quantity: number;
-	inventoryUnitOfMeasure: string;
-	inventoryUnitOfMeasureToGramsMultiplier: number;
-	locationId: number;
+	locationId: string;
 	locationName: string;
-	currencyCode: string;
 	expirationDate: string;
 	productUpdatedAt: string;
+	extraDetails: {
+		currencyCode: string;
+		inventoryUnitOfMeasure: string;
+		inventoryUnitOfMeasureToGramsMultiplier: number;
+	};
 }

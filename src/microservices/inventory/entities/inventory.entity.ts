@@ -1,5 +1,5 @@
 import { Model, Types } from 'mongoose';
-import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
+import { Prop, Schema, SchemaFactory, raw } from '@nestjs/mongoose';
 import { IInventory } from '../interfaces/inventory.interface';
 import { DATABASE_COLLECTION } from 'src/common/constants';
 
@@ -9,37 +9,34 @@ export class Inventory extends Model<IInventory> {
 	companyId: string;
 
 	@Prop({ required: true, type: Types.ObjectId, ref: DATABASE_COLLECTION.POS })
-	POSId: string;
+	posId: string;
 
 	@Prop({ type: Types.ObjectId, ref: DATABASE_COLLECTION.PRODUCT })
 	productId: string;
 
-	@Prop({ required: true })
-	clientId: string;
-
 	@Prop()
 	quantity: number;
 
-	@Prop()
-	inventoryUnitOfMeasure: string;
-
-	@Prop()
-	inventoryUnitOfMeasureToGramsMultiplier: number;
-
-	@Prop()
-	locationId: number;
+	@Prop({ type: Types.ObjectId, ref: DATABASE_COLLECTION.STORES })
+	locationId: string;
 
 	@Prop()
 	locationName: string;
-
-	@Prop()
-	currencyCode: string;
 
 	@Prop()
 	expirationDate: string;
 
 	@Prop()
 	productUpdatedAt: string;
+
+	@Prop(
+		raw({
+			currencyCode: { type: String },
+			inventoryUnitOfMeasureToGramsMultiplier: { type: Number },
+			inventoryUnitOfMeasure: { type: String },
+		})
+	)
+	extraDetails: Types.Subdocument;
 }
 
 export const InventorySchema = SchemaFactory.createForClass(Inventory);

@@ -65,9 +65,6 @@ export class Customer extends Model<ICustomer> {
 	@Prop()
 	country: string;
 
-	@Prop({ default: Date.now })
-	updatedAt: Date;
-
 	@Prop({ default: false })
 	isDeleted: boolean;
 

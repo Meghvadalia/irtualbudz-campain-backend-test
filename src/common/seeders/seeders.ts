@@ -7,13 +7,18 @@ import { posData } from './pos';
 import { companyData } from './company';
 import { User } from 'src/microservices/user/entities/user.entity';
 import { superAdmin } from './user';
+import { ICompany } from 'src/model/company/interface/company.interface';
+import { IPOS } from 'src/model/pos/interface/pos.interface';
+import axios, { AxiosRequestConfig } from 'axios';
+import { Store } from 'src/model/store/entities/store.entity';
 
 @Injectable()
 export class SeederService {
 	constructor(
 		@InjectModel(POS.name) private posModel: Model<POS>,
 		@InjectModel(Company.name) private companyModel: Model<Company>,
-		@InjectModel(User.name) private userModel: Model<User>
+		@InjectModel(User.name) private userModel: Model<User>,
+		@InjectModel(Store.name) private storeModel: Model<Store>
 	) {
 		setTimeout(() => {
 			this.seedCollections();
@@ -25,9 +30,7 @@ export class SeederService {
 			for (const pos of posData) {
 				const existingPOS = await this.posModel.findOne({ name: pos.name });
 
-				if (!existingPOS) {
-					await this.posModel.create(pos);
-				}
+				if (!existingPOS) await this.posModel.create(pos);
 			}
 
 			console.log('POS seeding Done');
@@ -80,11 +83,59 @@ export class SeederService {
 		}
 	}
 
+	async seedDutchieStores() {
+		try {
+			const posData: IPOS = await this.posModel.findOne<IPOS>({
+				name: 'dutchie',
+			});
+
+			const companyData = await this.companyModel.find<ICompany>({
+				posId: posData._id,
+			});
+
+			for (const company of companyData) {
+				const tokenOptions = {
+					method: 'get',
+					url: `${posData.liveUrl}/util/AuthorizationHeader/${company.dataObject.key}`,
+					headers: {
+						Accept: 'application/json',
+					},
+				};
+
+				const { data: token } = await axios.request(tokenOptions);
+
+				const storeOptions: AxiosRequestConfig = {
+					url: `${posData.liveUrl}/whoami`,
+					headers: {
+						Accept: 'application/json',
+						Authorization: token,
+					},
+				};
+
+				const { data } = await axios.request(storeOptions);
+
+				const store = await this.storeModel.findOne({
+					'location.locationId': data.locationId,
+				});
+				if (!store) {
+					await this.storeModel.create({
+						'location.locationId': data.locationId,
+						companyId: company._id,
+					});
+				}
+			}
+		} catch (error) {
+			console.trace(error);
+			throw error;
+		}
+	}
+
 	async seedCollections() {
 		try {
 			await this.seedPOS();
 			await this.seedCompany();
 			await this.seedUser();
+			await this.seedDutchieStores();
 			console.log('Seeding completed successfully');
 		} catch (error) {
 			console.error('Error seeding collections:', error);

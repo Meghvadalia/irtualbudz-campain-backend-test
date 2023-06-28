@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
-import axios from 'axios';
+import axios, { AxiosRequestConfig } from 'axios';
 
 import { Order } from '../entities/order.entity';
 import { Cron } from '@nestjs/schedule';
@@ -20,8 +20,8 @@ import { CustomerService } from '../../customers/service/customer.service';
 export class OrderService {
 	constructor(
 		@InjectModel(Order.name) private orderModel: Model<Order>,
-		@InjectModel(Cart.name) private cartModal: Model<Cart>,
-		@InjectModel(Staff.name) private staffModal: Model<Staff>,
+		@InjectModel(Cart.name) private cartModel: Model<Cart>,
+		@InjectModel(Staff.name) private staffModel: Model<Staff>,
 		@InjectModel(Company.name) private companyModel: Model<Company>,
 		@InjectModel(POS.name) private posModel: Model<POS>,
 		@InjectModel(Store.name) private storeModel: Model<Store>,
@@ -130,10 +130,10 @@ export class OrderService {
 				storeId: element.locationId,
 			};
 
-			const existingStaff = await this.staffModal.findOne(staffObject);
+			const existingStaff = await this.staffModel.findOne(staffObject);
 
 			if (existingStaff === null) {
-				const newStaff = await this.staffModal.create(staffObject);
+				const newStaff = await this.staffModel.create(staffObject);
 				return newStaff;
 			}
 
@@ -146,7 +146,7 @@ export class OrderService {
 
 	async addSingleData(cart, locationId, id) {
 		try {
-			const existingCartItem = await this.cartModal.findOne({
+			const existingCartItem = await this.cartModel.findOne({
 				posCartId: cart.id,
 				storeId: locationId,
 				productName: cart.productName,
@@ -159,7 +159,7 @@ export class OrderService {
 					productName: cart.productName,
 				};
 
-				const createdCartItem = await this.cartModal.create(newCartItem);
+				const createdCartItem = await this.cartModel.create(newCartItem);
 				return createdCartItem._id;
 			}
 
@@ -269,6 +269,56 @@ export class OrderService {
 			console.log('Order Done', processedOrders.length);
 		} catch (error) {
 			console.error('Error while processing order batch:', error);
+			throw error;
+		}
+	}
+
+	async seedDutchieStaff() {
+		try {
+			const {
+				posId,
+				dataObject,
+				_id: companyId,
+			}: ICompany = await this.companyModel.findOne<ICompany>({
+				name: 'Virtual Budz',
+			});
+
+			const posData: IPOS = await this.posModel.findOne<IPOS>({
+				_id: posId,
+			});
+
+			const tokenOptions = {
+				method: 'get',
+				url: `${posData.liveUrl}/util/AuthorizationHeader/${dataObject.key}`,
+				headers: {
+					Accept: 'application/json',
+				},
+			};
+
+			const { data: token } = await axios.request(tokenOptions);
+
+			const staffOptions: AxiosRequestConfig = {
+				url: `${posData.liveUrl}/employees`,
+				headers: {
+					Accept: 'application/json',
+					Authorization: token,
+				},
+			};
+
+			const { data } = await axios.request(staffOptions);
+
+			let staffArray: IStaff[] = [];
+
+			for (const d of data) {
+				staffArray.push({
+					staffName: d.fullName,
+					storeId: companyId,
+				});
+			}
+			await this.staffModel.insertMany(staffArray);
+			console.log(`Seeded ${data.length} employees.`);
+		} catch (error) {
+			console.error('Failed to seed staff data:', error);
 			throw error;
 		}
 	}

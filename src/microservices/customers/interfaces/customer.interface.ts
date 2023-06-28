@@ -1,6 +1,6 @@
 export interface ICustomer {
 	id: string;
-	storeId: string;
+	storeId?: string;
 	companyId: string;
 	POSId: string;
 	type: CustomerType;

@@ -28,7 +28,7 @@ export class Store extends Model<IStore> {
 	})
 	hoursOfOperation: IhoursOfOperation[];
 
-	@Prop({ required: true })
+	@Prop()
 	timeZone: string;
 
 	address: IAddress;

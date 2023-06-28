@@ -9,8 +9,9 @@ import { Product } from '../entities/product.entity';
 import { Cron } from '@nestjs/schedule';
 import { ICompany } from 'src/model/company/interface/company.interface';
 import { IPOS } from 'src/model/pos/interface/pos.interface';
-import axios from 'axios';
+import axios, { AxiosRequestConfig } from 'axios';
 import { IInventory } from '../interfaces/inventory.interface';
+import { IProduct } from '../interfaces/product.interface';
 
 @Injectable()
 export class InventoryService {
@@ -37,66 +38,77 @@ export class InventoryService {
 				companyId: _id,
 			});
 
-			const locationIds = locations.map(({ location }) => location.locationId);
+			const locationIds = locations.map((location) => ({
+				locationId: location.location.locationId,
+				locationMongoId: location._id,
+			}));
 
-			const inventoryPromises = locationIds.map((id) => {
+			const inventoryOptions = locationIds.map((location) => {
+				const { locationId, locationMongoId } = location;
+
 				const options = {
 					method: 'get',
-					url: `${liveUrl}/v0/locations/${id}/inventory`,
+					url: `${liveUrl}/v0/locations/${locationId}/inventory`,
 					headers: {
 						key: dataObject.key,
 						ClientId: dataObject.clientId,
 						Accept: 'application/json',
 					},
 				};
-				return axios.request(options);
+				return { options, locationMongoId };
 			});
 
-			const inventoryResponses = await Promise.all(inventoryPromises);
+			const inventoryResponses = await Promise.all(inventoryOptions.map(({ options }) => axios.request(options)));
 			const inventoryDataArray = inventoryResponses.flatMap(({ data }) => data.data);
 
-			const productDataArray = inventoryDataArray.map((productData) => ({
-				clientId: productData.clientId,
+			const productDataArray: IProduct[] = inventoryDataArray.map((productData) => ({
 				productName: productData.productName,
 				companyId: _id,
-				POSId: posId,
+				posId,
 				posProductId: productData.productId,
 				productDescription: productData.productDescription,
 				priceInMinorUnits: productData.priceInMinorUnits,
 				sku: productData.sku,
-				nutrients: productData.nutrients,
 				productPictureURL: productData.productPictureURL,
 				purchaseCategory: productData.purchaseCategory,
 				category: productData.category,
 				type: productData.type,
 				brand: productData.brand,
-				isMixAndMatch: productData.isMixAndMatch,
-				isStackable: productData.isStackable,
-				productUnitOfMeasure: productData.productUnitOfMeasure,
-				productUnitOfMeasureToGramsMultiplier: productData.productUnitOfMeasureToGramsMultiplier,
 				productWeight: productData.productWeight,
-				weightTierInformation: productData.weightTierInformation,
-				cannabinoidInformation: productData.cannabinoidInformation,
 				speciesName: productData.speciesName,
+				extraDetails: {
+					isMixAndMatch: productData.isMixAndMatch,
+					isStackable: productData.isStackable,
+					nutrients: productData.nutrients,
+					weightTierInformation: productData.weightTierInformation,
+					cannabinoidInformation: productData.cannabinoidInformation,
+					productUnitOfMeasure: productData.productUnitOfMeasure,
+					productUnitOfMeasureToGramsMultiplier: productData.productUnitOfMeasureToGramsMultiplier,
+				},
 			}));
 
 			const insertedProducts = await this.productModel.insertMany(productDataArray);
 			const productIds = insertedProducts.map((product) => product._id);
 
-			const inventoryDataToSaveArray = inventoryDataArray.map((inventoryData: IInventory, index: number) => ({
-				productId: productIds[index],
-				companyId: _id,
-				clientId: inventoryData.clientId,
-				POSId: posId,
-				quantity: inventoryData.quantity,
-				inventoryUnitOfMeasure: inventoryData.inventoryUnitOfMeasure,
-				inventoryUnitOfMeasureToGramsMultiplier: inventoryData.inventoryUnitOfMeasureToGramsMultiplier,
-				locationId: inventoryData.locationId,
-				locationName: inventoryData.locationName,
-				currencyCode: inventoryData.currencyCode,
-				expirationDate: inventoryData.expirationDate,
-				productUpdatedAt: inventoryData.productUpdatedAt,
-			}));
+			const inventoryDataToSaveArray: IInventory[] = inventoryDataArray.map((inventoryData, index: number) => {
+				const location = locations.find(({ location }) => location.locationId === inventoryData.locationId);
+				return {
+					productId: productIds[index] as string,
+					companyId: _id,
+					posProductId: inventoryData.productId,
+					posId,
+					quantity: inventoryData.quantity,
+					locationId: location?._id as string,
+					locationName: inventoryData.locationName,
+					expirationDate: inventoryData.expirationDate,
+					productUpdatedAt: inventoryData.productUpdatedAt,
+					extraDetails: {
+						inventoryUnitOfMeasure: inventoryData.inventoryUnitOfMeasure,
+						inventoryUnitOfMeasureToGramsMultiplier: inventoryData.inventoryUnitOfMeasureToGramsMultiplier,
+						currencyCode: inventoryData.currencyCode,
+					},
+				};
+			});
 
 			const insertResult = await this.inventoryModel.collection.insertMany(inventoryDataToSaveArray);
 
@@ -105,6 +117,69 @@ export class InventoryService {
 			}
 		} catch (error) {
 			console.log('GRPC METHOD', error);
+			throw error;
+		}
+	}
+
+	async seedDutchieInventory() {
+		try {
+			const {
+				posId,
+				dataObject,
+				_id: companyId,
+			}: ICompany = await this.companyModel.findOne<ICompany>({
+				name: 'Virtual Budz',
+			});
+
+			const posData: IPOS = await this.posModel.findOne<IPOS>({
+				_id: posId,
+			});
+
+			const tokenOptions = {
+				method: 'get',
+				url: `${posData.liveUrl}/util/AuthorizationHeader/${dataObject.key}`,
+				headers: {
+					Accept: 'application/json',
+				},
+			};
+
+			const { data: token } = await axios.request(tokenOptions);
+
+			const inventoryOptions: AxiosRequestConfig = {
+				url: `${posData.liveUrl}/inventory?includeLabResults=true&includeRoomQuantities=true`,
+				headers: {
+					Accept: 'application/json',
+					Authorization: token,
+				},
+			};
+
+			const { data } = await axios.request(inventoryOptions);
+
+			const inventoryArray: IInventory[] = [];
+
+			for (const d of data) {
+				inventoryArray.push({
+					quantity: d.quantityAvailable,
+					expirationDate: d.expirationDate,
+					companyId,
+					posId,
+					posProductId: d.productId,
+					productUpdatedAt: d.lastModifiedDateUtc,
+					locationId: companyId,
+					locationName: '',
+					productId: '',
+					extraDetails: {
+						inventoryUnitOfMeasure: d.unitWeightUnit,
+						inventoryUnitOfMeasureToGramsMultiplier: 1,
+						currencyCode: '',
+					},
+				});
+			}
+
+			await this.inventoryModel.insertMany(inventoryArray);
+			console.log(`Seeded ${data.length} inventory data.`);
+		} catch (error) {
+			console.error('Failed to seed inventory data:', error);
 			throw error;
 		}
 	}

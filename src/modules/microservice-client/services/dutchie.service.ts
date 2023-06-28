@@ -13,6 +13,7 @@ import { Company } from 'src/model/company/entities/company.entity';
 import { ICompany } from 'src/model/company/interface/company.interface';
 import { POS } from 'src/model/pos/entities/pos.entity';
 import { IPOS } from 'src/model/pos/interface/pos.interface';
+import { Store } from 'src/model/store/entities/store.entity';
 
 @Injectable()
 export class DutchieService {
@@ -24,7 +25,8 @@ export class DutchieService {
 		@InjectModel(Staff.name) private staffModel: Model<Staff>,
 		@InjectModel(Customer.name) private customerModel: Model<Customer>,
 		@InjectModel(Company.name) private companyModel: Model<Company>,
-		@InjectModel(POS.name) private posModel: Model<POS>
+		@InjectModel(POS.name) private posModel: Model<POS>,
+		@InjectModel(Store.name) private storeModel: Model<Store>
 	) {}
 
 	async dutchie() {
@@ -82,44 +84,6 @@ export class DutchieService {
 		}
 	}
 
-	async seedCustomers() {
-		try {
-			const { posData, dataObject, companyId, posId } = await this.dutchie();
-
-			const token = await this.generateToken(posData, dataObject);
-			const url = `${posData.liveUrl}/customer/customers`;
-			const data = await this.makeRequest(url, token);
-
-			const customersArray: ICustomer[] = [];
-
-			data.map((d) => {
-				customersArray.push({
-					birthDate: d.dateOfBirth,
-					city: d.city,
-					email: d.emailAddress,
-					id: d.customerId,
-					name: d.firstName + d.lastName,
-					phone: d.phone,
-					isLoyal: d.isLoyaltyMember,
-					state: d.state,
-					streetAddress1: d.address1,
-					streetAddress2: d.address2,
-					zip: d.postalCode,
-					storeId: d.createdAtLocation,
-					type: d.customerType === 'Recreational' ? CustomerType.recCustomer : CustomerType.medCustomer,
-					POSId: posId,
-					companyId,
-					loyaltyPoints: 0,
-					country: '',
-				});
-			});
-
-			await this.customerModel.insertMany(customersArray);
-		} catch (error) {
-			console.error('Failed to seed customers:', error);
-		}
-	}
-
 	async seedInventories() {
 		try {
 			const { posData, dataObject, companyId, posId } = await this.dutchie();
@@ -153,27 +117,27 @@ export class DutchieService {
 			const data = await this.makeRequest(url, token);
 
 			const productsArray: IProduct[] = [];
-			data.map((d) =>
-				productsArray.push({
-					productName: d.productName,
-					productDescription: d.description,
-					brand: d.brandName,
-					category: d.category,
-					posProductId: d.productId,
-					productPictureURL: d.imageUrl,
-					productWeight: d.netWeight,
-					sku: d.sku,
-					posId,
-					companyId,
-					productUnitOfMeasure: d.defaultUnit,
-					priceInMinorUnits: d.price * 100,
-					purchaseCategory,
-					speciesName: d.strainType,
-					isMixAndMatch: null,
-					isStackable: null,
-					weightTierInformation,
-				})
-			);
+			// data.map((d) =>
+			// 	productsArray.push({
+			// 		productName: d.productName,
+			// 		productDescription: d.description,
+			// 		brand: d.brandName,
+			// 		category: d.category,
+			// 		posProductId: d.productId,
+			// 		productPictureURL: d.imageUrl,
+			// 		productWeight: d.netWeight,
+			// 		sku: d.sku,
+			// 		posId,
+			// 		companyId,
+			// 		productUnitOfMeasure: d.defaultUnit,
+			// 		priceInMinorUnits: d.price * 100,
+			// 		purchaseCategory,
+			// 		speciesName: d.strainType,
+			// 		isMixAndMatch: null,
+			// 		isStackable: null,
+			// 		weightTierInformation,
+			// 	})
+			// );
 		} catch (error) {
 			console.error('Failed to seed products:', error);
 		}
