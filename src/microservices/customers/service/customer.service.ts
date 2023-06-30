@@ -58,6 +58,7 @@ export class CustomerService {
 				streetAddress2: data.customer.streetAddress2,
 				type: data.customer.type,
 				zip: data.customer.zip,
+				userCreatedAt: data.customer.createdAt,
 			};
 
 			await this.customerModel.create(customer);
@@ -136,12 +137,13 @@ export class CustomerService {
 					companyId,
 					loyaltyPoints: 0,
 					country: '',
+					userCreatedAt: d.creationDate,
 				});
 
 			await this.customerModel.insertMany(customersArray);
 			console.log(`Seeded ${data.length} customers.`);
 		} catch (error) {
-			console.error('Failed to seed customers:', error);
+			console.error('Failed to seed customers:', error.message);
 		}
 	}
 }

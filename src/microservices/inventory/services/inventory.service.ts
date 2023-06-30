@@ -238,7 +238,7 @@ export class InventoryService {
 			console.log(`Seeded ${inventoryData.length} inventory data.`);
 			console.log(`Seeded ${productsData.length} products.`);
 		} catch (error) {
-			console.error('Failed to seed inventory data:', error);
+			console.error('Failed to seed inventory data:', error.message);
 			throw error;
 		}
 	}

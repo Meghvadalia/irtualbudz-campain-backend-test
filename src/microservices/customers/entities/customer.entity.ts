@@ -70,6 +70,9 @@ export class Customer extends Model<ICustomer> {
 
 	@Prop({ default: true })
 	isActive: boolean;
+
+	@Prop()
+	userCreatedAt: Date;
 }
 
 export const CustomerSchema = SchemaFactory.createForClass(Customer);

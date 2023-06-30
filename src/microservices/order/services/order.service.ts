@@ -332,15 +332,21 @@ export class OrderService {
 			let staffArray: IStaff[] = [];
 
 			for (const d of data) {
+				const staffExists = await this.staffModel.findOne({
+					staffName: d.fullName,
+					storeId: storeData._id,
+				});
+				if (staffExists) return;
 				staffArray.push({
 					staffName: d.fullName,
 					storeId: storeData._id,
 				});
 			}
-			await this.staffModel.insertMany(staffArray);
-			console.log(`Seeded ${data.length} employees.`);
+
+			const insertEmployee = await this.staffModel.insertMany(staffArray);
+			console.log(`Seeded ${insertEmployee.length} employees.`);
 		} catch (error) {
-			console.error('Failed to seed staff data:', error);
+			console.error('Failed to seed staff data:', error.message);
 			throw error;
 		}
 	}

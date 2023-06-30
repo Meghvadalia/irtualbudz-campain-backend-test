@@ -16,6 +16,7 @@ export interface ICustomer {
 	city: string;
 	zip: string;
 	country: string;
+	userCreatedAt: Date;
 }
 
 export enum CustomerType {
