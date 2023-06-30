@@ -32,9 +32,16 @@ export class UsersService {
 	async login(email: string, password: string): Promise<any> {
 		try {
 			const user = (await this.findByEmail(email)) as User;
-			const comparePassword = await passwordService.comparePasswords(password, user.password);
+			const comparePassword = await passwordService.comparePasswords(
+				password,
+				user.password
+			);
 			if (user && comparePassword) {
-				const { token, refreshToken } = await this.sessionService.createSession(user._id, { userId: user._id, type: user.type });
+				const { token, refreshToken } =
+					await this.sessionService.createSession(user._id, {
+						userId: user._id,
+						type: user.type,
+					});
 				return { user, token, refreshToken };
 			}
 
@@ -59,7 +66,7 @@ export class UsersService {
 		if (user) {
 			const payload = {
 				id: user._id,
-				userType: user.type,
+				type: user.type,
 				sessionId: session._id,
 			};
 			const newToken = this.jwtService.generateAccessToken(payload);

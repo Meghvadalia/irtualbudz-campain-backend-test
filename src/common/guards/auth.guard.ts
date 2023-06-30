@@ -4,8 +4,6 @@ import { Reflector } from '@nestjs/core';
 import { USER_TYPE } from 'src/microservices/user/constants/user.constant';
 import { JwtService } from '../../utils/token.util';
 import { RedisService } from 'src/config/cache/config.service';
-import { UserAbilityFactory } from '../utils/appAbility';
-import { User } from 'src/microservices/user/entities/user.entity';
 
 export const Roles = (...roles: USER_TYPE[]) => SetMetadata('roles', roles);
 
@@ -14,12 +12,14 @@ export class RolesGuard implements CanActivate {
 	constructor(
 		private readonly reflector: Reflector,
 		private readonly jwtService: JwtService,
-		private readonly redisService: RedisService,
-		private readonly userAbilityFactory: UserAbilityFactory
+		private readonly redisService: RedisService
 	) {}
 
 	async canActivate(context: ExecutionContext): Promise<boolean> {
-		const requiredRoles = this.reflector.get<USER_TYPE[]>('roles', context.getHandler());
+		const requiredRoles = this.reflector.get<USER_TYPE[]>(
+			'roles',
+			context.getHandler()
+		);
 		if (!requiredRoles) return true;
 
 		const request = context.switchToHttp().getRequest();
@@ -30,21 +30,13 @@ export class RolesGuard implements CanActivate {
 		try {
 			const decoded = this.jwtService.verifyAccessToken(token);
 			const userRole = decoded.userType;
+			request.user = decoded;
 
-			const ability = this.userAbilityFactory.createForUser(userRole);
+			const userId = decoded.userId;
+			const loggedIn = await this.redisService.getValue(userId);
+			if (!loggedIn) return false;
 
-			const canAccess = ability.can('create', User);
-
-			if (canAccess) {
-				request.user = decoded;
-				const userId = decoded.userId;
-				const loggedIn = await this.redisService.getValue(userId);
-				if (!loggedIn) return false;
-
-				return true;
-			}
-
-			return false;
+			return true;
 		} catch (error) {
 			return false;
 		}
