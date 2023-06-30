@@ -10,7 +10,6 @@ import { DATABASE_COLLECTION } from 'src/common/constants';
 	collection: DATABASE_COLLECTION.USER,
 	timestamps: true,
 })
-@ObjectType()
 export class User extends Model<IUser> {
 	@Prop({ required: true, unique: true, trim: true })
 	email: string;

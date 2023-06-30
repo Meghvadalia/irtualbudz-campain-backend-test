@@ -23,13 +23,13 @@ export class SessionService {
 		});
 		const accessTokenPayload = {
 			userId,
-			userType: data.type,
+			type: data.type,
 			sessionId: result._id,
 		};
 		const token = this.jwtService.generateAccessToken(accessTokenPayload);
 		const refreshTokenPayload = {
 			userId,
-			userType: data.type,
+			type: data.type,
 		};
 		const refreshToken = this.jwtService.generateRefreshToken(refreshTokenPayload);
 
