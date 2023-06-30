@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model, PipelineStage } from 'mongoose';
+import { Model, PipelineStage, Types } from 'mongoose';
 
 import { Order } from '../../../microservices/order/entities/order.entity';
 
@@ -8,7 +8,7 @@ import { Order } from '../../../microservices/order/entities/order.entity';
 export class ClientOrderService {
 	constructor(@InjectModel(Order.name) private orderModel: Model<Order>) {}
 
-	async getOrderForEachDate(locationId: string, fromDate: string, toDate: string) {
+	async getOrderForEachDate(locationId: Types.ObjectId, fromDate: string, toDate: string) {
 		const fromStartDate = new Date(fromDate);
 		const fromEndDate = new Date(toDate);
 		const pipeline: PipelineStage[] = [
@@ -61,7 +61,7 @@ export class ClientOrderService {
 		return dateWiseOrderData;
 	}
 
-	async getBrandWiseSales(locationId: string, fromDate: string, toDate: string) {
+	async getBrandWiseSales(locationId: Types.ObjectId, fromDate: string, toDate: string) {
 		const fromStartDate = new Date(fromDate);
 		const fromEndDate = new Date(toDate);
 		const pipeline: PipelineStage[] = [
@@ -124,7 +124,7 @@ export class ClientOrderService {
 		return brandWiseOrderData;
 	}
 
-	async getEmployeeWiseSales(locationId: string, fromDate: string, toDate: string) {
+	async getEmployeeWiseSales(locationId: Types.ObjectId, fromDate: string, toDate: string) {
 		const fromStartDate = new Date(fromDate);
 		const fromEndDate = new Date(toDate);
 		const pipeline: PipelineStage[] = [
@@ -245,7 +245,7 @@ export class ClientOrderService {
 		return staffWiseOrderData;
 	}
 
-	async getAverageSpendAndLoyaltyPointsForAllCustomer(locationId: string, fromDate: string, toDate: string) {
+	async getAverageSpendAndLoyaltyPointsForAllCustomer(locationId: Types.ObjectId, fromDate: string, toDate: string) {
 		const fromStartDate = new Date(fromDate);
 		const toEndDate = new Date(toDate);
 		try {
@@ -289,7 +289,7 @@ export class ClientOrderService {
 		} catch (error) {}
 	}
 
-	async getTopCategory(locationId: string, fromDate: string, toDate: string) {
+	async getTopCategory(locationId: Types.ObjectId, fromDate: string, toDate: string) {
 		const fromStartDate = new Date(fromDate);
 		const toEndDate = new Date(toDate);
 		try {
@@ -347,7 +347,7 @@ export class ClientOrderService {
 		} catch (error) {}
 	}
 
-	async getRecurringAndNewCustomerPercentage(locationId: string, fromDate: string, toDate: string) {
+	async getRecurringAndNewCustomerPercentage(locationId: Types.ObjectId, fromDate: string, toDate: string) {
 		const fromStartDate = new Date(fromDate);
 		const fromEndDate = new Date(toDate);
 		try {
@@ -424,7 +424,7 @@ export class ClientOrderService {
 		}
 	}
 
-	async totalOverViewCountForOrdersBetweenDate(locationId: string, fromDate: string, toDate: string) {
+	async totalOverViewCountForOrdersBetweenDate(locationId: Types.ObjectId, fromDate: string, toDate: string) {
 		const startDateStartTime = new Date(fromDate);
 		const startDateEndTime = new Date(fromDate);
 		const endDateStartTime = new Date(toDate);
@@ -631,7 +631,7 @@ export class ClientOrderService {
 		}
 	}
 
-	async getHourWiseDateForSpecificDateRange(locationId: string, fromDate: string, toDate: string) {
+	async getHourWiseDateForSpecificDateRange(locationId: Types.ObjectId, fromDate: string, toDate: string) {
 		try {
 			const fromStartDate = new Date(fromDate);
 			const toEndDate = new Date(toDate);
@@ -693,7 +693,7 @@ export class ClientOrderService {
 		} catch (error) {}
 	}
 
-	async getWeeklyBusiestDataForSpecificRange(locationId: string, fromDate: string, toDate: string) {
+	async getWeeklyBusiestDataForSpecificRange(locationId: Types.ObjectId, fromDate: string, toDate: string) {
 		try {
 			const fromStartDate = new Date(fromDate);
 			const toEndDate = new Date(toDate);

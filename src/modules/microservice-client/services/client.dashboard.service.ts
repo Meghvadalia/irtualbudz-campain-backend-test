@@ -2,13 +2,14 @@ import { Injectable } from '@nestjs/common';
 import { ClientCustomerService } from './client.customer.service';
 import { ClientOrderService } from './client.order.service';
 import * as dayjs from 'dayjs';
+import { Types } from 'mongoose';
 
 @Injectable()
 export class ClientDashboardService {
 	constructor(private readonly customerService: ClientCustomerService, private readonly orderService: ClientOrderService) {}
 
-	async getCalculatedData(locationId: string, query: { fromDate: string; toDate: string }) {
-		const averageAge = await this.calculateAverageAge(query.fromDate, query.toDate);
+	async getCalculatedData(locationId: Types.ObjectId, query: { fromDate: string; toDate: string }) {
+		const averageAge = await this.calculateAverageAge(locationId, query.fromDate, query.toDate);
 
 		const { averageSpend, loyaltyPointsConverted } = await this.calculateAverageSpendAndLoyaltyPoints(
 			locationId,
@@ -75,17 +76,17 @@ export class ClientDashboardService {
 		};
 	}
 
-	async calculateAverageAge(fromDate: string, toDate: string) {
-		const averageAge = await this.customerService.getAverageAge(fromDate, toDate);
+	async calculateAverageAge(locationId: Types.ObjectId, fromDate: string, toDate: string) {
+		const averageAge = await this.customerService.getAverageAge(locationId, fromDate, toDate);
 		return averageAge;
 	}
 
-	async recVsMedCustomer(locationId: string, fromDate: string, toDate: string) {
+	async recVsMedCustomer(locationId: Types.ObjectId, fromDate: string, toDate: string) {
 		const customerPercentage = this.orderService.getRecurringAndNewCustomerPercentage(locationId, fromDate, toDate);
 		return customerPercentage;
 	}
 
-	async calculateAverageSpendAndLoyaltyPoints(locationId: string, fromDate: string, toDate: string) {
+	async calculateAverageSpendAndLoyaltyPoints(locationId: Types.ObjectId, fromDate: string, toDate: string) {
 		const averageSpendWithLoyalty = await this.orderService.getAverageSpendAndLoyaltyPointsForAllCustomer(
 			locationId,
 			fromDate,
@@ -94,7 +95,7 @@ export class ClientDashboardService {
 		return averageSpendWithLoyalty;
 	}
 
-	async totalSales(locationId, query) {
+	async totalSales(locationId: Types.ObjectId, query) {
 		const { fromDate, toDate } = query;
 		const formattedFromDate = dayjs(fromDate).format('YYYY-MM-DDT00:00:00.000[Z]');
 		const formattedToDate = dayjs(toDate).format('YYYY-MM-DDT23:59:59.999[Z]');
@@ -115,18 +116,18 @@ export class ClientDashboardService {
 		};
 	}
 
-	async getOrderCountsByDayOfWeek(locationId: string, fromDate: string, toDate: string) {
+	async getOrderCountsByDayOfWeek(locationId: Types.ObjectId, fromDate: string, toDate: string) {
 		const orderCountsByDayOfWeek = await this.orderService.getWeeklyBusiestDataForSpecificRange(locationId, fromDate, toDate);
 		return orderCountsByDayOfWeek;
 	}
 
-	async getOrderCountsByHour(locationId: string, fromDate: string, toDate: string) {
+	async getOrderCountsByHour(locationId: Types.ObjectId, fromDate: string, toDate: string) {
 		const orderCountsByHour = await this.orderService.getHourWiseDateForSpecificDateRange(locationId, fromDate, toDate);
 
 		return orderCountsByHour;
 	}
 
-	async topSellingCategory(locationId: string, fromDate: string, toDate: string) {
+	async topSellingCategory(locationId: Types.ObjectId, fromDate: string, toDate: string) {
 		const topCategory = await this.orderService.getTopCategory(locationId, fromDate, toDate);
 		return topCategory;
 	}

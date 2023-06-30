@@ -4,7 +4,6 @@ import { Model } from 'mongoose';
 import axios, { AxiosRequestConfig } from 'axios';
 
 import { Order } from '../entities/order.entity';
-import { Cron } from '@nestjs/schedule';
 import { Cart } from '../entities/cart.entity';
 import { Staff } from '../entities/staff.entity';
 import { IStaff } from '../interfaces/staff.interface';
@@ -13,8 +12,10 @@ import { IPOS } from 'src/model/pos/interface/pos.interface';
 import { Company } from 'src/model/company/entities/company.entity';
 import { POS } from 'src/model/pos/entities/pos.entity';
 import { Store } from 'src/model/store/entities/store.entity';
-import { IOrder } from '../interfaces/order.interface';
+import { IOrder, LocationData } from '../interfaces/order.interface';
 import { CustomerService } from '../../customers/service/customer.service';
+import { IStore } from 'src/model/store/interface/store.inteface';
+import { ItemsCart } from '../interfaces/cart.interface';
 
 @Injectable()
 export class OrderService {
@@ -28,15 +29,78 @@ export class OrderService {
 		private readonly customerService: CustomerService
 	) {}
 
+	async scheduleCronJob() {
+		try {
+			const currentDate = new Date();
+			const fromDate = new Date(currentDate.getFullYear(), currentDate.getMonth(), currentDate.getDate() - 1, 0, 0, 0);
+			const toDate = new Date(currentDate.getFullYear(), currentDate.getMonth(), currentDate.getDate(), 0, 0, 0);
+
+			const monarcCompanyData: ICompany = await this.companyModel.findOne<ICompany>({ name: 'Monarc' });
+			const locationIds: LocationData[] = (await this.storeModel.find({ companyId: monarcCompanyData._id })).map(
+				({ location, _id }) => ({
+					location,
+					_id,
+				})
+			) as LocationData[];
+
+			let counter = 0;
+			const intervalDuration = 2000;
+			const maxTime = locationIds.length;
+
+			const intervalFunction = async () => {
+				if (counter >= maxTime) {
+					clearInterval(interval);
+					console.log('Loop finished!');
+					return;
+				}
+
+				console.log('Location ID:', locationIds[counter]._id);
+				const ordersCount = await this.orderModel.countDocuments({
+					locationId: locationIds[counter]._id,
+				});
+				if (ordersCount === 0) {
+					console.log('Seeding data for the last 100 days...');
+					const hundredDaysAgo = new Date(
+						currentDate.getFullYear(),
+						currentDate.getMonth(),
+						currentDate.getDate() - 100,
+						0,
+						0,
+						0
+					);
+					this.seedOrders(hundredDaysAgo, toDate, locationIds[counter].location.importId);
+				} else {
+					console.log('Seeding data from the previous day...');
+					this.seedOrders(fromDate, toDate, locationIds[counter].location.importId);
+				}
+
+				counter++;
+			};
+
+			const interval = setInterval(intervalFunction, intervalDuration);
+		} catch (error) {
+			console.error('Error while scheduling cron job:', error);
+		}
+	}
+
 	async seedOrders(startDate: Date, endDate: Date, importId: string) {
 		try {
-			const { posId, dataObject }: ICompany = await this.companyModel.findOne<ICompany>({
+			const {
+				posId,
+				dataObject,
+				_id: companyId,
+			}: ICompany = await this.companyModel.findOne<ICompany>({
 				name: 'Monarc',
 			});
 
 			const posData: IPOS = await this.posModel.findOne<IPOS>({
 				_id: posId,
 			});
+
+			const storeData = await this.storeModel.findOne({
+				'location.importId': importId,
+			});
+			const storeId = storeData._id;
 
 			console.log('startDate', startDate);
 			console.log('endDate', endDate);
@@ -57,64 +121,16 @@ export class OrderService {
 				},
 			};
 
-			await this.processOrders(options);
+			await this.processOrders(options, posId, companyId, storeId as string);
 		} catch (error) {
 			console.error('Error while seeding orders:', error);
 			throw error;
 		}
 	}
 
-	@Cron('0 0 0 * * *')
-	async scheduleCronJob() {
+	async addItemsToCart(carts: ItemsCart[], locationId: string, id: string) {
 		try {
-			const currentDate = new Date();
-			const fromDate = new Date(currentDate.getFullYear(), currentDate.getMonth(), currentDate.getDate() - 1, 0, 0, 0);
-			const toDate = new Date(currentDate.getFullYear(), currentDate.getMonth(), currentDate.getDate(), 0, 0, 0);
-
-			const monarcCompanyData: ICompany = await this.companyModel.findOne<ICompany>({ name: 'Monarc' });
-			const locationIds = (await this.storeModel.find({ companyId: monarcCompanyData._id })).map(({ location }) => location);
-
-			let counter = 0;
-			const intervalDuration = 2000;
-			const maxTime = locationIds.length;
-
-			const intervalFunction = async () => {
-				if (counter >= maxTime) {
-					clearInterval(interval);
-					console.log('Loop finished!');
-					return;
-				}
-
-				console.log('Location ID:', locationIds[counter].locationId);
-				const customersCount = await this.orderModel.countDocuments();
-				if (customersCount === 0) {
-					console.log('Seeding data for the last 100 days...');
-					const hundredDaysAgo = new Date(
-						currentDate.getFullYear(),
-						currentDate.getMonth(),
-						currentDate.getDate() - 100,
-						0,
-						0,
-						0
-					);
-					this.seedOrders(hundredDaysAgo, toDate, locationIds[counter].importId);
-				} else {
-					console.log('Seeding data from the previous day...');
-					this.seedOrders(fromDate, toDate, locationIds[counter].importId);
-				}
-
-				counter++;
-			};
-
-			const interval = setInterval(intervalFunction, intervalDuration);
-		} catch (error) {
-			console.error('Error while scheduling cron job:', error);
-		}
-	}
-
-	async addItemCart(carts: any[], locationId: any, id: any) {
-		try {
-			const tempArr = carts.map((cart) => this.addSingleData(cart, locationId, id));
+			const tempArr = carts.map((cart) => this.addSingleData(cart, locationId));
 			const data = await Promise.all(tempArr);
 			return { id, data };
 		} catch (error) {
@@ -123,11 +139,11 @@ export class OrderService {
 		}
 	}
 
-	async addStaff(element: any) {
+	async addStaff(element: any, storeId: string) {
 		try {
 			const staffObject: IStaff = {
 				staffName: element.staffName,
-				storeId: element.locationId,
+				storeId,
 			};
 
 			const existingStaff = await this.staffModel.findOne(staffObject);
@@ -144,7 +160,7 @@ export class OrderService {
 		}
 	}
 
-	async addSingleData(cart, locationId, id) {
+	async addSingleData(cart: ItemsCart, locationId: string) {
 		try {
 			const existingCartItem = await this.cartModel.findOne({
 				posCartId: cart.id,
@@ -154,9 +170,9 @@ export class OrderService {
 
 			if (existingCartItem === null) {
 				const newCartItem = {
+					...cart,
 					posCartId: cart.id,
 					storeId: locationId,
-					productName: cart.productName,
 				};
 
 				const createdCartItem = await this.cartModel.create(newCartItem);
@@ -170,13 +186,17 @@ export class OrderService {
 		}
 	}
 
-	async addOrder(element: any) {
+	async addOrder(element: any, posId: string, companyId: string, storeId: string) {
 		try {
 			const existingOrder = await this.orderModel.findOne({ posOrderId: element._id });
 
 			if (existingOrder === null) {
 				element.posOrderId = element._id;
 				element.posCreatedAt = new Date(element.createdAt.toString());
+				element.companyId = companyId;
+				element.posId = posId;
+				element.locationId = storeId;
+
 				delete element.createdAt;
 				delete element._id;
 
@@ -189,7 +209,7 @@ export class OrderService {
 		}
 	}
 
-	async processOrders(options) {
+	async processOrders(options, posId: string, companyId: string, storeId: string) {
 		try {
 			console.log('====================================');
 			console.log('Processing Order Batch');
@@ -204,7 +224,7 @@ export class OrderService {
 				const orderData = data.orders;
 
 				if (orderData.length > 0) {
-					this.processOrderBatch(orderData, page);
+					this.processOrderBatch(orderData, page, posId, companyId, storeId);
 					page++;
 				} else {
 					console.log('All orders fetched');
@@ -217,7 +237,7 @@ export class OrderService {
 		}
 	}
 
-	async processOrderBatch(orders, page: number) {
+	async processOrderBatch(orders: IOrder, page: number, posId: string, companyId: string, storeId: string) {
 		try {
 			console.log('====================================');
 			console.log('Processing Order Batch number', page);
@@ -225,13 +245,12 @@ export class OrderService {
 
 			const temp = orders.map((x: IOrder) => ({
 				staffName: x.budtender,
-				locationId: x.locationId,
 				posCreatedAt: new Date(x.createdAt),
 				customerId: x.customerId,
 			}));
 
 			const customerIds: Set<string> = new Set(temp.map((t) => t.customerId));
-			const locationIds: Set<string> = new Set(temp.map((l) => l.locationId));
+			console.log('Cutomer Id size => ', customerIds.size);
 
 			const distinctStaff = temp.reduce((accumulator, current) => {
 				const existingStaff = accumulator.find(
@@ -243,13 +262,13 @@ export class OrderService {
 				return accumulator;
 			}, []);
 
-			const staffCartData = await Promise.all(distinctStaff.map((staff) => this.addStaff(staff)));
+			const staffData = await Promise.all(distinctStaff.map((staff: IStaff) => this.addStaff(staff, storeId)));
 
-			const itemPromises = orders.map((order) => this.addItemCart(order.itemsInCart, order.locationId, order._id));
+			const itemPromises = orders.map((order) => this.addItemsToCart(order.itemsInCart, storeId, order._id));
 			const cart = await Promise.all(itemPromises);
 
 			const orderPromises = orders.map((order) => {
-				const staffId = staffCartData.find((staff) => staff.staffName === order.budtender)._id;
+				const staffId = staffData.find((staff) => staff.staffName === order.budtender)._id;
 
 				const items = cart.find((item) => item.id === order._id).data;
 
@@ -258,13 +277,12 @@ export class OrderService {
 				order.staffId = staffId;
 
 				delete order.budtender;
-				return this.addOrder(order);
+				return this.addOrder(order, posId, companyId, storeId);
 			});
 
 			const processedOrders = await Promise.all(orderPromises);
-			locationIds.forEach((locationId) => {
-				customerIds.forEach((customerId) => this.customerService.seedCustomers(customerId, locationId));
-			});
+
+			customerIds.forEach((customerId) => this.customerService.seedCustomers(customerId, storeId));
 
 			console.log('Order Done', processedOrders.length);
 		} catch (error) {
@@ -285,6 +303,10 @@ export class OrderService {
 
 			const posData: IPOS = await this.posModel.findOne<IPOS>({
 				_id: posId,
+			});
+
+			const storeData: IStore = await this.storeModel.findOne({
+				companyId,
 			});
 
 			const tokenOptions = {
@@ -312,7 +334,7 @@ export class OrderService {
 			for (const d of data) {
 				staffArray.push({
 					staffName: d.fullName,
-					storeId: companyId,
+					storeId: storeData._id,
 				});
 			}
 			await this.staffModel.insertMany(staffArray);

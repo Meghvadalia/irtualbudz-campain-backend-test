@@ -130,3 +130,11 @@ export interface ItemsCart {
 	itemDiscounts: ItemDiscounts;
 	tax: Tax;
 }
+
+export interface LocationData {
+	_id: string;
+	location: {
+		locationId: string;
+		importId: string;
+	};
+}

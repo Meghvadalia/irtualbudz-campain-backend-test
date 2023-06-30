@@ -1,6 +1,4 @@
-import { Document } from 'mongoose';
 import { IAddress, ILocation, IhoursOfOperation } from 'src/common/interface';
-import { ICompany } from 'src/model/company/interface/company.interface';
 
 export interface IStore {
 	location: ILocation;
@@ -12,6 +10,5 @@ export interface IStore {
 	email: string;
 	licenseType: string[];
 	imageUrl: string;
-
-	// Add more properties as needed
+	[property: string]: any;
 }

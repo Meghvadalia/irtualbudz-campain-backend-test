@@ -24,9 +24,10 @@ import { JwtService } from '../../utils/token.util';
 import { MetricsController } from './controllers/metrics.controller';
 import { RedisService } from 'src/config/cache/config.service';
 import { User, UserSchema } from 'src/microservices/user/entities/user.entity';
-import { DutchieDataSeeder } from './controllers/dutchie';
+import { DutchieDataSeeder } from './controllers/dutchie.controller';
 import { DutchieService } from './services/dutchie.service';
 import { Staff, StaffSchema } from 'src/microservices/order/entities/staff.entity';
+import { FlowhubController } from './controllers/flowhub.controller';
 
 @Module({
 	imports: [
@@ -54,6 +55,7 @@ import { Staff, StaffSchema } from 'src/microservices/order/entities/staff.entit
 		ClientUserController,
 		MetricsController,
 		DutchieDataSeeder,
+		FlowhubController,
 	],
 	providers: [
 		ClientOrderService,

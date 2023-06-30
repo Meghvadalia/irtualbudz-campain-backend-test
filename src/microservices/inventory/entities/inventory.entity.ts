@@ -17,6 +17,9 @@ export class Inventory extends Model<IInventory> {
 	@Prop()
 	quantity: number;
 
+	@Prop()
+	posProductId: string;
+
 	@Prop({ type: Types.ObjectId, ref: DATABASE_COLLECTION.STORES })
 	locationId: string;
 

@@ -39,14 +39,30 @@ export class CustomerService {
 			};
 
 			const { data } = await axios.request(options);
-			data.storeId = storeId;
-			data.companyId = monarcCompanyData._id;
-			data.POSId = monarcCompanyData.posId;
-			data.id = customerId;
 
-			await this.customerModel.create(data);
+			const customer: ICustomer = {
+				posCustomerId: data.customer.id,
+				storeId,
+				companyId: monarcCompanyData._id,
+				POSId: monarcCompanyData.posId,
+				name: data.customer.name,
+				email: data.customer.email,
+				phone: data.customer.phone,
+				city: data.customer.city,
+				state: data.customer.state,
+				country: data.customer.country,
+				birthDate: data.customer.birthDate,
+				isLoyal: data.customer.isLoyal,
+				loyaltyPoints: data.customer.loyaltyPoints,
+				streetAddress1: data.customer.streetAddress1,
+				streetAddress2: data.customer.streetAddress2,
+				type: data.customer.type,
+				zip: data.customer.zip,
+			};
+
+			await this.customerModel.create(customer);
 		} catch (error) {
-			console.error('Error while seeding customers:', error);
+			console.error('Error while seeding customers:', error.message);
 		}
 	}
 
@@ -107,7 +123,7 @@ export class CustomerService {
 					birthDate: d.dateOfBirth,
 					city: d.city,
 					email: d.emailAddress,
-					id: d.customerId,
+					posCustomerId: d.customerId,
 					name: d.name,
 					phone: d.phone,
 					isLoyal: d.isLoyaltyMember,
@@ -122,8 +138,8 @@ export class CustomerService {
 					country: '',
 				});
 
-			console.log(`Seeded ${data.length} customers.`);
 			await this.customerModel.insertMany(customersArray);
+			console.log(`Seeded ${data.length} customers.`);
 		} catch (error) {
 			console.error('Failed to seed customers:', error);
 		}

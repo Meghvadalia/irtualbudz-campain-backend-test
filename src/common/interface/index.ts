@@ -22,6 +22,7 @@ export interface ILocation {
 	longitude?: number;
 	locationId: string;
 	importId?: string;
+	[property: string]: any;
 }
 
 export interface IFlowhubHeaderInterface {
@@ -43,4 +44,5 @@ export interface IStoreResponseFlowHub {
 	phoneNumber: string;
 	email: string;
 	licenseType: string[];
+	[property: string]: any;
 }

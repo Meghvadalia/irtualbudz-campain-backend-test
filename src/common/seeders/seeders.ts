@@ -119,7 +119,7 @@ export class SeederService {
 				});
 				if (!store) {
 					await this.storeModel.create({
-						'location.locationId': data.locationId,
+						location: { locationId: data.locationId, locationName: data.locationName },
 						companyId: company._id,
 					});
 				}

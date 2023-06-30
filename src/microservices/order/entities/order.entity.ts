@@ -5,6 +5,12 @@ import { DATABASE_COLLECTION } from 'src/common/constants';
 
 @Schema({ collection: DATABASE_COLLECTION.ORDER, timestamps: true })
 export class Order extends Model<IOrder> {
+	@Prop({ required: true, type: Types.ObjectId, ref: DATABASE_COLLECTION.COMPANIES })
+	companyId: string;
+
+	@Prop({ required: true, type: Types.ObjectId, ref: DATABASE_COLLECTION.POS })
+	posId: string;
+
 	@Prop({ required: true, unique: true })
 	posOrderId: string;
 
@@ -43,7 +49,7 @@ export class Order extends Model<IOrder> {
 	@Prop({ enum: CustomerType })
 	customerType: CustomerType;
 
-	@Prop({ index: true })
+	@Prop({ required: true, type: Types.ObjectId, ref: DATABASE_COLLECTION.STORES, index: true })
 	locationId: string;
 
 	@Prop()

@@ -6,12 +6,12 @@ import { POS } from 'src/model/pos/entities/pos.entity';
 import { Store } from 'src/model/store/entities/store.entity';
 import { Inventory } from '../entities/inventory.entity';
 import { Product } from '../entities/product.entity';
-import { Cron } from '@nestjs/schedule';
 import { ICompany } from 'src/model/company/interface/company.interface';
 import { IPOS } from 'src/model/pos/interface/pos.interface';
 import axios, { AxiosRequestConfig } from 'axios';
 import { IInventory } from '../interfaces/inventory.interface';
 import { IProduct } from '../interfaces/product.interface';
+import { IStore } from 'src/model/store/interface/store.inteface';
 
 @Injectable()
 export class InventoryService {
@@ -23,7 +23,6 @@ export class InventoryService {
 		@InjectModel(Store.name) private storeModel: Model<Store>
 	) {}
 
-	@Cron('0 0 0 * * *')
 	async seedInventory(): Promise<void> {
 		try {
 			const { posId, dataObject, _id } = await this.companyModel.findOne<ICompany>({
@@ -135,6 +134,10 @@ export class InventoryService {
 				_id: posId,
 			});
 
+			const storeData: IStore = await this.storeModel.findOne<IStore>({
+				companyId,
+			});
+
 			const tokenOptions = {
 				method: 'get',
 				url: `${posData.liveUrl}/util/AuthorizationHeader/${dataObject.key}`,
@@ -153,11 +156,66 @@ export class InventoryService {
 				},
 			};
 
-			const { data } = await axios.request(inventoryOptions);
+			const productOptions: AxiosRequestConfig = {
+				url: `${posData.liveUrl}/products`,
+				headers: {
+					Accept: 'application/json',
+					Authorization: token,
+				},
+			};
+
+			const { data: productsData } = await axios.request(productOptions);
+
+			const productArray: IProduct[] = [];
+
+			for (const d of productsData) {
+				productArray.push({
+					productName: d.productName,
+					productDescription: d.description,
+					brand: d.brandName,
+					category: d.masterCategory,
+					posProductId: d.productId,
+					productPictureURL: d.imageUrl,
+					productWeight: d.netWeight,
+					sku: d.sku,
+					posId,
+					type: d.category,
+					companyId,
+					priceInMinorUnits: d.price * 100,
+					purchaseCategory: d.raregulatoryCategory,
+					speciesName: d.strainType,
+					extraDetails: {
+						nutrients: '',
+						isMixAndMatch: null,
+						isStackable: null,
+						productUnitOfMeasure: d.defaultUnit,
+						productUnitOfMeasureToGramsMultiplier: '',
+						cannabinoidInformation: {
+							name: '',
+							lowerRange: null,
+							upperRange: null,
+							unitOfMeasure: '',
+							unitOfMeasureToGramsMultiplier: '',
+						},
+						weightTierInformation: {
+							name: '',
+							gramAmount: '',
+							pricePerUnitInMinorUnits: null,
+						},
+					},
+				});
+			}
+			const insertedProducts = await this.productModel.insertMany(productArray);
+
+			const { data: inventoryData } = await axios.request(inventoryOptions);
 
 			const inventoryArray: IInventory[] = [];
 
-			for (const d of data) {
+			for (const d of inventoryData) {
+				const matchingProduct = insertedProducts.find((product) => {
+					return +product.posProductId === +d.productId;
+				});
+
 				inventoryArray.push({
 					quantity: d.quantityAvailable,
 					expirationDate: d.expirationDate,
@@ -165,9 +223,9 @@ export class InventoryService {
 					posId,
 					posProductId: d.productId,
 					productUpdatedAt: d.lastModifiedDateUtc,
-					locationId: companyId,
-					locationName: '',
-					productId: '',
+					locationId: storeData._id,
+					locationName: storeData.location.locationName,
+					productId: matchingProduct ? (matchingProduct._id as string) : '',
 					extraDetails: {
 						inventoryUnitOfMeasure: d.unitWeightUnit,
 						inventoryUnitOfMeasureToGramsMultiplier: 1,
@@ -177,7 +235,8 @@ export class InventoryService {
 			}
 
 			await this.inventoryModel.insertMany(inventoryArray);
-			console.log(`Seeded ${data.length} inventory data.`);
+			console.log(`Seeded ${inventoryData.length} inventory data.`);
+			console.log(`Seeded ${productsData.length} products.`);
 		} catch (error) {
 			console.error('Failed to seed inventory data:', error);
 			throw error;

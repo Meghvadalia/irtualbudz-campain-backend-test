@@ -1,8 +1,8 @@
 export interface IInventory {
 	companyId: string;
 	posId: string;
-	posProductId: string;
 	productId: string;
+	posProductId: string;
 	quantity: number;
 	locationId: string;
 	locationName: string;

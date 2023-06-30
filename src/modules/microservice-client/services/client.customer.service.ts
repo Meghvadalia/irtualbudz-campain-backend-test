@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
+import { Model, Types } from 'mongoose';
 
 import { Customer } from '../../../microservices/customers/entities/customer.entity';
 
@@ -8,12 +8,13 @@ import { Customer } from '../../../microservices/customers/entities/customer.ent
 export class ClientCustomerService {
 	constructor(@InjectModel(Customer.name) private customerModel: Model<Customer>) {}
 
-	async getAverageAge(fromDate: string, toDate: string) {
+	async getAverageAge(storeId: Types.ObjectId, fromDate: string, toDate: string) {
 		const fromStartDate = new Date(fromDate);
 		const toEndDate = new Date(toDate);
 		const aggregationPipeline = [
 			{
 				$match: {
+					storeId,
 					createdAt: {
 						$gte: fromStartDate,
 						$lte: toEndDate,
