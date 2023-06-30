@@ -43,7 +43,6 @@ export class UsersController {
 				refreshToken,
 			};
 		} catch (error) {
-			console.trace(error);
 			throw new RpcException(error);
 		}
 	}

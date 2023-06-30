@@ -7,7 +7,6 @@ import { USER_TYPE } from 'src/microservices/user/constants/user.constant';
 export class ClientStoreController {
 	constructor(private readonly clientStoreService: ClientStoreService) {}
 
-	@Get('seed-stores')
 	async seedStoreList() {
 		try {
 			return await this.clientStoreService.seedStoreData();

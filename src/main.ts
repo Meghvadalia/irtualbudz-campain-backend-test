@@ -11,7 +11,7 @@ import { AllExceptionsFilter } from './utils/request-response.utils';
 import helmet from 'helmet';
 
 async function bootstrap() {
-	// mongoose.set('debug', true);
+	mongoose.set('debug', true);
 	const app = await NestFactory.create(AppModule);
 	app.useGlobalFilters(new AllExceptionsFilter());
 	app.use(helmet());

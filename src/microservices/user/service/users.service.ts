@@ -26,22 +26,21 @@ export class UsersService {
 	}
 
 	async findByEmail(email: string): Promise<any> {
-		return this.userModel.findOne({ email }).exec();
+		const user = this.userModel.findOne({ email }).exec();
+		if (!user) return 'Email is not registered!!';
+		return user;
 	}
 
 	async login(email: string, password: string): Promise<any> {
 		try {
 			const user = (await this.findByEmail(email)) as User;
-			const comparePassword = await passwordService.comparePasswords(
-				password,
-				user.password
-			);
+			if (!user) return 'Email not found!!';
+			const comparePassword = await passwordService.comparePasswords(password, user.password);
 			if (user && comparePassword) {
-				const { token, refreshToken } =
-					await this.sessionService.createSession(user._id, {
-						userId: user._id,
-						type: user.type,
-					});
+				const { token, refreshToken } = await this.sessionService.createSession(user._id, {
+					userId: user._id,
+					type: user.type,
+				});
 				return { user, token, refreshToken };
 			}
 

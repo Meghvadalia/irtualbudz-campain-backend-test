@@ -135,7 +135,6 @@ export class SeederService {
 			await this.seedPOS();
 			await this.seedCompany();
 			await this.seedUser();
-			await this.seedDutchieStores();
 			console.log('Seeding completed successfully');
 		} catch (error) {
 			console.error('Error seeding collections:', error);

@@ -9,7 +9,6 @@ import { Store } from 'src/model/store/entities/store.entity';
 import { IStore } from 'src/model/store/interface/store.inteface';
 import axios from 'axios';
 import { IStoreResponseFlowHub } from 'src/common/interface';
-import { Cron } from '@nestjs/schedule';
 
 @Injectable()
 export class ClientStoreService {
@@ -19,7 +18,6 @@ export class ClientStoreService {
 		@InjectModel(POS.name) private posModel: Model<ICompany>
 	) {}
 
-	@Cron('0 0 0 * * *')
 	async seedStoreData() {
 		try {
 			const monarcCompanyData: ICompany = await this.companyModel.findOne<ICompany>({
