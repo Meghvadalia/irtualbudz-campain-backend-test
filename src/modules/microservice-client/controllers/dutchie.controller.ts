@@ -6,7 +6,7 @@ import { InventoryService } from 'src/microservices/inventory';
 import { OrderService } from 'src/microservices/order/services/order.service';
 
 @Controller('dutchie')
-export class DutchieDataSeeder {
+export class DutchieController {
 	constructor(
 		private readonly storeService: SeederService,
 		private readonly customerService: CustomerService,

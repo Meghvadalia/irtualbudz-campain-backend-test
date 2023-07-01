@@ -16,10 +16,7 @@ export class RolesGuard implements CanActivate {
 	) {}
 
 	async canActivate(context: ExecutionContext): Promise<boolean> {
-		const requiredRoles = this.reflector.get<USER_TYPE[]>(
-			'roles',
-			context.getHandler()
-		);
+		const requiredRoles = this.reflector.get<USER_TYPE[]>('roles', context.getHandler());
 		if (!requiredRoles) return true;
 
 		const request = context.switchToHttp().getRequest();
@@ -29,14 +26,17 @@ export class RolesGuard implements CanActivate {
 		const token = bearerToken.split(' ')[1];
 		try {
 			const decoded = this.jwtService.verifyAccessToken(token);
-			const userRole = decoded.userType;
-			request.user = decoded;
+			const userRole = decoded.type;
 
-			const userId = decoded.userId;
-			const loggedIn = await this.redisService.getValue(userId);
-			if (!loggedIn) return false;
+			if (requiredRoles.includes(userRole)) {
+				request.user = decoded;
+				const userId = decoded.userId;
+				const loggedIn = await this.redisService.getValue(userId);
+				if (!loggedIn) return false;
 
-			return true;
+				return true;
+			}
+			return false;
 		} catch (error) {
 			return false;
 		}

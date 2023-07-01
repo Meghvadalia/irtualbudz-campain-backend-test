@@ -24,10 +24,11 @@ import { JwtService } from '../../utils/token.util';
 import { MetricsController } from './controllers/metrics.controller';
 import { RedisService } from 'src/config/cache/config.service';
 import { User, UserSchema } from 'src/microservices/user/entities/user.entity';
-import { DutchieDataSeeder } from './controllers/dutchie.controller';
-import { DutchieService } from './services/dutchie.service';
+import { DutchieController } from './controllers/dutchie.controller';
 import { Staff, StaffSchema } from 'src/microservices/order/entities/staff.entity';
 import { FlowhubController } from './controllers/flowhub.controller';
+import { ClientCompanyController } from './controllers/client.company.controller';
+import { ClientCompanyService } from './services/client.company.service';
 
 @Module({
 	imports: [
@@ -54,8 +55,9 @@ import { FlowhubController } from './controllers/flowhub.controller';
 		ClientDashboardController,
 		ClientUserController,
 		MetricsController,
-		DutchieDataSeeder,
+		DutchieController,
 		FlowhubController,
+		ClientCompanyController,
 	],
 	providers: [
 		ClientOrderService,
@@ -65,8 +67,8 @@ import { FlowhubController } from './controllers/flowhub.controller';
 		ClientCustomerService,
 		JwtService,
 		RedisService,
-		DutchieService,
 		InventoryService,
+		ClientCompanyService,
 	],
 })
 export class MicroserviceClientModule {}

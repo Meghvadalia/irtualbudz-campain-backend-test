@@ -76,4 +76,14 @@ export class ClientStoreService {
 			throw error;
 		}
 	}
+
+	async storeById(id: string): Promise<any> {
+		try {
+			const store = await this.storeModel.findById(id);
+			if (!store) throw Error('Store not found.');
+			return store;
+		} catch (error) {
+			throw error;
+		}
+	}
 }

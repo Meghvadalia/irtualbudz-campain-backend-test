@@ -5,7 +5,6 @@ import { defineAbility } from '@casl/ability';
 export function defineAbilitiesForUserCreation(user) {
 	const ability = defineAbility((can) => {
 		if (user.type === USER_TYPE.SUPER_ADMIN) {
-
 			can('create', USER_TYPE.SUPER_ADMIN);
 			can('create', USER_TYPE.ADMIN);
 			can('create', USER_TYPE.COMPANY_ADMIN);

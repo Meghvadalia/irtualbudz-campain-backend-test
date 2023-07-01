@@ -8,18 +8,30 @@ import { passwordService } from 'src/utils/password.util';
 import { JwtService } from 'src/utils/token.util';
 import { RpcException } from '@nestjs/microservices';
 import { SessionService } from './session.service';
+import { ClientCompanyService } from 'src/modules/microservice-client/services/client.company.service';
+import { ClientStoreService } from 'src/modules/microservice-client/services/client.store.service';
 
 @Injectable()
 export class UsersService {
 	constructor(
 		@InjectModel(User.name) private userModel: Model<User>,
 		private readonly sessionService: SessionService,
-		private readonly jwtService: JwtService
+		private readonly jwtService: JwtService,
+		private readonly clientCompanyService: ClientCompanyService,
+		private readonly clientStoreService: ClientStoreService
 	) {}
 
 	async register(payload: CreateUserDto) {
 		const emailExists = await this.findByEmail(payload.email);
 		if (emailExists) throw new RpcException('Email is already taken.');
+
+		if (payload.companyId) {
+			const company = await this.clientCompanyService.company(payload.companyId);
+			payload.companyId = company._id;
+		} else {
+			const store = await this.clientStoreService.storeById(payload.storeId);
+			payload.storeId = store._id;
+		}
 
 		const newUser = await this.userModel.create({ ...payload });
 		return { newUser };
