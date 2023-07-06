@@ -6,7 +6,7 @@ import { POS } from 'src/model/pos/entities/pos.entity';
 import { posData } from './pos';
 import { companyData } from './company';
 import { User } from 'src/microservices/user/entities/user.entity';
-import { superAdmin } from './user';
+import { superAdmin, userArrayForCompany } from './user';
 import { ICompany } from 'src/model/company/interface/company.interface';
 import { IPOS } from 'src/model/pos/interface/pos.interface';
 import axios, { AxiosRequestConfig } from 'axios';
@@ -79,7 +79,25 @@ export class SeederService {
 			if (!userExists) {
 				await this.userModel.create({ ...superAdmin });
 			}
-			
+			for (let index = 0; index < userArrayForCompany.length; index++) {
+				const element = userArrayForCompany[index];
+				const checkUserExist = await this.userModel.findOne({
+					email: element.email,
+				});
+				const matchingCompany = await this.companyModel.findOne({
+					name: element.companyName,
+				});
+				if (!checkUserExist) {
+					await this.userModel.create({
+						name: element.name,
+						email: element.email,
+						password: element.password,
+						type: element.type,
+						companyId: matchingCompany._id,
+						phone: element.phone,
+					});
+				}
+			}
 		} catch (error) {
 			console.error('Error seeding User collection:', error);
 		}
