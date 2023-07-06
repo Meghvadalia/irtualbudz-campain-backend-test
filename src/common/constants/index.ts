@@ -15,3 +15,12 @@ export const DATABASE_COLLECTION = {
 	USER: 'users',
 	SESSION: 'session',
 };
+
+export const enum PERMISSIONS_FOR_DATABASE {
+	CREATE = 'create',
+	READ = 'read',
+	UPDATE = 'update',
+	DELETE = 'delete',
+	MANAGE = 'manage',
+	ALL = 'all',
+}
