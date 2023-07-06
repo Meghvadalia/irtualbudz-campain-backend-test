@@ -8,7 +8,7 @@ export class StoreController {
 	@Get('seed-stores')
 	async seedStoreList() {
 		try {
-			return await this.clientStoreService.seedStoreData();
+			return await this.clientStoreService.seedStoreData('flowhub');
 		} catch (error) {
 			throw new Error(error);
 		}

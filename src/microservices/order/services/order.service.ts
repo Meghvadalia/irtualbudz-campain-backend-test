@@ -29,55 +29,62 @@ export class OrderService {
 		private readonly customerService: CustomerService
 	) {}
 
-	async scheduleCronJob() {
+	async scheduleCronJob(posName:string) {
 		try {
 			const currentDate = new Date();
 			const fromDate = new Date(currentDate.getFullYear(), currentDate.getMonth(), currentDate.getDate() - 1, 0, 0, 0);
 			const toDate = new Date(currentDate.getFullYear(), currentDate.getMonth(), currentDate.getDate(), 0, 0, 0);
 
-			const monarcCompanyData: ICompany = await this.companyModel.findOne<ICompany>({ name: 'Monarc' });
-			const locationIds: LocationData[] = (await this.storeModel.find({ companyId: monarcCompanyData._id })).map(
-				({ location, _id }) => ({
-					location,
-					_id,
-				})
-			) as LocationData[];
+			const posData : IPOS = await this.posModel.findOne({name:posName})
+			const monarcCompanyDataList: ICompany[] = await this.companyModel.find<ICompany>({
+				isActive: true,
+				posId:posData._id
+			});
+			for (let i = 0; i < monarcCompanyDataList.length; i++) {
+				const monarcCompanyData = monarcCompanyDataList[i];
+				const locationIds: LocationData[] = (await this.storeModel.find({ companyId: monarcCompanyData._id })).map(
+					({ location, _id }) => ({
+						location,
+						_id,
+					})
+				) as LocationData[];
 
-			let counter = 0;
-			const intervalDuration = 2000;
-			const maxTime = locationIds.length;
+				let counter = 0;
+				const intervalDuration = 2000;
+				const maxTime = locationIds.length;
 
-			const intervalFunction = async () => {
-				if (counter >= maxTime) {
-					clearInterval(interval);
-					console.log('Loop finished!');
-					return;
-				}
+				const intervalFunction = async () => {
+					if (counter >= maxTime) {
+						clearInterval(interval);
+						console.log('Loop finished!');
+						return;
+					}
 
-				console.log('Location ID:', locationIds[counter]._id);
-				const ordersCount = await this.orderModel.countDocuments({
-					locationId: locationIds[counter]._id,
-				});
-				if (ordersCount === 0) {
-					console.log('Seeding data for the last 100 days...');
-					const hundredDaysAgo = new Date(
-						currentDate.getFullYear(),
-						currentDate.getMonth(),
-						currentDate.getDate() - 100,
-						0,
-						0,
-						0
-					);
-					this.seedOrders(hundredDaysAgo, toDate, locationIds[counter].location.importId);
-				} else {
-					console.log('Seeding data from the previous day...');
-					this.seedOrders(fromDate, toDate, locationIds[counter].location.importId);
-				}
+					console.log('Location ID:', locationIds[counter]._id);
+					const ordersCount = await this.orderModel.countDocuments({
+						locationId: locationIds[counter]._id,
+					});
+					if (ordersCount === 0) {
+						console.log('Seeding data for the last 100 days...');
+						const hundredDaysAgo = new Date(
+							currentDate.getFullYear(),
+							currentDate.getMonth(),
+							currentDate.getDate() - 100,
+							0,
+							0,
+							0
+						);
+						this.seedOrders(hundredDaysAgo, toDate, locationIds[counter].location.importId);
+					} else {
+						console.log('Seeding data from the previous day...');
+						this.seedOrders(fromDate, toDate, locationIds[counter].location.importId);
+					}
 
-				counter++;
-			};
+					counter++;
+				};
 
-			const interval = setInterval(intervalFunction, intervalDuration);
+				const interval = setInterval(intervalFunction, intervalDuration);
+			}
 		} catch (error) {
 			console.error('Error while scheduling cron job:', error);
 		}

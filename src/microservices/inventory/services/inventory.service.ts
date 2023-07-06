@@ -23,7 +23,7 @@ export class InventoryService {
 		@InjectModel(Store.name) private storeModel: Model<Store>
 	) {}
 
-	async seedInventory(): Promise<void> {
+	async seedInventory(posName:string): Promise<void> {
 		try {
 			const { posId, dataObject, _id } = await this.companyModel.findOne<ICompany>({
 				name: 'Monarc',

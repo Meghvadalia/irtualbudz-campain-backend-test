@@ -18,51 +18,60 @@ export class ClientStoreService {
 		@InjectModel(POS.name) private posModel: Model<ICompany>
 	) {}
 
-	async seedStoreData() {
+	async seedStoreData(posName:string) {
 		try {
-			const monarcCompanyData: ICompany = await this.companyModel.findOne<ICompany>({
-				name: 'Monarc',
+			const posData : IPOS = await this.posModel.findOne({name:posName})
+			const monarcCompanyDataList: ICompany[] = await this.companyModel.find<ICompany>({
+				isActive: true,
+				posId:posData._id
 			});
 
-			const posData: IPOS = await this.posModel.findOne<IPOS>({
-				_id: monarcCompanyData.posId,
-			});
+			for (let i = 0; i < monarcCompanyDataList.length; i++) {
+				const monarcCompanyData = monarcCompanyDataList[i];
 
-			const options = {
-				method: 'get',
-				url: posData.liveUrl + 'v0/clientsLocations',
-				headers: {
-					key: monarcCompanyData.dataObject.key,
-					ClientId: monarcCompanyData.dataObject.clientId,
-					Accept: 'application/json',
-				},
-			};
-			const { data } = await axios.request(options);
-			const storeData = data.data;
-			let storeArea: Array<IStore> = [];
-			for (let index = 0; index < storeData.length; index++) {
-				const element: IStoreResponseFlowHub = storeData[index];
-				storeArea.push({
-					location: {
-						locationId: element.locationId,
-						importId: element.importId,
-					},
-					companyId: monarcCompanyData._id,
-					hoursOfOperation: element.hoursOfOperation,
-					phonenumber: element.phoneNumber,
-					email: element.email ? element.email : '',
-					address: element.address,
-					timeZone: element.timeZone,
-					licenseType: element.licenseType,
-					imageUrl: element.locationLogoURL,
+				const posData: IPOS = await this.posModel.findOne<IPOS>({
+					_id: monarcCompanyData.posId,
 				});
+	
+				const options = {
+					method: 'get',
+					url: posData.liveUrl + 'v0/clientsLocations',
+					headers: {
+						key: monarcCompanyData.dataObject.key,
+						ClientId: monarcCompanyData.dataObject.clientId,
+						Accept: 'application/json',
+					},
+				};
+				const { data } = await axios.request(options);
+				const storeData = data.data;
+				let storeArea: Array<IStore> = [];
+				for (let index = 0; index < storeData.length; index++) {
+					const element: IStoreResponseFlowHub = storeData[index];
+					storeArea.push({
+						location: {
+							locationId: element.locationId,
+							importId: element.importId,
+						},
+						companyId: monarcCompanyData._id,
+						hoursOfOperation: element.hoursOfOperation,
+						phonenumber: element.phoneNumber,
+						email: element.email ? element.email : '',
+						address: element.address,
+						timeZone: element.timeZone,
+						licenseType: element.licenseType,
+						imageUrl: element.locationLogoURL,
+					});
+				}
+	
+				if (storeArea.length > 0) {
+					await this.storeModel.insertMany(storeArea);
+				}
+	
+				// return storeArea;
+				
 			}
 
-			if (storeArea.length > 0) {
-				await this.storeModel.insertMany(storeArea);
-			}
-
-			return storeArea;
+			
 		} catch (error) {
 			console.log('Error While Seeding the Data For Store', error);
 			return error;

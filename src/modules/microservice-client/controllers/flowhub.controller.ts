@@ -15,8 +15,8 @@ export class FlowhubController {
 	@Get('seed')
 	@Cron('0 0 0 * * *')
 	async seedData() {
-		await this.storeService.seedStoreData();
-		await this.orderService.scheduleCronJob();
-		await this.inventoryService.seedInventory();
+		await this.storeService.seedStoreData('flowhub');
+		await this.orderService.scheduleCronJob('flowhub');
+		await this.inventoryService.seedInventory('flowhub');
 	}
 }
