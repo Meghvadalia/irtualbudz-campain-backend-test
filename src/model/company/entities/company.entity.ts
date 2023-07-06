@@ -36,6 +36,8 @@ export class Company extends Model<ICompany> {
 
 	@Prop({ default: true })
 	isActive: boolean;
+	@Prop({ default: 100 })
+	lastSyncDataDuration: number;
 }
 
 export const CompanySchema = SchemaFactory.createForClass(Company);

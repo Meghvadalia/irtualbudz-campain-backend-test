@@ -28,7 +28,9 @@ export class SeederService {
 	async seedPOS() {
 		try {
 			for (const pos of posData) {
-				const existingPOS = await this.posModel.findOne({ name: pos.name });
+				const existingPOS = await this.posModel.findOne({
+					name: pos.name,
+				});
 
 				if (!existingPOS) await this.posModel.create(pos);
 			}
@@ -42,17 +44,14 @@ export class SeederService {
 	async seedCompany() {
 		try {
 			for (const company of companyData) {
-				const existingCompany = await this.companyModel.findOne({ name: company.name });
+				const existingCompany = await this.companyModel.findOne({
+					name: company.name,
+				});
 
 				if (!existingCompany) {
-					let posName: string;
-					if (company.name === 'Monarc') {
-						posName = 'flowhub';
-					} else if (company.name === 'Virtual Budz') {
-						posName = 'dutchie';
-					}
-
-					const matchingPOS = await this.posModel.findOne({ name: posName });
+					const matchingPOS = await this.posModel.findOne({
+						name: company.posName,
+					});
 
 					if (matchingPOS) {
 						await this.companyModel.create({
@@ -73,11 +72,14 @@ export class SeederService {
 
 	async seedUser() {
 		try {
-			const userExists = await this.userModel.findOne({ email: superAdmin.email });
+			const userExists = await this.userModel.findOne({
+				email: superAdmin.email,
+			});
 
 			if (!userExists) {
 				await this.userModel.create({ ...superAdmin });
 			}
+			
 		} catch (error) {
 			console.error('Error seeding User collection:', error);
 		}
@@ -119,7 +121,10 @@ export class SeederService {
 				});
 				if (!store) {
 					await this.storeModel.create({
-						location: { locationId: data.locationId, locationName: data.locationName },
+						location: {
+							locationId: data.locationId,
+							locationName: data.locationName,
+						},
 						companyId: company._id,
 					});
 				}

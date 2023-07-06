@@ -1,6 +1,6 @@
 import { ObjectType } from '@nestjs/graphql';
 import { IUser } from '../interfaces/user.interface';
-import { Model } from 'mongoose';
+import { Model, ObjectId, Types } from 'mongoose';
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { USER_TYPE } from '../constants/user.constant';
 import { passwordService } from 'src/utils/password.util';
@@ -25,6 +25,9 @@ export class User extends Model<IUser> {
 
 	@Prop({ required: true })
 	type: USER_TYPE;
+
+	@Prop({ trim: true, default: '', type: Types.ObjectId })
+	companyId: string;
 }
 
 export const UserSchema = SchemaFactory.createForClass(User);
@@ -43,6 +46,7 @@ UserSchema.pre('save', async function (next) {
 });
 
 UserSchema.methods.toJSON = function () {
-	const { password, type, __v, createdAt, updatedAt, ...userObject } = this.toObject();
+	const { password, type, __v, createdAt, updatedAt, ...userObject } =
+		this.toObject();
 	return userObject;
 };
