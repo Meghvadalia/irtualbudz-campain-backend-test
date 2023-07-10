@@ -5,4 +5,5 @@ export interface ICompany extends BaseInterface {
 	posId: string;
 	totalStore: number;
 	dataObject: IFlowhubHeaderInterface;
+	lastSyncDataDuration: number;
 }

@@ -12,7 +12,7 @@ import { IPOS } from 'src/model/pos/interface/pos.interface';
 import { Company } from 'src/model/company/entities/company.entity';
 import { POS } from 'src/model/pos/entities/pos.entity';
 import { Store } from 'src/model/store/entities/store.entity';
-import { IOrder, LocationData } from '../interfaces/order.interface';
+import { CustomerType, IOrder } from '../interfaces/order.interface';
 import { CustomerService } from '../../customers/service/customer.service';
 import { IStore } from 'src/model/store/interface/store.inteface';
 import { ItemsCart } from '../interfaces/cart.interface';
@@ -29,82 +29,99 @@ export class OrderService {
 		private readonly customerService: CustomerService
 	) {}
 
-	async scheduleCronJob() {
+	async scheduleCronJob(posName: string) {
 		try {
+			const posData: IPOS = await this.posModel.findOne({ name: posName });
+			const flowhubCompaniesList: ICompany[] = await this.companyModel.find<ICompany>({
+				isActive: true,
+				posId: posData._id,
+			});
+
+			let fromDate: string;
+
 			const currentDate = new Date();
-			const fromDate = new Date(currentDate.getFullYear(), currentDate.getMonth(), currentDate.getDate() - 1, 0, 0, 0);
-			const toDate = new Date(currentDate.getFullYear(), currentDate.getMonth(), currentDate.getDate(), 0, 0, 0);
+			fromDate = new Date(currentDate.getFullYear(), currentDate.getMonth(), currentDate.getDate() - 1, 0, 0, 0)
+				.toISOString()
+				.split('T')[0];
+			const toDate = new Date(currentDate.getFullYear(), currentDate.getMonth(), currentDate.getDate(), 0, 0, 0)
+				.toISOString()
+				.split('T')[0];
 
-			const monarcCompanyData: ICompany = await this.companyModel.findOne<ICompany>({ name: 'Monarc' });
-			const locationIds: LocationData[] = (await this.storeModel.find({ companyId: monarcCompanyData._id })).map(
-				({ location, _id }) => ({
-					location,
-					_id,
-				})
-			) as LocationData[];
+			const combinedArray = [];
+			for (let i = 0; i < flowhubCompaniesList.length; i++) {
+				const companyData = flowhubCompaniesList[i];
+				const storeList = await this.storeModel.find({ companyId: companyData._id });
 
-			let counter = 0;
-			const intervalDuration = 2000;
-			const maxTime = locationIds.length;
-
-			const intervalFunction = async () => {
-				if (counter >= maxTime) {
-					clearInterval(interval);
-					console.log('Loop finished!');
-					return;
+				for (let j = 0; j < storeList.length; j++) {
+					const storeData = storeList[j];
+					combinedArray.push({
+						companyId: companyData._id,
+						key: companyData.dataObject.key,
+						clientId: companyData.dataObject.clientId,
+						location: storeData.location,
+						_id: storeData._id,
+						lastSyncDataDuration: companyData.lastSyncDataDuration,
+					});
 				}
+			}
 
-				console.log('Location ID:', locationIds[counter]._id);
+			const intervalDuration = 2000;
+
+			const processStoreData = async (storeData) => {
+				const { key, clientId, location, _id, companyId } = storeData;
+
 				const ordersCount = await this.orderModel.countDocuments({
-					locationId: locationIds[counter]._id,
+					locationId: _id,
 				});
 				if (ordersCount === 0) {
-					console.log('Seeding data for the last 100 days...');
-					const hundredDaysAgo = new Date(
+					fromDate = new Date(
 						currentDate.getFullYear(),
 						currentDate.getMonth(),
-						currentDate.getDate() - 100,
+						currentDate.getDate() - storeData.lastSyncDataDuration,
 						0,
 						0,
 						0
-					);
-					this.seedOrders(hundredDaysAgo, toDate, locationIds[counter].location.importId);
+					)
+						.toISOString()
+						.split('T')[0];
+					await this.seedOrders(fromDate, toDate, key, clientId, location.importId, posName, companyId);
 				} else {
-					console.log('Seeding data from the previous day...');
-					this.seedOrders(fromDate, toDate, locationIds[counter].location.importId);
+					await this.seedOrders(fromDate, toDate, key, clientId, location.importId, posName, companyId);
 				}
-
-				counter++;
 			};
 
-			const interval = setInterval(intervalFunction, intervalDuration);
+			const processStoresSequentially = async () => {
+				for (let i = 0; i < combinedArray.length; i++) {
+					await processStoreData(combinedArray[i]);
+					await new Promise((resolve) => setTimeout(resolve, intervalDuration));
+				}
+
+				console.log('All stores processed');
+			};
+
+			await processStoresSequentially();
 		} catch (error) {
 			console.error('Error while scheduling cron job:', error);
 		}
 	}
 
-	async seedOrders(startDate: Date, endDate: Date, importId: string) {
+	async seedOrders(
+		startDate: string,
+		endDate: string,
+		key: string,
+		clientId: string,
+		importId: string,
+		posName: string,
+		companyId: string
+	) {
 		try {
-			const {
-				posId,
-				dataObject,
-				_id: companyId,
-			}: ICompany = await this.companyModel.findOne<ICompany>({
-				name: 'Monarc',
-			});
-
 			const posData: IPOS = await this.posModel.findOne<IPOS>({
-				_id: posId,
+				name: posName,
 			});
 
 			const storeData = await this.storeModel.findOne({
 				'location.importId': importId,
 			});
-			const storeId = storeData._id;
-
-			console.log('startDate', startDate);
-			console.log('endDate', endDate);
-			console.log('importId', importId);
 
 			const options = {
 				method: 'get',
@@ -115,15 +132,15 @@ export class OrderService {
 					page_size: 10000,
 				},
 				headers: {
-					key: dataObject.key,
-					ClientId: dataObject.clientId,
+					key,
+					ClientId: clientId,
 					Accept: 'application/json',
 				},
 			};
 
-			await this.processOrders(options, posId, companyId, storeId as string);
+			await this.processOrders(options, posData._id, companyId, storeData._id as string);
 		} catch (error) {
-			console.error('Error while seeding orders:', error);
+			console.error('Error while seeding orders: ', error);
 			throw error;
 		}
 	}
@@ -191,7 +208,7 @@ export class OrderService {
 			const existingOrder = await this.orderModel.findOne({ posOrderId: element._id });
 
 			if (existingOrder === null) {
-				element.posOrderId = element._id;
+				element.posOrderId = element._id ? element._id : element.id;
 				element.posCreatedAt = new Date(element.createdAt.toString());
 				element.companyId = companyId;
 				element.posId = posId;
@@ -282,7 +299,7 @@ export class OrderService {
 
 			const processedOrders = await Promise.all(orderPromises);
 
-			customerIds.forEach((customerId) => this.customerService.seedCustomers(customerId, storeId));
+			customerIds.forEach((customerId) => this.customerService.seedCustomers(customerId, storeId, companyId));
 
 			console.log('Order Done', processedOrders.length);
 		} catch (error) {
@@ -291,60 +308,149 @@ export class OrderService {
 		}
 	}
 
-	async seedDutchieStaff() {
+	// async seedDutchieOrders(posName: string) {
+	// 	const posData: IPOS = await this.posModel.findOne<IPOS>({
+	// 		name: posName,
+	// 	});
+
+	// 	const companyData = await this.companyModel.find<ICompany>({
+	// 		posId: posData._id,
+	// 		isActive: true,
+	// 	});
+
+	// 	let currentDate: Date = new Date(),
+	// 		fromDate: Date,
+	// 		toDate = new Date(currentDate.getFullYear(), currentDate.getMonth(), currentDate.getDate(), 0, 0, 0);
+
+	// 	for (const company of companyData) {
+	// 		const tokenOptions = {
+	// 			method: 'get',
+	// 			url: `${posData.liveUrl}/util/AuthorizationHeader/${company.dataObject.key}`,
+	// 			headers: {
+	// 				Accept: 'application/json',
+	// 			},
+	// 		};
+
+	// 		const { data: token } = await axios.request(tokenOptions);
+	// 		const orderData: IOrder = await this.orderModel.findOne({
+	// 			companyId: company._id,
+	// 		});
+
+	// 		let orderOptions: AxiosRequestConfig;
+
+	// 		if (!orderData) {
+	// 			fromDate = new Date(
+	// 				currentDate.getFullYear(),
+	// 				currentDate.getMonth(),
+	// 				currentDate.getDate() - company.lastSyncDataDuration,
+	// 				0,
+	// 				0,
+	// 				0
+	// 			);
+
+	// 			orderOptions = {
+	// 				url: `${posData.liveUrl}/reporting/transactions?FromLastModifiedDateUTC=${fromDate}&ToLastModifiedDateUTC=${toDate}&IncludeDetail=true&IncludeTaxes=true&IncludeOrderIds=true`,
+	// 				headers: {
+	// 					Accept: 'application/json',
+	// 					Authorization: token,
+	// 				},
+	// 			};
+	// 		} else {
+	// 			fromDate = new Date(currentDate.getFullYear(), currentDate.getMonth(), currentDate.getDate() - 1, 0, 0, 0);
+	// 			orderOptions = {
+	// 				url: `${posData.liveUrl}/reporting/transactions?FromLastModifiedDateUTC=${fromDate}&ToLastModifiedDateUTC=${toDate}&IncludeDetail=true&IncludeTaxes=true&IncludeOrderIds=true&IncludeFeesAndDonations=true`,
+	// 				headers: {
+	// 					Accept: 'application/json',
+	// 					Authorization: token,
+	// 				},
+	// 			};
+	// 		}
+
+	// 		const { data } = await axios.request(orderOptions);
+
+	// 		let ordersArray: IOrder[] = [];
+
+	// 		for (const d of data) {
+	// 			ordersArray.push({
+	// 				companyId: company._id,
+	// 				posId: posData._id,
+	// 				posOrderId: d.transactionId,
+	// 				customerId: d.customerId,
+	// 				fullName: d.completedByUser,
+	// 				customerType: d.customerTypeId === 2 ? CustomerType.recCustomer : CustomerType.medCustomer,
+	// 				orderType: d.orderType,
+	// 				voided: d.isVoid,
+	// 				locationId: company._id,
+	// 				orderStatus: 'sold',
+	// 				totals: {
+	// 					finalTotal: d.total,
+	// 					subTotal: d.subtotal,
+	// 					totalDiscounts: d.totalDiscount,
+	// 					totalTaxes: d.tax,
+	// 					totalFees: 0,
+	// 				},
+	// 				posCreatedAt: d.transactionDate,
+	// 				payments: {},
+	// 				currentPoints: d.loyaltyEarned,
+	// 				name: '',
+
+	// 			});
+	// 		}
+	// 	}
+	// }
+
+	async seedDutchieStaff(posName: string) {
 		try {
-			const {
-				posId,
-				dataObject,
-				_id: companyId,
-			}: ICompany = await this.companyModel.findOne<ICompany>({
-				name: 'Virtual Budz',
-			});
-
 			const posData: IPOS = await this.posModel.findOne<IPOS>({
-				_id: posId,
+				name: posName,
 			});
 
-			const storeData: IStore = await this.storeModel.findOne({
-				companyId,
+			const companyData = await this.companyModel.find<ICompany>({
+				posId: posData._id,
+				isActive: true,
 			});
 
-			const tokenOptions = {
-				method: 'get',
-				url: `${posData.liveUrl}/util/AuthorizationHeader/${dataObject.key}`,
-				headers: {
-					Accept: 'application/json',
-				},
-			};
+			for (const company of companyData) {
+				const tokenOptions = {
+					method: 'get',
+					url: `${posData.liveUrl}/util/AuthorizationHeader/${company.dataObject.key}`,
+					headers: {
+						Accept: 'application/json',
+					},
+				};
 
-			const { data: token } = await axios.request(tokenOptions);
+				const { data: token } = await axios.request(tokenOptions);
 
-			const staffOptions: AxiosRequestConfig = {
-				url: `${posData.liveUrl}/employees`,
-				headers: {
-					Accept: 'application/json',
-					Authorization: token,
-				},
-			};
+				const staffOptions: AxiosRequestConfig = {
+					url: `${posData.liveUrl}/employees`,
+					headers: {
+						Accept: 'application/json',
+						Authorization: token,
+					},
+				};
 
-			const { data } = await axios.request(staffOptions);
+				const { data } = await axios.request(staffOptions);
 
-			let staffArray: IStaff[] = [];
-
-			for (const d of data) {
-				const staffExists = await this.staffModel.findOne({
-					staffName: d.fullName,
-					storeId: storeData._id,
+				const storeData: IStore = await this.storeModel.findOne({
+					companyId: company._id,
 				});
-				if (staffExists) return;
-				staffArray.push({
-					staffName: d.fullName,
-					storeId: storeData._id,
-				});
+				let staffArray: IStaff[] = [];
+
+				for (const d of data) {
+					const staffExists = await this.staffModel.findOne({
+						staffName: d.fullName,
+						storeId: storeData._id,
+					});
+					if (staffExists) return;
+					staffArray.push({
+						staffName: d.fullName,
+						storeId: storeData._id,
+					});
+				}
+
+				const insertEmployee = await this.staffModel.insertMany(staffArray);
+				console.log(`Seeded ${insertEmployee.length} employees.`);
 			}
-
-			const insertEmployee = await this.staffModel.insertMany(staffArray);
-			console.log(`Seeded ${insertEmployee.length} employees.`);
 		} catch (error) {
 			console.error('Failed to seed staff data:', error.message);
 			throw error;

@@ -8,7 +8,7 @@ import { Types } from 'mongoose';
 export class ClientDashboardService {
 	constructor(private readonly customerService: ClientCustomerService, private readonly orderService: ClientOrderService) {}
 
-	async getCalculatedData(locationId: Types.ObjectId, query: { fromDate: string; toDate: string }) {
+	async getCalculatedData(req, locationId: Types.ObjectId, query: { fromDate: string; toDate: string }) {
 		const averageAge = await this.calculateAverageAge(locationId, query.fromDate, query.toDate);
 
 		const { averageSpend, loyaltyPointsConverted } = await this.calculateAverageSpendAndLoyaltyPoints(

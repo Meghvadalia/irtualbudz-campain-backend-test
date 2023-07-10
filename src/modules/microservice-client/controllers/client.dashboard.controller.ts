@@ -12,15 +12,16 @@ export class ClientDashboardController {
 
 	@Get('/:locationId')
 	@UseGuards(RolesGuard)
-	@Roles(USER_TYPE.SUPER_ADMIN)
+	@Roles(USER_TYPE.SUPER_ADMIN, USER_TYPE.ADMIN, USER_TYPE.COMPANY_ADMIN, USER_TYPE.STORE_ADMIN)
 	async getCalculatedData(
+		@Req() req,
 		@Param('locationId') locationId: string,
 		@Query() query: { fromDate: string; toDate: string },
 		@Res() res: Response
 	) {
 		try {
 			const objectId = new mongoose.Types.ObjectId(locationId);
-			const { customer, overview, sales, operations } = await this.dashboardService.getCalculatedData(objectId, query);
+			const { customer, overview, sales, operations } = await this.dashboardService.getCalculatedData(req, objectId, query);
 
 			return res.json({ overview, customer, sales, operations });
 		} catch (error) {

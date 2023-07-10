@@ -18,22 +18,22 @@ export class CustomerService {
 		@InjectModel(POS.name) private posModel: Model<POS>
 	) {}
 
-	async seedCustomers(customerId: string, storeId: string) {
+	async seedCustomers(customerId: string, storeId: string, companyId) {
 		try {
-			const monarcCompanyData: ICompany = await this.companyModel.findOne<ICompany>({
-				name: 'Monarc',
+			const companyData: ICompany = await this.companyModel.findOne<ICompany>({
+				_id: companyId,
 			});
 
 			const posData: IPOS = await this.posModel.findOne<IPOS>({
-				_id: monarcCompanyData.posId,
+				_id: companyData.posId,
 			});
 
 			const options = {
 				method: 'get',
 				url: `${posData.liveUrl}/v1/customers/${customerId}`,
 				headers: {
-					key: monarcCompanyData.dataObject.key,
-					ClientId: monarcCompanyData.dataObject.clientId,
+					key: companyData.dataObject.key,
+					ClientId: companyData.dataObject.clientId,
 					Accept: 'application/json',
 				},
 			};
@@ -43,8 +43,8 @@ export class CustomerService {
 			const customer: ICustomer = {
 				posCustomerId: data.customer.id,
 				storeId,
-				companyId: monarcCompanyData._id,
-				POSId: monarcCompanyData.posId,
+				companyId: companyData._id,
+				POSId: companyData.posId,
 				name: data.customer.name,
 				email: data.customer.email,
 				phone: data.customer.phone,
@@ -67,81 +67,80 @@ export class CustomerService {
 		}
 	}
 
-	async seedDutchieCustomers() {
+	async seedDutchieCustomers(posName: string) {
 		try {
-			const {
-				posId,
-				dataObject,
-				_id: companyId,
-			}: ICompany = await this.companyModel.findOne<ICompany>({
-				name: 'Virtual Budz',
-			});
-
 			const posData: IPOS = await this.posModel.findOne<IPOS>({
-				_id: posId,
+				name: posName,
 			});
 
-			const customer = await this.customerModel.findOne({ companyId });
+			const companyData = await this.companyModel.find<ICompany>({
+				posId: posData._id,
+				isActive: true,
+			});
 
-			const tokenOptions = {
-				method: 'get',
-				url: `${posData.liveUrl}/util/AuthorizationHeader/${dataObject.key}`,
-				headers: {
-					Accept: 'application/json',
-				},
-			};
+			for (const company of companyData) {
+				const tokenOptions = {
+					method: 'get',
+					url: `${posData.liveUrl}/util/AuthorizationHeader/${company.dataObject.key}`,
+					headers: {
+						Accept: 'application/json',
+					},
+				};
 
-			const { data: token } = await axios.request(tokenOptions);
+				const { data: token } = await axios.request(tokenOptions);
 
-			const date = new Date();
-			let fromDate: Date, toDate: Date;
+				const date = new Date();
+				const customer = await this.customerModel.findOne({ companyId: company._id });
 
-			if (customer) {
-				fromDate = new Date(date.getFullYear(), date.getMonth(), date.getDate() - 1, 0, 0, 0);
-				toDate = new Date(date.getFullYear(), date.getMonth(), date.getDate(), 0, 0, 0);
-				console.log('seeding data for previous day');
-			} else {
-				fromDate = new Date(date.getFullYear(), date.getMonth(), date.getDate() - 100, 0, 0, 0);
-				toDate = new Date(date.getFullYear(), date.getMonth(), date.getDate(), 0, 0, 0);
-				console.log('seeding data for last 100 day');
+				let fromDate: Date, toDate: Date;
+
+				if (customer) {
+					fromDate = new Date(date.getFullYear(), date.getMonth(), date.getDate() - 1, 0, 0, 0);
+					toDate = new Date(date.getFullYear(), date.getMonth(), date.getDate(), 0, 0, 0);
+					console.log('seeding data for previous day');
+				} else {
+					fromDate = new Date(date.getFullYear(), date.getMonth(), date.getDate() - 100, 0, 0, 0);
+					toDate = new Date(date.getFullYear(), date.getMonth(), date.getDate(), 0, 0, 0);
+					console.log('seeding data for last 100 day');
+				}
+				const customerOptions: AxiosRequestConfig = {
+					url: `${
+						posData.liveUrl
+					}/customer/customers?fromLastModifiedDateUTC=${fromDate.toISOString()}&toLastModifiedDateUTC=${toDate.toISOString()}&includeAnonymous=true`,
+					headers: {
+						Accept: 'application/json',
+						Authorization: token,
+					},
+				};
+
+				const { data } = await axios.request(customerOptions);
+
+				const customersArray: ICustomer[] = [];
+
+				for (let d of data)
+					customersArray.push({
+						birthDate: d.dateOfBirth,
+						city: d.city,
+						email: d.emailAddress,
+						posCustomerId: d.customerId,
+						name: d.name,
+						phone: d.phone,
+						isLoyal: d.isLoyaltyMember,
+						state: d.state,
+						streetAddress1: d.address1,
+						streetAddress2: d.address2,
+						zip: d.postalCode,
+						type: d.customerType === 'Recreational' ? CustomerType.recCustomer : CustomerType.medCustomer,
+						POSId: posData._id,
+						companyId: company._id,
+						loyaltyPoints: 0,
+						country: '',
+						userCreatedAt: d.creationDate,
+					});
+
+				await this.customerModel.insertMany(customersArray);
+				console.log(`Seeded ${data.length} customers.`);
 			}
-			const customerOptions: AxiosRequestConfig = {
-				url: `${
-					posData.liveUrl
-				}/customer/customers?fromLastModifiedDateUTC=${fromDate.toISOString()}&toLastModifiedDateUTC=${toDate.toISOString()}&includeAnonymous=true`,
-				headers: {
-					Accept: 'application/json',
-					Authorization: token,
-				},
-			};
-
-			const { data } = await axios.request(customerOptions);
-
-			const customersArray: ICustomer[] = [];
-
-			for (let d of data)
-				customersArray.push({
-					birthDate: d.dateOfBirth,
-					city: d.city,
-					email: d.emailAddress,
-					posCustomerId: d.customerId,
-					name: d.name,
-					phone: d.phone,
-					isLoyal: d.isLoyaltyMember,
-					state: d.state,
-					streetAddress1: d.address1,
-					streetAddress2: d.address2,
-					zip: d.postalCode,
-					type: d.customerType === 'Recreational' ? CustomerType.recCustomer : CustomerType.medCustomer,
-					POSId: posId,
-					companyId,
-					loyaltyPoints: 0,
-					country: '',
-					userCreatedAt: d.creationDate,
-				});
-
-			await this.customerModel.insertMany(customersArray);
-			console.log(`Seeded ${data.length} customers.`);
 		} catch (error) {
 			console.error('Failed to seed customers:', error.message);
 		}

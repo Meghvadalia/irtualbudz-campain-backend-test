@@ -31,6 +31,7 @@ export class UsersService {
 		} else {
 			const store = await this.clientStoreService.storeById(payload.storeId);
 			payload.storeId = store._id;
+			payload.companyId = store.companyId;
 		}
 
 		const newUser = await this.userModel.create({ ...payload });

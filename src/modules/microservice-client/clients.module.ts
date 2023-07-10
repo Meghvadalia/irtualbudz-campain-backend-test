@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { ClientOrderController } from './controllers/client.order.controller';
 import { ClientOrderService } from './services/client.order.service';
 import { SeederService } from 'src/common/seeders/seeders';
@@ -29,6 +29,7 @@ import { Staff, StaffSchema } from 'src/microservices/order/entities/staff.entit
 import { FlowhubController } from './controllers/flowhub.controller';
 import { ClientCompanyController } from './controllers/client.company.controller';
 import { ClientCompanyService } from './services/client.company.service';
+import { UsersService } from 'src/microservices/user/service/users.service';
 
 @Module({
 	imports: [

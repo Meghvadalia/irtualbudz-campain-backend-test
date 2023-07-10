@@ -3,7 +3,7 @@ export interface IOrder {
 	clientId: string;
 	customerId: string;
 	currentPoints: number;
-	Name: string;
+	name: string;
 	orderStatus: string;
 	orderType: string;
 	totals: Totals;

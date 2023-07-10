@@ -27,11 +27,17 @@ export class User extends Model<IUser> {
 	@Prop({ required: true })
 	type: USER_TYPE;
 
-	@Prop({ type: Types.ObjectId, ref: DATABASE_COLLECTION.COMPANIES })
-	companyId: Types.ObjectId;
+	@Prop({ trim: true, default: '', type: Types.ObjectId, ref: DATABASE_COLLECTION.COMPANIES })
+	companyId: string;
 
-	@Prop({ type: Types.ObjectId, ref: DATABASE_COLLECTION.STORES })
-	storeId: Types.ObjectId;
+	@Prop({ trim: true, default: '', type: Types.ObjectId, ref: DATABASE_COLLECTION.STORES })
+	storeId: string;
+
+	@Prop({ default: true, type: Boolean })
+	isActive: boolean;
+
+	@Prop({ default: false, type: Boolean })
+	isDeleted: boolean;
 }
 
 export const UserSchema = SchemaFactory.createForClass(User);

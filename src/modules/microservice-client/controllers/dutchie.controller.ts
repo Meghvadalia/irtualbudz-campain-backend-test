@@ -17,9 +17,10 @@ export class DutchieController {
 	@Get('seed')
 	@Cron('0 0 0 * * *')
 	async seedData() {
-		await this.storeService.seedDutchieStores();
-		await this.customerService.seedDutchieCustomers();
-		await this.orderService.seedDutchieStaff();
-		await this.inventoryService.seedDutchieInventory();
+		await this.storeService.seedDutchieStores('dutchie');
+		// await this.orderService.seedDutchieOrders('dutchie');
+		// await this.customerService.seedDutchieCustomers('dutchie');
+		// await this.orderService.seedDutchieStaff('dutchie');
+		// await this.inventoryService.seedDutchieInventory('dutchie');
 	}
 }

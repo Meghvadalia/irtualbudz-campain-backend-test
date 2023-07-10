@@ -6,11 +6,12 @@ import { POS } from 'src/model/pos/entities/pos.entity';
 import { posData } from './pos';
 import { companyData } from './company';
 import { User } from 'src/microservices/user/entities/user.entity';
-import { superAdmin } from './user';
+import { superAdmin, userArrayForCompany } from './user';
 import { ICompany } from 'src/model/company/interface/company.interface';
 import { IPOS } from 'src/model/pos/interface/pos.interface';
 import axios, { AxiosRequestConfig } from 'axios';
 import { Store } from 'src/model/store/entities/store.entity';
+import { ClientStoreService } from 'src/modules/microservice-client/services/client.store.service';
 
 @Injectable()
 export class SeederService {
@@ -18,7 +19,8 @@ export class SeederService {
 		@InjectModel(POS.name) private posModel: Model<POS>,
 		@InjectModel(Company.name) private companyModel: Model<Company>,
 		@InjectModel(User.name) private userModel: Model<User>,
-		@InjectModel(Store.name) private storeModel: Model<Store>
+		@InjectModel(Store.name) private storeModel: Model<Store>,
+		private readonly storeService: ClientStoreService
 	) {
 		setTimeout(() => {
 			this.seedCollections();
@@ -28,7 +30,9 @@ export class SeederService {
 	async seedPOS() {
 		try {
 			for (const pos of posData) {
-				const existingPOS = await this.posModel.findOne({ name: pos.name });
+				const existingPOS = await this.posModel.findOne({
+					name: pos.name,
+				});
 
 				if (!existingPOS) await this.posModel.create(pos);
 			}
@@ -42,26 +46,24 @@ export class SeederService {
 	async seedCompany() {
 		try {
 			for (const company of companyData) {
-				const existingCompany = await this.companyModel.findOne({ name: company.name });
+				const existingCompany = await this.companyModel.findOne({
+					name: company.name,
+				});
 
 				if (!existingCompany) {
-					let posName: string;
-					if (company.name === 'Monarc') {
-						posName = 'flowhub';
-					} else if (company.name === 'Virtual Budz') {
-						posName = 'dutchie';
-					}
+					const matchingPOS = await this.posModel.findOne({
+						name: company.posName,
+					});
 
-					const matchingPOS = await this.posModel.findOne({ name: posName });
+					if (matchingPOS?.name === 'dutchie') company.isActive = false;
 
-					if (matchingPOS) {
-						await this.companyModel.create({
-							name: company.name,
-							posId: matchingPOS._id,
-							totalStore: company.totalStore,
-							dataObject: company.dataObject,
-						});
-					}
+					await this.companyModel.create({
+						name: company.name,
+						posId: matchingPOS?._id,
+						totalStore: company.totalStore,
+						dataObject: company.dataObject,
+						isActive: company.isActive,
+					});
 				}
 			}
 
@@ -73,24 +75,46 @@ export class SeederService {
 
 	async seedUser() {
 		try {
-			const userExists = await this.userModel.findOne({ email: superAdmin.email });
+			const userExists = await this.userModel.findOne({
+				email: superAdmin.email,
+			});
 
 			if (!userExists) {
 				await this.userModel.create({ ...superAdmin });
+			}
+			for (let index = 0; index < userArrayForCompany.length; index++) {
+				const element = userArrayForCompany[index];
+				const checkUserExist = await this.userModel.findOne({
+					email: element.email,
+				});
+				const matchingCompany = await this.companyModel.findOne({
+					name: element.companyName,
+				});
+				if (!checkUserExist) {
+					await this.userModel.create({
+						name: element.name,
+						email: element.email,
+						password: element.password,
+						type: element.type,
+						companyId: matchingCompany._id,
+						phone: element.phone,
+					});
+				}
 			}
 		} catch (error) {
 			console.error('Error seeding User collection:', error);
 		}
 	}
 
-	async seedDutchieStores() {
+	async seedDutchieStores(posName: string) {
 		try {
 			const posData: IPOS = await this.posModel.findOne<IPOS>({
-				name: 'dutchie',
+				name: posName,
 			});
 
 			const companyData = await this.companyModel.find<ICompany>({
 				posId: posData._id,
+				isActive: true,
 			});
 
 			for (const company of companyData) {
@@ -119,7 +143,10 @@ export class SeederService {
 				});
 				if (!store) {
 					await this.storeModel.create({
-						location: { locationId: data.locationId, locationName: data.locationName },
+						location: {
+							locationId: data.locationId,
+							locationName: data.locationName,
+						},
 						companyId: company._id,
 					});
 				}
@@ -134,6 +161,7 @@ export class SeederService {
 		try {
 			await this.seedPOS();
 			await this.seedCompany();
+			await this.storeService.seedStoreData();
 			await this.seedUser();
 			console.log('Seeding completed successfully');
 		} catch (error) {
