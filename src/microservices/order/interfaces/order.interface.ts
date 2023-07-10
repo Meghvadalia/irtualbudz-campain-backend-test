@@ -1,6 +1,5 @@
 export interface IOrder {
 	posOrderId: string;
-	clientId: string;
 	customerId: string;
 	currentPoints: number;
 	name: string;
@@ -9,7 +8,7 @@ export interface IOrder {
 	totals: Totals;
 	itemsInCart: Array<string>;
 	customerType: CustomerType;
-	locationId: string;
+	storeId: string;
 	voided: boolean;
 	fullName: string;
 	staffId: string;

@@ -9,7 +9,7 @@ import { Staff, StaffSchema } from './entities/staff.entity';
 import { Company, CompanySchema } from 'src/model/company/entities/company.entity';
 import { POS, POSSchema } from 'src/model/pos/entities/pos.entity';
 import { Store, StoreSchema } from 'src/model/store/entities/store.entity';
-import { CustomerModule } from '../customers';
+import { Customer, CustomerModule, CustomerSchema } from '../customers';
 import { CustomerService } from '../customers/service/customer.service';
 
 @Module({
@@ -21,6 +21,7 @@ import { CustomerService } from '../customers/service/customer.service';
 		MongooseModule.forFeature([{ name: Company.name, schema: CompanySchema }]),
 		MongooseModule.forFeature([{ name: POS.name, schema: POSSchema }]),
 		MongooseModule.forFeature([{ name: Store.name, schema: StoreSchema }]),
+		MongooseModule.forFeature([{ name: Customer.name, schema: CustomerSchema }]),
 		CustomerModule,
 	],
 	controllers: [OrderController],

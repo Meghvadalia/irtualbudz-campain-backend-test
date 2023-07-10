@@ -16,6 +16,7 @@ import { CustomerType, IOrder } from '../interfaces/order.interface';
 import { CustomerService } from '../../customers/service/customer.service';
 import { IStore } from 'src/model/store/interface/store.inteface';
 import { ItemsCart } from '../interfaces/cart.interface';
+import { Customer } from 'src/microservices/customers';
 
 @Injectable()
 export class OrderService {
@@ -26,6 +27,7 @@ export class OrderService {
 		@InjectModel(Company.name) private companyModel: Model<Company>,
 		@InjectModel(POS.name) private posModel: Model<POS>,
 		@InjectModel(Store.name) private storeModel: Model<Store>,
+		@InjectModel(Customer.name) private customerModel: Model<Customer>,
 		private readonly customerService: CustomerService
 	) {}
 
@@ -71,7 +73,7 @@ export class OrderService {
 				const { key, clientId, location, _id, companyId } = storeData;
 
 				const ordersCount = await this.orderModel.countDocuments({
-					locationId: _id,
+					storeId: _id,
 				});
 				if (ordersCount === 0) {
 					fromDate = new Date(
@@ -145,9 +147,9 @@ export class OrderService {
 		}
 	}
 
-	async addItemsToCart(carts: ItemsCart[], locationId: string, id: string) {
+	async addItemsToCart(carts: ItemsCart[], storeId: string, id: string) {
 		try {
-			const tempArr = carts.map((cart) => this.addSingleData(cart, locationId));
+			const tempArr = carts.map((cart) => this.addSingleData(cart, storeId));
 			const data = await Promise.all(tempArr);
 			return { id, data };
 		} catch (error) {
@@ -177,11 +179,11 @@ export class OrderService {
 		}
 	}
 
-	async addSingleData(cart: ItemsCart, locationId: string) {
+	async addSingleData(cart: ItemsCart, storeId: string) {
 		try {
 			const existingCartItem = await this.cartModel.findOne({
 				posCartId: cart.id,
-				storeId: locationId,
+				storeId,
 				productName: cart.productName,
 			});
 
@@ -189,7 +191,7 @@ export class OrderService {
 				const newCartItem = {
 					...cart,
 					posCartId: cart.id,
-					storeId: locationId,
+					storeId,
 				};
 
 				const createdCartItem = await this.cartModel.create(newCartItem);
@@ -212,7 +214,7 @@ export class OrderService {
 				element.posCreatedAt = new Date(element.createdAt.toString());
 				element.companyId = companyId;
 				element.posId = posId;
-				element.locationId = storeId;
+				element.storeId = storeId;
 
 				delete element.createdAt;
 				delete element._id;
@@ -284,7 +286,7 @@ export class OrderService {
 			const itemPromises = orders.map((order) => this.addItemsToCart(order.itemsInCart, storeId, order._id));
 			const cart = await Promise.all(itemPromises);
 
-			const orderPromises = orders.map((order) => {
+			const orderPromises = orders.map(async (order) => {
 				const staffId = staffData.find((staff) => staff.staffName === order.budtender)._id;
 
 				const items = cart.find((item) => item.id === order._id).data;
@@ -294,13 +296,20 @@ export class OrderService {
 				order.staffId = staffId;
 
 				delete order.budtender;
-				return this.addOrder(order, posId, companyId, storeId);
+
+				Array.from(customerIds).map(async (customerId) => {
+					return await this.customerService.seedCustomers(customerId, storeId, companyId);
+				});
+
+				const customer = await this.customerModel.findOne({ posCustomerId: order.customerId });
+				if (customer) {
+					order.customerId = customer._id;
+					const newOrder = await this.addOrder(order, posId, companyId, storeId);
+					return newOrder;
+				}
 			});
 
 			const processedOrders = await Promise.all(orderPromises);
-
-			customerIds.forEach((customerId) => this.customerService.seedCustomers(customerId, storeId, companyId));
-
 			console.log('Order Done', processedOrders.length);
 		} catch (error) {
 			console.error('Error while processing order batch:', error);
@@ -380,7 +389,7 @@ export class OrderService {
 	// 				customerType: d.customerTypeId === 2 ? CustomerType.recCustomer : CustomerType.medCustomer,
 	// 				orderType: d.orderType,
 	// 				voided: d.isVoid,
-	// 				locationId: company._id,
+	// 				storeId: company._id,
 	// 				orderStatus: 'sold',
 	// 				totals: {
 	// 					finalTotal: d.total,

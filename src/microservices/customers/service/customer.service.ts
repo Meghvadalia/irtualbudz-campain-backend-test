@@ -40,28 +40,30 @@ export class CustomerService {
 
 			const { data } = await axios.request(options);
 
-			const customer: ICustomer = {
-				posCustomerId: data.customer.id,
-				storeId,
-				companyId: companyData._id,
-				POSId: companyData.posId,
-				name: data.customer.name,
-				email: data.customer.email,
-				phone: data.customer.phone,
-				city: data.customer.city,
-				state: data.customer.state,
-				country: data.customer.country,
-				birthDate: data.customer.birthDate,
-				isLoyal: data.customer.isLoyal,
-				loyaltyPoints: data.customer.loyaltyPoints,
-				streetAddress1: data.customer.streetAddress1,
-				streetAddress2: data.customer.streetAddress2,
-				type: data.customer.type,
-				zip: data.customer.zip,
-				userCreatedAt: data.customer.createdAt,
-			};
+			const customers: ICustomer[] = [
+				{
+					posCustomerId: data.customer.id,
+					storeId,
+					companyId: companyData._id,
+					POSId: companyData.posId,
+					name: data.customer.name,
+					email: data.customer.email,
+					phone: data.customer.phone,
+					city: data.customer.city,
+					state: data.customer.state,
+					country: data.customer.country,
+					birthDate: data.customer.birthDate,
+					isLoyal: data.customer.isLoyal,
+					loyaltyPoints: data.customer.loyaltyPoints,
+					streetAddress1: data.customer.streetAddress1,
+					streetAddress2: data.customer.streetAddress2,
+					type: data.customer.type,
+					zip: data.customer.zip,
+					userCreatedAt: data.customer.createdAt,
+				},
+			];
 
-			await this.customerModel.create(customer);
+			return Promise.all(await this.customerModel.insertMany(customers));
 		} catch (error) {
 			console.error('Error while seeding customers:', error.message);
 		}

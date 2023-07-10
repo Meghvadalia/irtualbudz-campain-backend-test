@@ -17,7 +17,7 @@ export class Order extends Model<IOrder> {
 	@Prop({ required: true })
 	clientId: string;
 
-	@Prop({ trim: true })
+	@Prop({ ref: DATABASE_COLLECTION.CUSTOMER })
 	customerId: string;
 
 	@Prop()
@@ -50,7 +50,7 @@ export class Order extends Model<IOrder> {
 	customerType: CustomerType;
 
 	@Prop({ required: true, type: Types.ObjectId, ref: DATABASE_COLLECTION.STORES, index: true })
-	locationId: string;
+	storeId: string;
 
 	@Prop()
 	voided: boolean;
