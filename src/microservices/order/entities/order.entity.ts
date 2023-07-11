@@ -17,7 +17,7 @@ export class Order extends Model<IOrder> {
 	@Prop({ required: true })
 	clientId: string;
 
-	@Prop({ ref: DATABASE_COLLECTION.CUSTOMER })
+	@Prop({ type: Types.ObjectId, ref: DATABASE_COLLECTION.CUSTOMER })
 	customerId: string;
 
 	@Prop()

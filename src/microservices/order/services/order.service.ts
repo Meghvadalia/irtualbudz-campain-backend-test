@@ -12,7 +12,7 @@ import { IPOS } from 'src/model/pos/interface/pos.interface';
 import { Company } from 'src/model/company/entities/company.entity';
 import { POS } from 'src/model/pos/entities/pos.entity';
 import { Store } from 'src/model/store/entities/store.entity';
-import { CustomerType, IOrder } from '../interfaces/order.interface';
+import { IOrder } from '../interfaces/order.interface';
 import { CustomerService } from '../../customers/service/customer.service';
 import { IStore } from 'src/model/store/interface/store.inteface';
 import { ItemsCart } from '../interfaces/cart.interface';
@@ -103,7 +103,7 @@ export class OrderService {
 
 			await processStoresSequentially();
 		} catch (error) {
-			console.error('Error while scheduling cron job:', error);
+			console.error('Error while scheduling cron job:', error.message);
 		}
 	}
 
@@ -142,7 +142,7 @@ export class OrderService {
 
 			await this.processOrders(options, posData._id, companyId, storeData._id as string);
 		} catch (error) {
-			console.error('Error while seeding orders: ', error);
+			console.error('Error while seeding orders: ', error.message);
 			throw error;
 		}
 	}
@@ -153,7 +153,7 @@ export class OrderService {
 			const data = await Promise.all(tempArr);
 			return { id, data };
 		} catch (error) {
-			console.error('Error while adding item to cart:', error);
+			console.error('Error while adding item to cart:', error.message);
 			throw error;
 		}
 	}
@@ -174,7 +174,7 @@ export class OrderService {
 
 			return existingStaff;
 		} catch (error) {
-			console.error('Error while adding staff:', error);
+			console.error('Error while adding staff:', error.message);
 			throw error;
 		}
 	}
@@ -200,7 +200,7 @@ export class OrderService {
 
 			return existingCartItem._id;
 		} catch (error) {
-			console.error('Error while adding single data to cart:', error);
+			console.error('Error while adding single data to cart:', error.message);
 			throw error;
 		}
 	}
@@ -251,7 +251,7 @@ export class OrderService {
 				}
 			}
 		} catch (error) {
-			console.error('Error while processing orders:', error);
+			console.error('Error while processing orders:', error.message);
 			throw error;
 		}
 	}
@@ -286,6 +286,11 @@ export class OrderService {
 			const itemPromises = orders.map((order) => this.addItemsToCart(order.itemsInCart, storeId, order._id));
 			const cart = await Promise.all(itemPromises);
 
+			const customerPromises = Array.from(customerIds).map(async (customerId) => {
+				return await this.customerService.seedCustomers(customerId, storeId, companyId);
+			});
+			await Promise.all(customerPromises);
+
 			const orderPromises = orders.map(async (order) => {
 				const staffId = staffData.find((staff) => staff.staffName === order.budtender)._id;
 
@@ -297,10 +302,6 @@ export class OrderService {
 
 				delete order.budtender;
 
-				Array.from(customerIds).map(async (customerId) => {
-					return await this.customerService.seedCustomers(customerId, storeId, companyId);
-				});
-
 				const customer = await this.customerModel.findOne({ posCustomerId: order.customerId });
 				if (customer) {
 					order.customerId = customer._id;
@@ -310,9 +311,9 @@ export class OrderService {
 			});
 
 			const processedOrders = await Promise.all(orderPromises);
-			console.log('Order Done', processedOrders.length);
+			return processedOrders;
 		} catch (error) {
-			console.error('Error while processing order batch:', error);
+			console.error('Error while processing order batch:', error.message);
 			throw error;
 		}
 	}

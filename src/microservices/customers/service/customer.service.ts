@@ -12,21 +12,32 @@ import { CustomerType, ICustomer } from '../interfaces/customer.interface';
 
 @Injectable()
 export class CustomerService {
+	private cachedCompanyId: string;
+	private cachedCompanyData: ICompany;
+	private cachedPOSData: IPOS;
+
 	constructor(
 		@InjectModel(Customer.name) private customerModel: Model<Customer>,
 		@InjectModel(Company.name) private companyModel: Model<Company>,
 		@InjectModel(POS.name) private posModel: Model<POS>
 	) {}
 
-	async seedCustomers(customerId: string, storeId: string, companyId) {
+	async seedCustomers(customerId: string, storeId: string, companyId: string) {
 		try {
-			const companyData: ICompany = await this.companyModel.findOne<ICompany>({
-				_id: companyId,
-			});
+			let companyData: ICompany;
+			let posData: IPOS;
 
-			const posData: IPOS = await this.posModel.findOne<IPOS>({
-				_id: companyData.posId,
-			});
+			if (companyId === this.cachedCompanyId) {
+				companyData = this.cachedCompanyData;
+				posData = this.cachedPOSData;
+			} else {
+				companyData = await this.companyModel.findById<ICompany>(companyId.toString());
+				posData = await this.posModel.findById<IPOS>(companyData.posId);
+
+				this.cachedCompanyId = companyId;
+				this.cachedCompanyData = companyData;
+				this.cachedPOSData = posData;
+			}
 
 			const options = {
 				method: 'get',
@@ -40,30 +51,35 @@ export class CustomerService {
 
 			const { data } = await axios.request(options);
 
-			const customers: ICustomer[] = [
-				{
-					posCustomerId: data.customer.id,
-					storeId,
-					companyId: companyData._id,
-					POSId: companyData.posId,
-					name: data.customer.name,
-					email: data.customer.email,
-					phone: data.customer.phone,
-					city: data.customer.city,
-					state: data.customer.state,
-					country: data.customer.country,
-					birthDate: data.customer.birthDate,
-					isLoyal: data.customer.isLoyal,
-					loyaltyPoints: data.customer.loyaltyPoints,
-					streetAddress1: data.customer.streetAddress1,
-					streetAddress2: data.customer.streetAddress2,
-					type: data.customer.type,
-					zip: data.customer.zip,
-					userCreatedAt: data.customer.createdAt,
-				},
-			];
+			let customerData;
 
-			return Promise.all(await this.customerModel.insertMany(customers));
+			if (companyData.name === 'Monarc') {
+				customerData = data.customer;
+			} else if (companyData.name === 'Zen Barn Farms') {
+				customerData = data.data;
+			}
+
+			const customer: ICustomer = {
+				posCustomerId: customerData.id ? customerData.id : customerId,
+				storeId,
+				companyId: companyData._id,
+				POSId: companyData.posId,
+				name: customerData.name,
+				email: customerData.email,
+				phone: customerData.phone,
+				city: customerData.city,
+				state: customerData.state,
+				country: customerData.country,
+				birthDate: customerData.birthDate,
+				isLoyal: customerData.isLoyal,
+				loyaltyPoints: customerData.loyaltyPoints,
+				streetAddress1: customerData.streetAddress1,
+				streetAddress2: customerData.streetAddress2,
+				type: customerData.type,
+				zip: customerData.zip,
+				userCreatedAt: customerData.createdAt,
+			};
+			return await this.customerModel.create(customer);
 		} catch (error) {
 			console.error('Error while seeding customers:', error.message);
 		}
