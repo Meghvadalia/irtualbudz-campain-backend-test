@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
+import { Model, Types } from 'mongoose';
 import axios, { AxiosRequestConfig } from 'axios';
 
 import { Order } from '../entities/order.entity';
@@ -33,26 +33,45 @@ export class OrderService {
 
 	async scheduleCronJob(posName: string) {
 		try {
-			const posData: IPOS = await this.posModel.findOne({ name: posName });
-			const flowhubCompaniesList: ICompany[] = await this.companyModel.find<ICompany>({
-				isActive: true,
-				posId: posData._id,
+			const posData: IPOS = await this.posModel.findOne({
+				name: posName,
 			});
+			const flowhubCompaniesList: ICompany[] =
+				await this.companyModel.find<ICompany>({
+					isActive: true,
+					posId: posData._id,
+				});
 
 			let fromDate: string;
 
 			const currentDate = new Date();
-			fromDate = new Date(currentDate.getFullYear(), currentDate.getMonth(), currentDate.getDate() - 1, 0, 0, 0)
+			fromDate = new Date(
+				currentDate.getFullYear(),
+				currentDate.getMonth(),
+				currentDate.getDate() - 1,
+				0,
+				0,
+				0
+			)
 				.toISOString()
 				.split('T')[0];
-			const toDate = new Date(currentDate.getFullYear(), currentDate.getMonth(), currentDate.getDate(), 0, 0, 0)
+			const toDate = new Date(
+				currentDate.getFullYear(),
+				currentDate.getMonth(),
+				currentDate.getDate(),
+				0,
+				0,
+				0
+			)
 				.toISOString()
 				.split('T')[0];
 
 			const combinedArray = [];
 			for (let i = 0; i < flowhubCompaniesList.length; i++) {
 				const companyData = flowhubCompaniesList[i];
-				const storeList = await this.storeModel.find({ companyId: companyData._id });
+				const storeList = await this.storeModel.find({
+					companyId: companyData._id,
+				});
 
 				for (let j = 0; j < storeList.length; j++) {
 					const storeData = storeList[j];
@@ -86,16 +105,34 @@ export class OrderService {
 					)
 						.toISOString()
 						.split('T')[0];
-					await this.seedOrders(fromDate, toDate, key, clientId, location.importId, posName, companyId);
+					await this.seedOrders(
+						fromDate,
+						toDate,
+						key,
+						clientId,
+						location.importId,
+						posName,
+						companyId
+					);
 				} else {
-					await this.seedOrders(fromDate, toDate, key, clientId, location.importId, posName, companyId);
+					await this.seedOrders(
+						fromDate,
+						toDate,
+						key,
+						clientId,
+						location.importId,
+						posName,
+						companyId
+					);
 				}
 			};
 
 			const processStoresSequentially = async () => {
 				for (let i = 0; i < combinedArray.length; i++) {
 					await processStoreData(combinedArray[i]);
-					await new Promise((resolve) => setTimeout(resolve, intervalDuration));
+					await new Promise((resolve) =>
+						setTimeout(resolve, intervalDuration)
+					);
 				}
 
 				console.log('All stores processed');
@@ -140,7 +177,12 @@ export class OrderService {
 				},
 			};
 
-			await this.processOrders(options, posData._id, companyId, storeData._id as string);
+			await this.processOrders(
+				options,
+				posData._id,
+				companyId,
+				storeData._id as unknown as string
+			);
 		} catch (error) {
 			console.error('Error while seeding orders: ', error.message);
 			throw error;
@@ -149,7 +191,9 @@ export class OrderService {
 
 	async addItemsToCart(carts: ItemsCart[], storeId: string, id: string) {
 		try {
-			const tempArr = carts.map((cart) => this.addSingleData(cart, storeId));
+			const tempArr = carts.map((cart) =>
+				this.addSingleData(cart, storeId)
+			);
 			const data = await Promise.all(tempArr);
 			return { id, data };
 		} catch (error) {
@@ -194,20 +238,32 @@ export class OrderService {
 					storeId,
 				};
 
-				const createdCartItem = await this.cartModel.create(newCartItem);
+				const createdCartItem = await this.cartModel.create(
+					newCartItem
+				);
 				return createdCartItem._id;
 			}
 
 			return existingCartItem._id;
 		} catch (error) {
-			console.error('Error while adding single data to cart:', error.message);
+			console.error(
+				'Error while adding single data to cart:',
+				error.message
+			);
 			throw error;
 		}
 	}
 
-	async addOrder(element: any, posId: string, companyId: string, storeId: string) {
+	async addOrder(
+		element: any,
+		posId: string,
+		companyId: string,
+		storeId: string
+	) {
 		try {
-			const existingOrder = await this.orderModel.findOne({ posOrderId: element._id });
+			const existingOrder = await this.orderModel.findOne({
+				posOrderId: element._id,
+			});
 
 			if (existingOrder === null) {
 				element.posOrderId = element._id ? element._id : element.id;
@@ -228,7 +284,12 @@ export class OrderService {
 		}
 	}
 
-	async processOrders(options, posId: string, companyId: string, storeId: string) {
+	async processOrders(
+		options,
+		posId: string,
+		companyId: string,
+		storeId: string
+	) {
 		try {
 			console.log('====================================');
 			console.log('Processing Order Batch');
@@ -243,7 +304,13 @@ export class OrderService {
 				const orderData = data.orders;
 
 				if (orderData.length > 0) {
-					this.processOrderBatch(orderData, page, posId, companyId, storeId);
+					this.processOrderBatch(
+						orderData,
+						page,
+						posId,
+						companyId,
+						storeId
+					);
 					page++;
 				} else {
 					console.log('All orders fetched');
@@ -256,7 +323,13 @@ export class OrderService {
 		}
 	}
 
-	async processOrderBatch(orders: IOrder, page: number, posId: string, companyId: string, storeId: string) {
+	async processOrderBatch(
+		orders: IOrder,
+		page: number,
+		posId: string,
+		companyId: string,
+		storeId: string
+	) {
 		try {
 			console.log('====================================');
 			console.log('Processing Order Batch number', page);
@@ -268,27 +341,41 @@ export class OrderService {
 				customerId: x.customerId,
 			}));
 
-			const customerIds: Set<string> = new Set(temp.map((t) => t.customerId));
+			const customerIds: Set<string> = new Set(
+				temp.map((t) => t.customerId)
+			);
 			console.log('Cutomer Id size => ', customerIds.size);
 
 			const customerIdsArray = Array.from(customerIds);
-			const customers = await this.customerModel.find({ posCustomerId: { $in: customerIdsArray } });
+			const customers = await this.customerModel.find({
+				posCustomerId: { $in: customerIdsArray },
+			});
 
 			const distinctStaff = temp.reduce((accumulator, current) => {
 				const existingStaff = accumulator.find(
-					(staff) => staff.staffName === current.staffName && staff.locationId === current.locationId
+					(staff) =>
+						staff.staffName === current.staffName &&
+						staff.locationId === current.locationId
 				);
 				if (!existingStaff) accumulator.push(current);
 				return accumulator;
 			}, []);
 
-			const staffData = await Promise.all(distinctStaff.map((staff: IStaff) => this.addStaff(staff, storeId)));
+			const staffData = await Promise.all(
+				distinctStaff.map((staff: IStaff) =>
+					this.addStaff(staff, storeId)
+				)
+			);
 
-			const itemPromises = orders.map((order) => this.addItemsToCart(order.itemsInCart, storeId, order._id));
+			const itemPromises = orders.map((order) =>
+				this.addItemsToCart(order.itemsInCart, storeId, order._id)
+			);
 			const cart = await Promise.all(itemPromises);
 
 			const orderPromises = orders.map(async (order) => {
-				const staffId = staffData.find((staff) => staff.staffName === order.budtender)._id;
+				const staffId = staffData.find(
+					(staff) => staff.staffName === order.budtender
+				)._id;
 
 				const items = cart.find((item) => item.id === order._id).data;
 
@@ -298,13 +385,24 @@ export class OrderService {
 
 				delete order.budtender;
 
-				const customer = customers.find((c) => c.posCustomerId === order.customerId);
-				if (customer && !customer.storeId.includes(storeId)) {
-					customer.storeId.push(storeId);
-					await this.customerModel.updateOne({ _id: customer._id }, { $set: { storeId: customer.storeId } });
+				const customer = customers.find(
+					(c) => c.posCustomerId === order.customerId
+				);
+				let objectIdStoreId = new Types.ObjectId(storeId);
+				if (customer && !customer.storeId.includes(objectIdStoreId)) {
+					customer.storeId.push(objectIdStoreId);
+					await this.customerModel.updateOne(
+						{ _id: customer._id },
+						{ $set: { storeId: customer.storeId } }
+					);
 				}
 
-				const newOrder = await this.addOrder(order, posId, companyId, storeId);
+				const newOrder = await this.addOrder(
+					order,
+					posId,
+					companyId,
+					storeId
+				);
 				return newOrder;
 			});
 
@@ -456,7 +554,9 @@ export class OrderService {
 					});
 				}
 
-				const insertEmployee = await this.staffModel.insertMany(staffArray);
+				const insertEmployee = await this.staffModel.insertMany(
+					staffArray
+				);
 				console.log(`Seeded ${insertEmployee.length} employees.`);
 			}
 		} catch (error) {

@@ -119,7 +119,7 @@ export class InventoryService {
 							posProductId: inventoryData.productId,
 							posId: posData._id,
 							quantity: inventoryData.quantity,
-							locationId: location?._id as string,
+							locationId: location?._id as any,
 							locationName: inventoryData.locationName,
 							expirationDate: inventoryData.expirationDate,
 							productUpdatedAt: inventoryData.productUpdatedAt,
