@@ -19,6 +19,7 @@ export interface ItemsCart {
 	totalCost: number;
 	itemDiscounts: ItemDiscounts;
 	tax: Tax;
+	[property: string]: any;
 }
 
 export interface Tax {

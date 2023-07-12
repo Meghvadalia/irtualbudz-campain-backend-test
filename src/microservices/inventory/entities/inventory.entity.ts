@@ -1,45 +1,59 @@
 import { Model, Types } from 'mongoose';
-import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
+import { Prop, Schema, SchemaFactory, raw } from '@nestjs/mongoose';
 import { IInventory } from '../interfaces/inventory.interface';
 import { DATABASE_COLLECTION } from 'src/common/constants';
 
 @Schema({ collection: DATABASE_COLLECTION.INVENTORY, timestamps: true })
 export class Inventory extends Model<IInventory> {
-	@Prop({ required: true, type: Types.ObjectId, ref: DATABASE_COLLECTION.COMPANIES })
+	@Prop({
+		required: true,
+		type: Types.ObjectId,
+		ref: DATABASE_COLLECTION.COMPANIES,
+	})
 	companyId: string;
 
-	@Prop({ required: true, type: Types.ObjectId, ref: DATABASE_COLLECTION.POS })
-	POSId: string;
+	@Prop({
+		required: true,
+		type: Types.ObjectId,
+		ref: DATABASE_COLLECTION.POS,
+	})
+	posId: string;
 
 	@Prop({ type: Types.ObjectId, ref: DATABASE_COLLECTION.PRODUCT })
 	productId: string;
-
-	@Prop({ required: true })
-	clientId: string;
 
 	@Prop()
 	quantity: number;
 
 	@Prop()
-	inventoryUnitOfMeasure: string;
+	posProductId: string;
 
-	@Prop()
-	inventoryUnitOfMeasureToGramsMultiplier: number;
-
-	@Prop()
-	locationId: number;
+	@Prop({ type: Types.ObjectId, ref: DATABASE_COLLECTION.STORES })
+	locationId: string;
 
 	@Prop()
 	locationName: string;
 
 	@Prop()
-	currencyCode: string;
+	expirationDate: Date;
 
 	@Prop()
-	expirationDate: string;
+	productUpdatedAt: Date;
 
-	@Prop()
-	productUpdatedAt: string;
+	@Prop(
+		raw({
+			currencyCode: { type: String },
+			inventoryUnitOfMeasureToGramsMultiplier: { type: Number },
+			inventoryUnitOfMeasure: { type: String },
+		})
+	)
+	extraDetails: Types.Subdocument;
+	@Prop({ default: 0 })
+	costInMinorUnits: number;
+	@Prop({ default: 0 })
+	priceInMinorUnits: number;
+	@Prop({ default: false })
+	forSale: boolean;
 }
 
 export const InventorySchema = SchemaFactory.createForClass(Inventory);

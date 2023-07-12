@@ -1,6 +1,6 @@
 export interface ICustomer {
-	id: string;
-	storeId: string;
+	posCustomerId: string;
+	storeId?: string[];
 	companyId: string;
 	POSId: string;
 	type: CustomerType;
@@ -16,6 +16,7 @@ export interface ICustomer {
 	city: string;
 	zip: string;
 	country: string;
+	userCreatedAt: Date;
 }
 
 export enum CustomerType {

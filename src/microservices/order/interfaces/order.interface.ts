@@ -1,16 +1,14 @@
 export interface IOrder {
 	posOrderId: string;
-	clientId: string;
 	customerId: string;
 	currentPoints: number;
-	Name: string;
+	name: string;
 	orderStatus: string;
 	orderType: string;
-	orderId: string;
 	totals: Totals;
 	itemsInCart: Array<string>;
 	customerType: CustomerType;
-	locationId: string;
+	storeId: string;
 	voided: boolean;
 	fullName: string;
 	staffId: string;
@@ -130,4 +128,12 @@ export interface ItemsCart {
 	totalCost: number;
 	itemDiscounts: ItemDiscounts;
 	tax: Tax;
+}
+
+export interface LocationData {
+	_id: string;
+	location: {
+		locationId: string;
+		importId: string;
+	};
 }

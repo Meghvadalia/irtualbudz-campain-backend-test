@@ -30,20 +30,17 @@ export class UsersController {
 	async login(@Payload() payload: Login): Promise<any> {
 		try {
 			const { email, password } = payload;
-			const { user, token, refreshToken } = await this.usersService.login(email, password);
+			const { user, token, refreshToken } = await this.usersService.login(
+				email,
+				password
+			);
 
 			return {
-				user: {
-					email: user.email,
-					id: user.id,
-					name: user.name,
-					phone: user.phone,
-				},
+				user,
 				token,
 				refreshToken,
 			};
 		} catch (error) {
-			console.trace(error);
 			throw new RpcException(error);
 		}
 	}
@@ -67,7 +64,9 @@ export class UsersController {
 	@GrpcMethod('UserService', 'AccessToken')
 	async generateAccessToken(@Payload() payload) {
 		const { refreshToken } = payload;
-		const newToken = await this.usersService.generateNewAccessToken(refreshToken);
+		const newToken = await this.usersService.generateNewAccessToken(
+			refreshToken
+		);
 		return { accessToken: newToken };
 	}
 }

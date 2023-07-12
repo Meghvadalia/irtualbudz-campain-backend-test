@@ -8,7 +8,7 @@ export class OrderController {
 	@Get('seed')
 	async seedOrders(): Promise<void> {
 		try {
-			await this.orderService.scheduleCronJob();
+			await this.orderService.scheduleCronJob('flowhub');
 		} catch (error) {
 			console.log('GRPC METHOD', error);
 		}

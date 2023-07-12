@@ -25,7 +25,7 @@ export class Company extends Model<ICompany> {
 	@Prop()
 	totalStore: number;
 
-	@Prop({ trim: true, type: Object })
+	@Prop({ type: Object })
 	dataObject: IFlowhubHeaderInterface;
 
 	@Prop({ default: Date.now })
@@ -36,6 +36,8 @@ export class Company extends Model<ICompany> {
 
 	@Prop({ default: true })
 	isActive: boolean;
+	@Prop({ default: 100 })
+	lastSyncDataDuration: number;
 }
 
 export const CompanySchema = SchemaFactory.createForClass(Company);

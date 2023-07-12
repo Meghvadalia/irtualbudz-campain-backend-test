@@ -2,7 +2,10 @@ import { Module } from '@nestjs/common';
 import { MongooseModule, MongooseModuleOptions } from '@nestjs/mongoose';
 import { MongodbConfigModule } from 'src/config/database/mongodb/config.module';
 import { MongodbConfigService } from 'src/config/database/mongodb/config.service';
+import * as mongoose from 'mongoose';
 
+// somewhere in your code
+mongoose.set('debug', true);
 @Module({
 	imports: [
 		MongooseModule.forRootAsync({

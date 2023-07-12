@@ -1,11 +1,11 @@
 import { Injectable, CanActivate, ExecutionContext } from '@nestjs/common';
 import { SetMetadata } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
-import { USER_TYPE } from 'src/microservices/user';
+import { USER_TYPE } from 'src/microservices/user/constants/user.constant';
 import { JwtService } from '../../utils/token.util';
 import { RedisService } from 'src/config/cache/config.service';
 
-export const Roles = (...roles: string[]) => SetMetadata('roles', roles);
+export const Roles = (...roles: USER_TYPE[]) => SetMetadata('roles', roles);
 
 @Injectable()
 export class RolesGuard implements CanActivate {
@@ -16,7 +16,7 @@ export class RolesGuard implements CanActivate {
 	) {}
 
 	async canActivate(context: ExecutionContext): Promise<boolean> {
-		const requiredRoles = this.reflector.getAllAndOverride<USER_TYPE[]>('roles', [context.getHandler(), context.getClass()]);
+		const requiredRoles = this.reflector.get<USER_TYPE[]>('roles', context.getHandler());
 		if (!requiredRoles) return true;
 
 		const request = context.switchToHttp().getRequest();
@@ -26,20 +26,16 @@ export class RolesGuard implements CanActivate {
 		const token = bearerToken.split(' ')[1];
 		try {
 			const decoded = this.jwtService.verifyAccessToken(token);
-			// @ts-ignore
-			const userRole = decoded.userType;
+			const userRole = decoded.type;
 
 			if (requiredRoles.includes(userRole)) {
 				request.user = decoded;
-				// @ts-ignore
-				const userId = decoded.id;
+				const userId = decoded.userId;
 				const loggedIn = await this.redisService.getValue(userId);
-				if (!loggedIn) {
-					return false;
-				}
+				if (!loggedIn) return false;
+
 				return true;
 			}
-
 			return false;
 		} catch (error) {
 			return false;

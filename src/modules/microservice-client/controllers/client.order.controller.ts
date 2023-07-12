@@ -1,7 +1,6 @@
-import { Controller, Get, OnModuleInit, Param } from '@nestjs/common';
-import { ClientOrderService } from '../services/client.order.service';
-import { ClientGrpc, ClientProxyFactory, RpcException, Transport } from '@nestjs/microservices';
-import { Observable, firstValueFrom } from 'rxjs';
+import { Controller, OnModuleInit } from '@nestjs/common';
+import { ClientGrpc, ClientProxyFactory, Transport } from '@nestjs/microservices';
+import { Observable } from 'rxjs';
 import { join } from 'path';
 
 interface IOrderService {
@@ -13,8 +12,7 @@ interface IOrderService {
 export class ClientOrderController implements OnModuleInit {
 	private orderService: IOrderService;
 	private client: ClientGrpc;
-	private readonly orderMicroservice: ClientGrpc;
-	constructor(private readonly clientOrderService: ClientOrderService) {}
+	constructor() {}
 	onModuleInit() {
 		this.client = ClientProxyFactory.create({
 			transport: Transport.GRPC,

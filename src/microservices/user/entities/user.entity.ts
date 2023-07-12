@@ -1,6 +1,6 @@
 import { ObjectType } from '@nestjs/graphql';
 import { IUser } from '../interfaces/user.interface';
-import { Model } from 'mongoose';
+import { Model, Types } from 'mongoose';
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { USER_TYPE } from '../constants/user.constant';
 import { passwordService } from 'src/utils/password.util';
@@ -26,6 +26,18 @@ export class User extends Model<IUser> {
 
 	@Prop({ required: true })
 	type: USER_TYPE;
+
+	@Prop({ trim: true, default: '', type: Types.ObjectId, ref: DATABASE_COLLECTION.COMPANIES })
+	companyId: string;
+
+	@Prop({ trim: true, default: '', type: Types.ObjectId, ref: DATABASE_COLLECTION.STORES })
+	storeId: string;
+
+	@Prop({ default: true, type: Boolean })
+	isActive: boolean;
+
+	@Prop({ default: false, type: Boolean })
+	isDeleted: boolean;
 }
 
 export const UserSchema = SchemaFactory.createForClass(User);

@@ -1,15 +1,14 @@
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
-import axios from 'axios';
+import axios, { AxiosRequestConfig } from 'axios';
 
 import { Customer } from '../entities/customer.entity';
 import { ICompany } from 'src/model/company/interface/company.interface';
 import { Company } from 'src/model/company/entities/company.entity';
-import { ICustomer } from '../interfaces/customer.interface';
 import { POS } from 'src/model/pos/entities/pos.entity';
-import { Cron } from '@nestjs/schedule';
 import { IPOS } from 'src/model/pos/interface/pos.interface';
+import { CustomerType, ICustomer } from '../interfaces/customer.interface';
 
 @Injectable()
 export class CustomerService {
@@ -19,65 +18,177 @@ export class CustomerService {
 		@InjectModel(POS.name) private posModel: Model<POS>
 	) {}
 
-	async seedCustomers(fromDate: Date, toDate: Date) {
+	async seedCustomers(posName: string) {
 		try {
-			const monarcCompanyData: ICompany = await this.companyModel.findOne<ICompany>({
-				name: 'Monarc',
+			const posData: IPOS = await this.posModel.findOne({ name: posName });
+			const companiesList: ICompany[] = await this.companyModel.find<ICompany>({
+				isActive: true,
+				posId: posData._id,
 			});
 
-			const posData: IPOS = await this.posModel.findOne<IPOS>({
-				_id: monarcCompanyData.posId,
-			});
+			const date = new Date();
+			let fromDate, toDate;
+			let options: AxiosRequestConfig;
+			let customerDataArray: ICustomer[] = [];
 
-			const options = {
-				method: 'get',
-				url: `${posData.liveUrl}/v1/customers/`,
-				params: { created_after: fromDate, created_before: toDate },
-				headers: {
-					key: monarcCompanyData.dataObject.key,
-					ClientId: monarcCompanyData.dataObject.clientId,
-					Accept: 'application/json',
-				},
-			};
+			for (const company of companiesList) {
+				let page = 1;
+				let shouldContinue = true;
+				let customerData;
 
-			const { data } = await axios.request(options);
+				const customer = await this.customerModel.findOne({ companyId: company._id });
 
-			if (data.customers.length > 0) {
-				const customers = data.customers.map((customer: ICustomer) => ({
-					...customer,
-					companyId: monarcCompanyData._id,
-					POSId: monarcCompanyData.posId,
-				}));
+				if (customer) {
+					fromDate = new Date(date.getFullYear(), date.getMonth(), date.getDate() - 1, 0, 0, 0).toISOString().split('T')[0];
+					toDate = new Date(date.getFullYear(), date.getMonth(), date.getDate(), 0, 0, 0).toISOString().split('T')[0];
+					console.log('Seeding data for the previous day');
+					options = {
+						method: 'get',
+						url: `${posData.liveUrl}/v1/customers?created_after=${fromDate}&created_before=${toDate}&page=${page}&page_size=10000`,
+						headers: {
+							key: company.dataObject.key,
+							ClientId: company.dataObject.clientId,
+							Accept: 'application/json',
+						},
+					};
+				} else {
+					console.log('Seeding all customers...');
+					options = {
+						method: 'get',
+						url: `${posData.liveUrl}/v1/customers?page=${page}&page_size=10000`,
+						headers: {
+							key: company.dataObject.key,
+							ClientId: company.dataObject.clientId,
+							Accept: 'application/json',
+						},
+					};
+				}
 
-				await this.customerModel.insertMany(customers);
-				console.log(`Seeded ${customers.length} customers.`);
-			} else {
-				console.log('No customers to seed.');
+				while (shouldContinue) {
+					const { data } = await axios.request(options);
+					if (company.name === 'Monarc') {
+						customerData = data.customers;
+					} else {
+						customerData = data.data;
+					}
+					for (const d of customerData) {
+						customerDataArray.push({
+							posCustomerId: d.id ?? d.id,
+							companyId: company._id,
+							POSId: posData._id,
+							name: d.name,
+							email: d.email,
+							phone: d.phone,
+							city: d.city,
+							state: d.state,
+							country: d.country,
+							birthDate: d.birthDate,
+							isLoyal: d.isLoyal,
+							loyaltyPoints: d.loyaltyPoints,
+							streetAddress1: d.streetAddress1,
+							streetAddress2: d.streetAddress2,
+							type: d.type,
+							zip: d.zip,
+							userCreatedAt: d.createdAt,
+						});
+					}
+
+					if (customerData.length > 0) {
+						page++;
+						if (customer) {
+							options.url = `${posData.liveUrl}/v1/customers?created_after=${fromDate}&created_before=${toDate}&page=${page}&page_size=10000`;
+						} else {
+							options.url = `${posData.liveUrl}/v1/customers?page=${page}&page_size=10000`;
+						}
+					} else {
+						console.log('All customers fetched');
+						shouldContinue = false;
+					}
+				}
 			}
+
+			return Promise.all(await this.customerModel.insertMany(customerDataArray));
 		} catch (error) {
-			console.error('Error while seeding customers:', error);
+			console.error('Error while seeding customers:', error.message);
 		}
 	}
 
-	@Cron('0 0 0 * * *')
-	async scheduleCronJob() {
+	async seedDutchieCustomers(posName: string) {
 		try {
-			const currentDate = new Date();
-			const fromDate = new Date(currentDate.getFullYear(), currentDate.getMonth(), currentDate.getDate() - 1, 0, 0, 0);
-			const toDate = new Date(currentDate.getFullYear(), currentDate.getMonth(), currentDate.getDate(), 0, 0, 0);
+			const posData: IPOS = await this.posModel.findOne<IPOS>({
+				name: posName,
+			});
 
-			const customersCount = await this.customerModel.countDocuments();
-			if (customersCount === 0) {
-				console.log('Seeding data for the last 100 days...');
-				const hundredDaysAgo = new Date(currentDate.getFullYear(), currentDate.getMonth(), currentDate.getDate() - 100, 0, 0, 0);
+			const companyData = await this.companyModel.find<ICompany>({
+				posId: posData._id,
+				isActive: true,
+			});
 
-				await this.seedCustomers(hundredDaysAgo, toDate);
-			} else {
-				console.log('Seeding data from the previous day...');
-				await this.seedCustomers(fromDate, toDate);
+			for (const company of companyData) {
+				const tokenOptions = {
+					method: 'get',
+					url: `${posData.liveUrl}/util/AuthorizationHeader/${company.dataObject.key}`,
+					headers: {
+						Accept: 'application/json',
+					},
+				};
+
+				const { data: token } = await axios.request(tokenOptions);
+
+				const date = new Date();
+				const customer = await this.customerModel.findOne({ companyId: company._id });
+
+				let fromDate: Date, toDate: Date;
+
+				if (customer) {
+					fromDate = new Date(date.getFullYear(), date.getMonth(), date.getDate() - 1, 0, 0, 0);
+					toDate = new Date(date.getFullYear(), date.getMonth(), date.getDate(), 0, 0, 0);
+					console.log('seeding data for previous day');
+				} else {
+					fromDate = new Date(date.getFullYear(), date.getMonth(), date.getDate() - 100, 0, 0, 0);
+					toDate = new Date(date.getFullYear(), date.getMonth(), date.getDate(), 0, 0, 0);
+					console.log('seeding data for last 100 day');
+				}
+				const customerOptions: AxiosRequestConfig = {
+					url: `${
+						posData.liveUrl
+					}/customer/customers?fromLastModifiedDateUTC=${fromDate.toISOString()}&toLastModifiedDateUTC=${toDate.toISOString()}&includeAnonymous=true`,
+					headers: {
+						Accept: 'application/json',
+						Authorization: token,
+					},
+				};
+
+				const { data } = await axios.request(customerOptions);
+
+				const customersArray: ICustomer[] = [];
+
+				for (let d of data)
+					customersArray.push({
+						birthDate: d.dateOfBirth,
+						city: d.city,
+						email: d.emailAddress,
+						posCustomerId: d.customerId,
+						name: d.name,
+						phone: d.phone,
+						isLoyal: d.isLoyaltyMember,
+						state: d.state,
+						streetAddress1: d.address1,
+						streetAddress2: d.address2,
+						zip: d.postalCode,
+						type: d.customerType === 'Recreational' ? CustomerType.recCustomer : CustomerType.medCustomer,
+						POSId: posData._id,
+						companyId: company._id,
+						loyaltyPoints: 0,
+						country: '',
+						userCreatedAt: d.creationDate,
+					});
+
+				await this.customerModel.insertMany(customersArray);
+				console.log(`Seeded ${data.length} customers.`);
 			}
 		} catch (error) {
-			console.error('Error while scheduling cron job:', error);
+			console.error('Failed to seed customers:', error.message);
 		}
 	}
 }

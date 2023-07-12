@@ -1,4 +1,4 @@
-import { Model } from 'mongoose';
+import { Model, Types } from 'mongoose';
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { IStaff } from '../interfaces/staff.interface';
 import { DATABASE_COLLECTION } from 'src/common/constants';
@@ -7,7 +7,8 @@ import { DATABASE_COLLECTION } from 'src/common/constants';
 export class Staff extends Model<IStaff> {
 	@Prop()
 	staffName: String;
-	@Prop()
+
+	@Prop({ required: true, type: Types.ObjectId, ref: DATABASE_COLLECTION.STORES })
 	storeId: String;
 }
 

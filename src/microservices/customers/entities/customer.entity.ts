@@ -10,8 +10,8 @@ import { DATABASE_COLLECTION } from 'src/common/constants';
 })
 @ObjectType()
 export class Customer extends Model<ICustomer> {
-	@Prop({ required: true, unique: true })
-	id: string;
+	@Prop({ unique: true })
+	posCustomerId: string;
 
 	@Prop({
 		required: true,
@@ -23,8 +23,8 @@ export class Customer extends Model<ICustomer> {
 	@Prop({ required: true, type: Types.ObjectId, ref: DATABASE_COLLECTION.POS })
 	POSId: string;
 
-	@Prop({ type: Types.ObjectId, ref: DATABASE_COLLECTION.STORES })
-	storeId: string;
+	@Prop({ type: [{ type: Types.ObjectId, ref: DATABASE_COLLECTION.STORES }] })
+	storeId: Types.ObjectId[];
 
 	@Prop({ enum: CustomerType })
 	type: string;
@@ -65,14 +65,14 @@ export class Customer extends Model<ICustomer> {
 	@Prop()
 	country: string;
 
-	@Prop({ default: Date.now })
-	updatedAt: Date;
-
 	@Prop({ default: false })
 	isDeleted: boolean;
 
 	@Prop({ default: true })
 	isActive: boolean;
+
+	@Prop()
+	userCreatedAt: Date;
 }
 
 export const CustomerSchema = SchemaFactory.createForClass(Customer);

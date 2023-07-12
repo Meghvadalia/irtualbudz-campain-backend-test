@@ -1,20 +1,27 @@
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
+import { Model, Types } from 'mongoose';
 
 import { Customer } from '../../../microservices/customers/entities/customer.entity';
 
 @Injectable()
-export class CustomerService {
-	constructor(@InjectModel(Customer.name) private customerModel: Model<Customer>) {}
+export class ClientCustomerService {
+	constructor(
+		@InjectModel(Customer.name) private customerModel: Model<Customer>
+	) {}
 
-	async getAverageAge(fromDate: string, toDate: string) {
+	async getAverageAge(
+		storeId: Types.ObjectId,
+		fromDate: string,
+		toDate: string
+	) {
 		const fromStartDate = new Date(fromDate);
 		const toEndDate = new Date(toDate);
 		const aggregationPipeline = [
 			{
 				$match: {
-					createdAt: {
+					storeId: { $in: [storeId] },
+					userCreatedAt: {
 						$gte: fromStartDate,
 						$lte: toEndDate,
 					},
@@ -25,7 +32,10 @@ export class CustomerService {
 					_id: null,
 					averageAge: {
 						$avg: {
-							$divide: [{ $subtract: [new Date(), '$birthDate'] }, 1000 * 60 * 60 * 24 * 365],
+							$divide: [
+								{ $subtract: [new Date(), '$birthDate'] },
+								1000 * 60 * 60 * 24 * 365,
+							],
 						},
 					},
 				},

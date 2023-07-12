@@ -1,19 +1,15 @@
 import { Model, Types } from 'mongoose';
 import { Prop, Schema, SchemaFactory, raw } from '@nestjs/mongoose';
-import { WeightTierInformation, CannabinoidInformation } from '../interfaces/product.interface';
 import { IProduct } from '../interfaces/product.interface';
 import { DATABASE_COLLECTION } from 'src/common/constants';
 
 @Schema({ collection: DATABASE_COLLECTION.PRODUCT, timestamps: true })
 export class Product extends Model<IProduct> {
-	@Prop({ required: true })
-	clientId: number;
-
 	@Prop({ required: true, type: Types.ObjectId, ref: DATABASE_COLLECTION.COMPANIES })
 	companyId: string;
 
 	@Prop({ required: true, type: Types.ObjectId, ref: DATABASE_COLLECTION.POS })
-	POSId: string;
+	posId: string;
 
 	@Prop({ trim: true })
 	productName: string;
@@ -25,13 +21,7 @@ export class Product extends Model<IProduct> {
 	productDescription: string;
 
 	@Prop()
-	priceInMinorUnits: number;
-
-	@Prop()
 	sku: string;
-
-	@Prop({})
-	nutrients: string;
 
 	@Prop()
 	productPictureURL: string;
@@ -49,46 +39,37 @@ export class Product extends Model<IProduct> {
 	brand: string;
 
 	@Prop()
-	isMixAndMatch: boolean;
-
-	@Prop()
-	isStackable: boolean;
-
-	@Prop()
-	productUnitOfMeasure: string;
-
-	@Prop()
-	productUnitOfMeasureToGramsMultiplier: string;
-
-	@Prop()
 	productWeight: number;
 
+	@Prop()
+	speciesName: string;
+
 	@Prop(
-		raw([
-			{
+		raw({
+			nutrients: { type: String },
+			productUnitOfMeasure: { type: String },
+			productUnitOfMeasureToGramsMultiplier: { type: String },
+			isMixAndMatch: { type: Boolean },
+			isStackable: { type: Boolean },
+			cannabinoidInformation: [
+				{
+					type: {
+						name: { type: String },
+						lowerRange: { type: Number },
+						upperRange: { type: Number },
+						unitOfMeasure: { type: String },
+						unitOfMeasureToGramsMultiplier: { type: String },
+					},
+				},
+			],
+			weightTierInformation: {
 				name: { type: String },
 				gramAmount: { type: String },
 				pricePerUnitInMinorUnits: { type: Number },
 			},
-		])
+		})
 	)
-	weightTierInformation: WeightTierInformation;
-
-	@Prop(
-		raw([
-			{
-				name: { type: String },
-				lowerRange: { type: Number },
-				upperRange: { type: Number },
-				unitOfMeasure: { type: String },
-				unitOfMeasureToGramsMultiplier: { type: String },
-			},
-		])
-	)
-	cannabinoidInformation: CannabinoidInformation;
-
-	@Prop()
-	speciesName: string;
+	extraDetails: Types.Subdocument;
 }
 
 export const ProductSchema = SchemaFactory.createForClass(Product);

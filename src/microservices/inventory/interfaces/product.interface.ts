@@ -1,26 +1,26 @@
 export interface IProduct {
 	posId: string;
 	companyId: string;
-	clientId: number;
 	productName: string;
 	posProductId: string;
 	productDescription: string;
-	priceInMinorUnits: number;
 	sku: string;
-	nutrients: string;
 	productPictureURL: string;
 	purchaseCategory: string;
 	category: Category;
 	type: string;
 	brand: string;
-	isMixAndMatch: boolean;
-	isStackable: boolean;
-	productUnitOfMeasure: string;
-	productUnitOfMeasureToGramsMultiplier: string;
 	productWeight: number;
-	weightTierInformation: WeightTierInformation;
-	cannabinoidInformation: CannabinoidInformation;
 	speciesName: string;
+	extraDetails: {
+		nutrients: string;
+		isMixAndMatch: boolean;
+		isStackable: boolean;
+		productUnitOfMeasure: string;
+		productUnitOfMeasureToGramsMultiplier: string;
+		cannabinoidInformation: CannabinoidInformation;
+		weightTierInformation: WeightTierInformation;
+	};
 }
 
 export interface CannabinoidInformation {
