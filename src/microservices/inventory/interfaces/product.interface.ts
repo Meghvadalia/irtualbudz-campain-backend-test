@@ -4,7 +4,6 @@ export interface IProduct {
 	productName: string;
 	posProductId: string;
 	productDescription: string;
-	priceInMinorUnits: number;
 	sku: string;
 	productPictureURL: string;
 	purchaseCategory: string;

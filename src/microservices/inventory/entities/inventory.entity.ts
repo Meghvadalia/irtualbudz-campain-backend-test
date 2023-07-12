@@ -5,10 +5,18 @@ import { DATABASE_COLLECTION } from 'src/common/constants';
 
 @Schema({ collection: DATABASE_COLLECTION.INVENTORY, timestamps: true })
 export class Inventory extends Model<IInventory> {
-	@Prop({ required: true, type: Types.ObjectId, ref: DATABASE_COLLECTION.COMPANIES })
+	@Prop({
+		required: true,
+		type: Types.ObjectId,
+		ref: DATABASE_COLLECTION.COMPANIES,
+	})
 	companyId: string;
 
-	@Prop({ required: true, type: Types.ObjectId, ref: DATABASE_COLLECTION.POS })
+	@Prop({
+		required: true,
+		type: Types.ObjectId,
+		ref: DATABASE_COLLECTION.POS,
+	})
 	posId: string;
 
 	@Prop({ type: Types.ObjectId, ref: DATABASE_COLLECTION.PRODUCT })
@@ -27,10 +35,10 @@ export class Inventory extends Model<IInventory> {
 	locationName: string;
 
 	@Prop()
-	expirationDate: string;
+	expirationDate: Date;
 
 	@Prop()
-	productUpdatedAt: string;
+	productUpdatedAt: Date;
 
 	@Prop(
 		raw({
@@ -40,6 +48,12 @@ export class Inventory extends Model<IInventory> {
 		})
 	)
 	extraDetails: Types.Subdocument;
+	@Prop({ default: 0 })
+	costInMinorUnits: number;
+	@Prop({ default: 0 })
+	priceInMinorUnits: number;
+	@Prop({ default: false })
+	forSale: boolean;
 }
 
 export const InventorySchema = SchemaFactory.createForClass(Inventory);

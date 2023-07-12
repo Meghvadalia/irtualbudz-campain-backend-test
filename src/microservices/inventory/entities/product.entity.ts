@@ -21,9 +21,6 @@ export class Product extends Model<IProduct> {
 	productDescription: string;
 
 	@Prop()
-	priceInMinorUnits: number;
-
-	@Prop()
 	sku: string;
 
 	@Prop()

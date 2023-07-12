@@ -6,8 +6,11 @@ export interface IInventory {
 	quantity: number;
 	locationId: string;
 	locationName: string;
-	expirationDate: string;
-	productUpdatedAt: string;
+	expirationDate: Date;
+	productUpdatedAt: Date;
+	costInMinorUnits: number;
+	priceInMinorUnits: number;
+	forSale: boolean;
 	extraDetails: {
 		currencyCode: string;
 		inventoryUnitOfMeasure: string;
