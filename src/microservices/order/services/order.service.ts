@@ -16,7 +16,7 @@ import { IOrder } from '../interfaces/order.interface';
 import { CustomerService } from '../../customers/service/customer.service';
 import { IStore } from 'src/model/store/interface/store.inteface';
 import { ItemsCart } from '../interfaces/cart.interface';
-import { Customer } from 'src/microservices/customers';
+import { Customer, ICustomer } from 'src/microservices/customers';
 
 @Injectable()
 export class OrderService {
@@ -271,13 +271,14 @@ export class OrderService {
 			const customerIds: Set<string> = new Set(temp.map((t) => t.customerId));
 			console.log('Cutomer Id size => ', customerIds.size);
 
+			const customerIdsArray = Array.from(customerIds);
+			const customers = await this.customerModel.find({ posCustomerId: { $in: customerIdsArray } });
+
 			const distinctStaff = temp.reduce((accumulator, current) => {
 				const existingStaff = accumulator.find(
 					(staff) => staff.staffName === current.staffName && staff.locationId === current.locationId
 				);
-				if (!existingStaff) {
-					accumulator.push(current);
-				}
+				if (!existingStaff) accumulator.push(current);
 				return accumulator;
 			}, []);
 
@@ -285,11 +286,6 @@ export class OrderService {
 
 			const itemPromises = orders.map((order) => this.addItemsToCart(order.itemsInCart, storeId, order._id));
 			const cart = await Promise.all(itemPromises);
-
-			const customerPromises = Array.from(customerIds).map(async (customerId) => {
-				return await this.customerService.seedCustomers(customerId, storeId, companyId);
-			});
-			await Promise.all(customerPromises);
 
 			const orderPromises = orders.map(async (order) => {
 				const staffId = staffData.find((staff) => staff.staffName === order.budtender)._id;
@@ -302,12 +298,14 @@ export class OrderService {
 
 				delete order.budtender;
 
-				const customer = await this.customerModel.findOne({ posCustomerId: order.customerId });
-				if (customer) {
-					order.customerId = customer._id;
-					const newOrder = await this.addOrder(order, posId, companyId, storeId);
-					return newOrder;
+				const customer = customers.find((c) => c.posCustomerId === order.customerId);
+				if (customer && !customer.storeId.includes(storeId)) {
+					customer.storeId.push(storeId);
+					await this.customerModel.updateOne({ _id: customer._id }, { $set: { storeId: customer.storeId } });
 				}
+
+				const newOrder = await this.addOrder(order, posId, companyId, storeId);
+				return newOrder;
 			});
 
 			const processedOrders = await Promise.all(orderPromises);

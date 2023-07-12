@@ -23,8 +23,8 @@ export class Customer extends Model<ICustomer> {
 	@Prop({ required: true, type: Types.ObjectId, ref: DATABASE_COLLECTION.POS })
 	POSId: string;
 
-	@Prop({ type: Types.ObjectId, ref: DATABASE_COLLECTION.STORES })
-	storeId: string;
+	@Prop({ type: [{ type: Types.ObjectId, ref: DATABASE_COLLECTION.STORES }] })
+	storeId: Types.ObjectId[];
 
 	@Prop({ enum: CustomerType })
 	type: string;
