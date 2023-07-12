@@ -1,4 +1,6 @@
-export interface IUser {
+import { BaseInterface } from 'src/common/interface';
+
+export interface IUser extends BaseInterface {
 	email: string;
 	password: string;
 	name: string;
@@ -6,4 +8,5 @@ export interface IUser {
 	type: string;
 	companyId?: string;
 	storeId?: string;
+	isActive?: boolean;
 }

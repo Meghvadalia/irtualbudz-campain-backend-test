@@ -16,6 +16,7 @@ export const superAdmin: IUser = {
 	type: USER_TYPE.SUPER_ADMIN,
 	name: 'Super Admin',
 	phone: '9999999999',
+	isActive: false,
 };
 
 export const userArrayForCompany: Array<UserSeeder> = [
@@ -37,7 +38,7 @@ export const userArrayForCompany: Array<UserSeeder> = [
 	},
 	{
 		name: 'Zen Barn Farms Admin',
-		email: 'zenbarnFarmsadmin@zenbarnFarms.com',
+		email: 'zenbarnfarmsadmin@zenbarnfarms.com',
 		password: 'ZenBarnadmin@123',
 		type: USER_TYPE.COMPANY_ADMIN,
 		phone: '+911234567890',

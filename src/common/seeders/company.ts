@@ -8,7 +8,7 @@ export const companyData = [
 			key: 'c6c3f269-33e6-43ea-922e-4ab83d4ba0d7',
 		},
 		posName: 'flowhub',
-		lastSyncDataDuration: 100,
+		lastSyncDataDuration: 300,
 	},
 	{
 		name: 'Virtual Budz',

@@ -24,9 +24,10 @@ export class ClientStoreService {
 
 	async seedStoreData() {
 		try {
-			const companiesDataList: ICompany[] = await this.companyModel.find<ICompany>({
-				isActive: true,
-			});
+			const companiesDataList: ICompany[] =
+				await this.companyModel.find<ICompany>({
+					isActive: true,
+				});
 
 			for (let i = 0; i < companiesDataList.length; i++) {
 				const monarcCompanyData = companiesDataList[i];
@@ -89,10 +90,15 @@ export class ClientStoreService {
 		try {
 			const { user } = req;
 			const userData = await this.userModel.findById(user.userId);
-			if (user.type === USER_TYPE.SUPER_ADMIN || user.type === USER_TYPE.ADMIN) {
+			if (
+				user.type === USER_TYPE.SUPER_ADMIN ||
+				user.type === USER_TYPE.ADMIN
+			) {
 				return await this.storeModel.find({});
 			} else if (user.type === USER_TYPE.COMPANY_ADMIN) {
-				const stores = await this.storeListByCompanyId(userData.companyId);
+				const stores = await this.storeListByCompanyId(
+					userData.companyId
+				);
 				return stores;
 			} else {
 				const store = await this.storeById(userData.storeId);

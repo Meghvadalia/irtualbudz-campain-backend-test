@@ -6,16 +6,22 @@ import { Customer } from '../../../microservices/customers/entities/customer.ent
 
 @Injectable()
 export class ClientCustomerService {
-	constructor(@InjectModel(Customer.name) private customerModel: Model<Customer>) {}
+	constructor(
+		@InjectModel(Customer.name) private customerModel: Model<Customer>
+	) {}
 
-	async getAverageAge(storeId: Types.ObjectId, fromDate: string, toDate: string) {
+	async getAverageAge(
+		storeId: Types.ObjectId,
+		fromDate: string,
+		toDate: string
+	) {
 		const fromStartDate = new Date(fromDate);
 		const toEndDate = new Date(toDate);
 		const aggregationPipeline = [
 			{
 				$match: {
-					storeId,
-					createdAt: {
+					storeId: { $in: [storeId] },
+					userCreatedAt: {
 						$gte: fromStartDate,
 						$lte: toEndDate,
 					},
@@ -26,7 +32,10 @@ export class ClientCustomerService {
 					_id: null,
 					averageAge: {
 						$avg: {
-							$divide: [{ $subtract: [new Date(), '$birthDate'] }, 1000 * 60 * 60 * 24 * 365],
+							$divide: [
+								{ $subtract: [new Date(), '$birthDate'] },
+								1000 * 60 * 60 * 24 * 365,
+							],
 						},
 					},
 				},

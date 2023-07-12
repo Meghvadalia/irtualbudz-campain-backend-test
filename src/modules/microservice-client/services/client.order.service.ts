@@ -8,13 +8,17 @@ import { Order } from '../../../microservices/order/entities/order.entity';
 export class ClientOrderService {
 	constructor(@InjectModel(Order.name) private orderModel: Model<Order>) {}
 
-	async getOrderForEachDate(locationId: Types.ObjectId, fromDate: string, toDate: string) {
+	async getOrderForEachDate(
+		storeId: Types.ObjectId,
+		fromDate: string,
+		toDate: string
+	) {
 		const fromStartDate = new Date(fromDate);
 		const fromEndDate = new Date(toDate);
 		const pipeline: PipelineStage[] = [
 			{
 				$match: {
-					locationId,
+					storeId,
 					posCreatedAt: {
 						$gte: fromStartDate,
 						$lte: fromEndDate,
@@ -61,13 +65,17 @@ export class ClientOrderService {
 		return dateWiseOrderData;
 	}
 
-	async getBrandWiseSales(locationId: Types.ObjectId, fromDate: string, toDate: string) {
+	async getBrandWiseSales(
+		storeId: Types.ObjectId,
+		fromDate: string,
+		toDate: string
+	) {
 		const fromStartDate = new Date(fromDate);
 		const fromEndDate = new Date(toDate);
 		const pipeline: PipelineStage[] = [
 			{
 				$match: {
-					locationId: locationId,
+					storeId,
 					posCreatedAt: {
 						$gte: fromStartDate,
 						$lte: fromEndDate,
@@ -124,13 +132,17 @@ export class ClientOrderService {
 		return brandWiseOrderData;
 	}
 
-	async getEmployeeWiseSales(locationId: Types.ObjectId, fromDate: string, toDate: string) {
+	async getEmployeeWiseSales(
+		storeId: Types.ObjectId,
+		fromDate: string,
+		toDate: string
+	) {
 		const fromStartDate = new Date(fromDate);
 		const fromEndDate = new Date(toDate);
 		const pipeline: PipelineStage[] = [
 			{
 				$match: {
-					locationId,
+					storeId,
 					posCreatedAt: {
 						$gte: fromStartDate,
 						$lte: fromEndDate,
@@ -171,10 +183,26 @@ export class ClientOrderService {
 									$and: [
 										{ $eq: ['$staffId', '$$staffId'] },
 										{
-											$gte: ['$posCreatedAt', new Date(new Date().setDate(new Date().getDate() - 28))],
+											$gte: [
+												'$posCreatedAt',
+												new Date(
+													new Date().setDate(
+														new Date().getDate() -
+															28
+													)
+												),
+											],
 										},
 										{
-											$lte: ['$posCreatedAt', new Date(new Date().setDate(new Date().getDate() - 14))],
+											$lte: [
+												'$posCreatedAt',
+												new Date(
+													new Date().setDate(
+														new Date().getDate() -
+															14
+													)
+												),
+											],
 										},
 									],
 								},
@@ -217,7 +245,10 @@ export class ClientOrderService {
 									{
 										$divide: [
 											{
-												$subtract: ['$totalSales', '$previousSales'],
+												$subtract: [
+													'$totalSales',
+													'$previousSales',
+												],
 											},
 											'$previousSales',
 										],
@@ -245,14 +276,18 @@ export class ClientOrderService {
 		return staffWiseOrderData;
 	}
 
-	async getAverageSpendAndLoyaltyPointsForAllCustomer(locationId: Types.ObjectId, fromDate: string, toDate: string) {
+	async getAverageSpendAndLoyaltyPointsForAllCustomer(
+		storeId: Types.ObjectId,
+		fromDate: string,
+		toDate: string
+	) {
 		const fromStartDate = new Date(fromDate);
 		const toEndDate = new Date(toDate);
 		try {
 			const pipeline: PipelineStage[] = [
 				{
 					$match: {
-						locationId,
+						storeId,
 						posCreatedAt: {
 							$gte: fromStartDate,
 							$lte: toEndDate,
@@ -283,20 +318,27 @@ export class ClientOrderService {
 			];
 			const result = await this.orderModel.aggregate(pipeline);
 
-			const averageSpendWithLoyalty = result.length > 0 ? result[0] : { averageSpend: 0, loyaltyPointsConverted: 0 };
+			const averageSpendWithLoyalty =
+				result.length > 0
+					? result[0]
+					: { averageSpend: 0, loyaltyPointsConverted: 0 };
 
 			return averageSpendWithLoyalty;
 		} catch (error) {}
 	}
 
-	async getTopCategory(locationId: Types.ObjectId, fromDate: string, toDate: string) {
+	async getTopCategory(
+		storeId: Types.ObjectId,
+		fromDate: string,
+		toDate: string
+	) {
 		const fromStartDate = new Date(fromDate);
 		const toEndDate = new Date(toDate);
 		try {
 			const pipeline: PipelineStage[] = [
 				{
 					$match: {
-						locationId,
+						storeId,
 						posCreatedAt: {
 							$gte: fromStartDate,
 							$lte: toEndDate,
@@ -342,19 +384,26 @@ export class ClientOrderService {
 
 			const result = await this.orderModel.aggregate(pipeline);
 
-			const { totalAmount, topCategory } = result.length > 0 ? result[0] : { totalAmount: 0, topCategory: '' };
+			const { totalAmount, topCategory } =
+				result.length > 0
+					? result[0]
+					: { totalAmount: 0, topCategory: '' };
 			return topCategory;
 		} catch (error) {}
 	}
 
-	async getRecurringAndNewCustomerPercentage(locationId: Types.ObjectId, fromDate: string, toDate: string) {
+	async getRecurringAndNewCustomerPercentage(
+		storeId: Types.ObjectId,
+		fromDate: string,
+		toDate: string
+	) {
 		const fromStartDate = new Date(fromDate);
 		const fromEndDate = new Date(toDate);
 		try {
 			const pipeline: PipelineStage[] = [
 				{
 					$match: {
-						locationId,
+						storeId,
 						posCreatedAt: {
 							$gte: fromStartDate,
 							$lte: fromEndDate,
@@ -391,7 +440,10 @@ export class ClientOrderService {
 								{
 									$multiply: [
 										{
-											$divide: ['$recurringCustomers', '$totalCustomers'],
+											$divide: [
+												'$recurringCustomers',
+												'$totalCustomers',
+											],
 										},
 										100,
 									],
@@ -404,7 +456,10 @@ export class ClientOrderService {
 								{
 									$multiply: [
 										{
-											$divide: ['$newCustomers', '$totalCustomers'],
+											$divide: [
+												'$newCustomers',
+												'$totalCustomers',
+											],
 										},
 										100,
 									],
@@ -417,14 +472,21 @@ export class ClientOrderService {
 			];
 			const result = await this.orderModel.aggregate(pipeline);
 
-			const { returningCustomer, newCustomer } = result.length > 0 ? result[0] : { returningCustomer: 0, newCustomer: 0 };
+			const { returningCustomer, newCustomer } =
+				result.length > 0
+					? result[0]
+					: { returningCustomer: 0, newCustomer: 0 };
 			return { returningCustomer: returningCustomer, newCustomer };
 		} catch (error) {
 			console.log('Error While Calculating the percentage', error);
 		}
 	}
 
-	async totalOverViewCountForOrdersBetweenDate(locationId: Types.ObjectId, fromDate: string, toDate: string) {
+	async totalOverViewCountForOrdersBetweenDate(
+		storeId: Types.ObjectId,
+		fromDate: string,
+		toDate: string
+	) {
 		const startDateStartTime = new Date(fromDate);
 		const startDateEndTime = new Date(fromDate);
 		const endDateStartTime = new Date(toDate);
@@ -437,7 +499,7 @@ export class ClientOrderService {
 			const pipeline: PipelineStage[] = [
 				{
 					$match: {
-						locationId,
+						storeId,
 						posCreatedAt: {
 							$gte: startDateStartTime,
 							$lte: endDateEndTime,
@@ -454,7 +516,10 @@ export class ClientOrderService {
 							$sum: {
 								$cond: [
 									{
-										$lt: ['$posCreatedAt', startDateEndTime],
+										$lt: [
+											'$posCreatedAt',
+											startDateEndTime,
+										],
 									},
 									'$totals.finalTotal',
 									0,
@@ -465,7 +530,10 @@ export class ClientOrderService {
 							$sum: {
 								$cond: [
 									{
-										$gte: ['$posCreatedAt', endDateStartTime],
+										$gte: [
+											'$posCreatedAt',
+											endDateStartTime,
+										],
 									},
 									'$totals.finalTotal',
 									0,
@@ -476,7 +544,10 @@ export class ClientOrderService {
 							$sum: {
 								$cond: [
 									{
-										$lt: ['$posCreatedAt', startDateEndTime],
+										$lt: [
+											'$posCreatedAt',
+											startDateEndTime,
+										],
 									},
 									'$totals.totalDiscounts',
 									0,
@@ -487,7 +558,10 @@ export class ClientOrderService {
 							$sum: {
 								$cond: [
 									{
-										$gte: ['$posCreatedAt', endDateStartTime],
+										$gte: [
+											'$posCreatedAt',
+											endDateStartTime,
+										],
 									},
 									'$totals.totalDiscounts',
 									0,
@@ -498,7 +572,10 @@ export class ClientOrderService {
 							$sum: {
 								$cond: [
 									{
-										$lt: ['$posCreatedAt', startDateEndTime],
+										$lt: [
+											'$posCreatedAt',
+											startDateEndTime,
+										],
 									},
 									1,
 									0,
@@ -509,7 +586,10 @@ export class ClientOrderService {
 							$sum: {
 								$cond: [
 									{
-										$gte: ['$posCreatedAt', endDateStartTime],
+										$gte: [
+											'$posCreatedAt',
+											endDateStartTime,
+										],
 									},
 									1,
 									0,
@@ -531,12 +611,18 @@ export class ClientOrderService {
 										{
 											$divide: [
 												{
-													$subtract: ['$toDateTotalAmount', '$fromDateTotalAmount'],
+													$subtract: [
+														'$toDateTotalAmount',
+														'$fromDateTotalAmount',
+													],
 												},
 												{
 													$cond: [
 														{
-															$eq: ['$fromDateTotalAmount', 0],
+															$eq: [
+																'$fromDateTotalAmount',
+																0,
+															],
 														},
 														1,
 														'$fromDateTotalAmount',
@@ -557,12 +643,18 @@ export class ClientOrderService {
 										{
 											$divide: [
 												{
-													$subtract: ['$toDateTotalDiscount', '$fromDateTotalDiscount'],
+													$subtract: [
+														'$toDateTotalDiscount',
+														'$fromDateTotalDiscount',
+													],
 												},
 												{
 													$cond: [
 														{
-															$eq: ['$fromDateTotalDiscount', 0],
+															$eq: [
+																'$fromDateTotalDiscount',
+																0,
+															],
 														},
 														1,
 														'$fromDateTotalDiscount',
@@ -583,12 +675,18 @@ export class ClientOrderService {
 										{
 											$divide: [
 												{
-													$subtract: ['$toDateOrderCount', '$fromDateOrderCount'],
+													$subtract: [
+														'$toDateOrderCount',
+														'$fromDateOrderCount',
+													],
 												},
 												{
 													$cond: [
 														{
-															$eq: ['$fromDateOrderCount', 0],
+															$eq: [
+																'$fromDateOrderCount',
+																0,
+															],
 														},
 														1,
 														'$fromDateOrderCount',
@@ -607,7 +705,14 @@ export class ClientOrderService {
 			];
 			const result = await this.orderModel.aggregate(pipeline);
 
-			const { totalOrderAmount, totalDiscounts, totalOrders, orderAmountGrowth, discountGrowth, orderCountGrowth } =
+			const {
+				totalOrderAmount,
+				totalDiscounts,
+				totalOrders,
+				orderAmountGrowth,
+				discountGrowth,
+				orderCountGrowth,
+			} =
 				result.length > 0
 					? result[0]
 					: {
@@ -631,14 +736,18 @@ export class ClientOrderService {
 		}
 	}
 
-	async getHourWiseDateForSpecificDateRange(locationId: Types.ObjectId, fromDate: string, toDate: string) {
+	async getHourWiseDateForSpecificDateRange(
+		storeId: Types.ObjectId,
+		fromDate: string,
+		toDate: string
+	) {
 		try {
 			const fromStartDate = new Date(fromDate);
 			const toEndDate = new Date(toDate);
 			const pipeline: PipelineStage[] = [
 				{
 					$match: {
-						locationId,
+						storeId,
 						posCreatedAt: {
 							$gte: fromStartDate,
 							$lte: toEndDate,
@@ -663,13 +772,19 @@ export class ClientOrderService {
 									$cond: {
 										if: { $eq: ['$_id.isAM', true] },
 										then: {
-											$concat: [{ $toString: '$_id.hour' }, ' AM'],
+											$concat: [
+												{ $toString: '$_id.hour' },
+												' AM',
+											],
 										},
 										else: {
 											$concat: [
 												{
 													$toString: {
-														$subtract: ['$_id.hour', 12],
+														$subtract: [
+															'$_id.hour',
+															12,
+														],
 													},
 												},
 												' PM',
@@ -693,14 +808,18 @@ export class ClientOrderService {
 		} catch (error) {}
 	}
 
-	async getWeeklyBusiestDataForSpecificRange(locationId: Types.ObjectId, fromDate: string, toDate: string) {
+	async getWeeklyBusiestDataForSpecificRange(
+		storeId: Types.ObjectId,
+		fromDate: string,
+		toDate: string
+	) {
 		try {
 			const fromStartDate = new Date(fromDate);
 			const toEndDate = new Date(toDate);
 			const pipeline: PipelineStage[] = [
 				{
 					$match: {
-						locationId,
+						storeId,
 						posCreatedAt: {
 							$gte: fromStartDate,
 							$lte: toEndDate,

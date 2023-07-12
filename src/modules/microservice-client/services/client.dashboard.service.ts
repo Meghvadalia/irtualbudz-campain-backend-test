@@ -6,16 +6,28 @@ import { Types } from 'mongoose';
 
 @Injectable()
 export class ClientDashboardService {
-	constructor(private readonly customerService: ClientCustomerService, private readonly orderService: ClientOrderService) {}
+	constructor(
+		private readonly customerService: ClientCustomerService,
+		private readonly orderService: ClientOrderService
+	) {}
 
-	async getCalculatedData(req, locationId: Types.ObjectId, query: { fromDate: string; toDate: string }) {
-		const averageAge = await this.calculateAverageAge(locationId, query.fromDate, query.toDate);
-
-		const { averageSpend, loyaltyPointsConverted } = await this.calculateAverageSpendAndLoyaltyPoints(
-			locationId,
+	async getCalculatedData(
+		req,
+		storeId: Types.ObjectId,
+		query: { fromDate: string; toDate: string }
+	) {
+		const averageAge = await this.calculateAverageAge(
+			storeId,
 			query.fromDate,
 			query.toDate
 		);
+
+		const { averageSpend, loyaltyPointsConverted } =
+			await this.calculateAverageSpendAndLoyaltyPoints(
+				storeId,
+				query.fromDate,
+				query.toDate
+			);
 
 		const {
 			totalOrderAmount,
@@ -25,19 +37,36 @@ export class ClientDashboardService {
 			totalDiscounts,
 			discountGrowth,
 			orderCountGrowth,
-		} = await this.totalSales(locationId, query);
+		} = await this.totalSales(storeId, query);
 
-		const topCategory = await this.topSellingCategory(locationId, query.fromDate, query.toDate);
-		const { returningCustomer: returningCustomer, newCustomer } = await this.recVsMedCustomer(
-			locationId,
+		const topCategory = await this.topSellingCategory(
+			storeId,
 			query.fromDate,
 			query.toDate
 		);
-		const weekOrders = await this.getOrderCountsByDayOfWeek(locationId, query.fromDate, query.toDate);
-		const hourlyData = await this.getOrderCountsByHour(locationId, query.fromDate, query.toDate);
+		const { returningCustomer: returningCustomer, newCustomer } =
+			await this.recVsMedCustomer(storeId, query.fromDate, query.toDate);
+		const weekOrders = await this.getOrderCountsByDayOfWeek(
+			storeId,
+			query.fromDate,
+			query.toDate
+		);
+		const hourlyData = await this.getOrderCountsByHour(
+			storeId,
+			query.fromDate,
+			query.toDate
+		);
 
-		const brandWiseOrderData = await this.orderService.getBrandWiseSales(locationId, query.fromDate, query.toDate);
-		const staffWiseOrderData = await this.orderService.getEmployeeWiseSales(locationId, query.fromDate, query.toDate);
+		const brandWiseOrderData = await this.orderService.getBrandWiseSales(
+			storeId,
+			query.fromDate,
+			query.toDate
+		);
+		const staffWiseOrderData = await this.orderService.getEmployeeWiseSales(
+			storeId,
+			query.fromDate,
+			query.toDate
+		);
 
 		return {
 			overview: {
@@ -76,34 +105,74 @@ export class ClientDashboardService {
 		};
 	}
 
-	async calculateAverageAge(locationId: Types.ObjectId, fromDate: string, toDate: string) {
-		const averageAge = await this.customerService.getAverageAge(locationId, fromDate, toDate);
-		return averageAge;
-	}
-
-	async recVsMedCustomer(locationId: Types.ObjectId, fromDate: string, toDate: string) {
-		const customerPercentage = this.orderService.getRecurringAndNewCustomerPercentage(locationId, fromDate, toDate);
-		return customerPercentage;
-	}
-
-	async calculateAverageSpendAndLoyaltyPoints(locationId: Types.ObjectId, fromDate: string, toDate: string) {
-		const averageSpendWithLoyalty = await this.orderService.getAverageSpendAndLoyaltyPointsForAllCustomer(
-			locationId,
+	async calculateAverageAge(
+		storeId: Types.ObjectId,
+		fromDate: string,
+		toDate: string
+	) {
+		const averageAge = await this.customerService.getAverageAge(
+			storeId,
 			fromDate,
 			toDate
 		);
+		return averageAge;
+	}
+
+	async recVsMedCustomer(
+		storeId: Types.ObjectId,
+		fromDate: string,
+		toDate: string
+	) {
+		const customerPercentage =
+			this.orderService.getRecurringAndNewCustomerPercentage(
+				storeId,
+				fromDate,
+				toDate
+			);
+		return customerPercentage;
+	}
+
+	async calculateAverageSpendAndLoyaltyPoints(
+		storeId: Types.ObjectId,
+		fromDate: string,
+		toDate: string
+	) {
+		const averageSpendWithLoyalty =
+			await this.orderService.getAverageSpendAndLoyaltyPointsForAllCustomer(
+				storeId,
+				fromDate,
+				toDate
+			);
 		return averageSpendWithLoyalty;
 	}
 
-	async totalSales(locationId: Types.ObjectId, query) {
+	async totalSales(storeId: Types.ObjectId, query) {
 		const { fromDate, toDate } = query;
-		const formattedFromDate = dayjs(fromDate).format('YYYY-MM-DDT00:00:00.000[Z]');
-		const formattedToDate = dayjs(toDate).format('YYYY-MM-DDT23:59:59.999[Z]');
+		const formattedFromDate = dayjs(fromDate).format(
+			'YYYY-MM-DDT00:00:00.000[Z]'
+		);
+		const formattedToDate = dayjs(toDate).format(
+			'YYYY-MM-DDT23:59:59.999[Z]'
+		);
 
-		const { totalOrderAmount, totalDiscounts, totalOrders, orderAmountGrowth, discountGrowth, orderCountGrowth } =
-			await this.orderService.totalOverViewCountForOrdersBetweenDate(locationId, formattedFromDate, formattedToDate);
+		const {
+			totalOrderAmount,
+			totalDiscounts,
+			totalOrders,
+			orderAmountGrowth,
+			discountGrowth,
+			orderCountGrowth,
+		} = await this.orderService.totalOverViewCountForOrdersBetweenDate(
+			storeId,
+			formattedFromDate,
+			formattedToDate
+		);
 
-		const dateWiseOrderData = await this.orderService.getOrderForEachDate(locationId, formattedFromDate, formattedToDate);
+		const dateWiseOrderData = await this.orderService.getOrderForEachDate(
+			storeId,
+			formattedFromDate,
+			formattedToDate
+		);
 
 		return {
 			totalOrderAmount,
@@ -116,19 +185,45 @@ export class ClientDashboardService {
 		};
 	}
 
-	async getOrderCountsByDayOfWeek(locationId: Types.ObjectId, fromDate: string, toDate: string) {
-		const orderCountsByDayOfWeek = await this.orderService.getWeeklyBusiestDataForSpecificRange(locationId, fromDate, toDate);
+	async getOrderCountsByDayOfWeek(
+		storeId: Types.ObjectId,
+		fromDate: string,
+		toDate: string
+	) {
+		const orderCountsByDayOfWeek =
+			await this.orderService.getWeeklyBusiestDataForSpecificRange(
+				storeId,
+				fromDate,
+				toDate
+			);
 		return orderCountsByDayOfWeek;
 	}
 
-	async getOrderCountsByHour(locationId: Types.ObjectId, fromDate: string, toDate: string) {
-		const orderCountsByHour = await this.orderService.getHourWiseDateForSpecificDateRange(locationId, fromDate, toDate);
+	async getOrderCountsByHour(
+		storeId: Types.ObjectId,
+		fromDate: string,
+		toDate: string
+	) {
+		const orderCountsByHour =
+			await this.orderService.getHourWiseDateForSpecificDateRange(
+				storeId,
+				fromDate,
+				toDate
+			);
 
 		return orderCountsByHour;
 	}
 
-	async topSellingCategory(locationId: Types.ObjectId, fromDate: string, toDate: string) {
-		const topCategory = await this.orderService.getTopCategory(locationId, fromDate, toDate);
+	async topSellingCategory(
+		storeId: Types.ObjectId,
+		fromDate: string,
+		toDate: string
+	) {
+		const topCategory = await this.orderService.getTopCategory(
+			storeId,
+			fromDate,
+			toDate
+		);
 		return topCategory;
 	}
 }

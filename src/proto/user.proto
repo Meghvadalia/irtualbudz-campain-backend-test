@@ -39,6 +39,11 @@ message User {
   string name = 2;
   string email = 3;
   string phone = 4;
+  string type = 5;
+  optional string companyId = 6;
+  optional string storeId = 7;
+  optional bool isActive = 8;
+
 }
 
 message LogoutRequest {
