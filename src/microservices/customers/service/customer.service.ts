@@ -18,94 +18,6 @@ export class CustomerService {
 		@InjectModel(POS.name) private posModel: Model<POS>
 	) {}
 
-	// async seedCustomers(posName: string) {
-	// 	try {
-	// 		const posData: IPOS = await this.posModel.findOne({ name: posName });
-	// 		const companiesList: ICompany[] = await this.companyModel.find<ICompany>({
-	// 			isActive: true,
-	// 			posId: posData._id,
-	// 		});
-
-	// 		const date = new Date();
-	// 		let fromDate, toDate;
-	// 		let options: AxiosRequestConfig;
-	// 		let page: number = 1;
-	// 		let shouldContinue: boolean = true;
-	// 		let customerData;
-
-	// 		for (const company of companiesList) {
-	// 			const customer = await this.customerModel.findOne({ companyId: company._id });
-
-	// 			if (customer) {
-	// 				fromDate = new Date(date.getFullYear(), date.getMonth(), date.getDate() - 1, 0, 0, 0);
-	// 				toDate = new Date(date.getFullYear(), date.getMonth(), date.getDate(), 0, 0, 0);
-	// 				console.log('seeding data for previous day');
-	// 				options = {
-	// 					method: 'get',
-	// 					url: `${posData.liveUrl}/v1/customers?created_after=${fromDate}&created_before=${toDate}&page=${page}&page_size=10000`,
-	// 					headers: {
-	// 						key: company.dataObject.key,
-	// 						ClientId: company.dataObject.clientId,
-	// 						Accept: 'application/json',
-	// 					},
-	// 				};
-	// 			} else {
-	// 				console.log('Seeding all customers...');
-	// 				options = {
-	// 					method: 'get',
-	// 					url: `${posData.liveUrl}/v1/customers?page=${page}&page_size=10000`,
-	// 					headers: {
-	// 						key: company.dataObject.key,
-	// 						ClientId: company.dataObject.clientId,
-	// 						Accept: 'application/json',
-	// 					},
-	// 				};
-	// 			}
-
-	// 			while (shouldContinue) {
-	// 				const { data } = await axios.request(options);
-	// 				if (data.customers.length > 0 || data.data.length > 0) {
-	// 					page++;
-	// 				} else {
-	// 					console.log('All orders fetched');
-	// 					shouldContinue = false;
-	// 				}
-	// 				if (company.name === 'Monarc') {
-	// 					customerData = data.customers;
-	// 				} else {
-	// 					customerData = data.data;
-	// 				}
-	// 			}
-
-	// 			let customerArray: ICustomer[] = [];
-	// 			for (const d of customerData) {
-	// 				customerArray.push({
-	// 					posCustomerId: d.id ?? d.id,
-	// 					companyId: company._id,
-	// 					POSId: posData._id,
-	// 					name: d.name,
-	// 					email: d.email,
-	// 					phone: d.phone,
-	// 					city: d.city,
-	// 					state: d.state,
-	// 					country: d.country,
-	// 					birthDate: d.birthDate,
-	// 					isLoyal: d.isLoyal,
-	// 					loyaltyPoints: d.loyaltyPoints,
-	// 					streetAddress1: d.streetAddress1,
-	// 					streetAddress2: d.streetAddress2,
-	// 					type: d.type,
-	// 					zip: d.zip,
-	// 					userCreatedAt: d.createdAt,
-	// 				});
-	// 			}
-	// 			return await this.customerModel.insertMany(customerArray);
-	// 		}
-	// 	} catch (error) {
-	// 		console.error('Error while seeding customers:', error.message);
-	// 	}
-	// }
-
 	async seedCustomers(posName: string) {
 		try {
 			const posData: IPOS = await this.posModel.findOne({ name: posName });
@@ -195,7 +107,7 @@ export class CustomerService {
 				}
 			}
 
-			return await this.customerModel.insertMany(customerDataArray);
+			return Promise.all(await this.customerModel.insertMany(customerDataArray));
 		} catch (error) {
 			console.error('Error while seeding customers:', error.message);
 		}
