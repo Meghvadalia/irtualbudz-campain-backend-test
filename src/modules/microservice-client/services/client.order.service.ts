@@ -8,11 +8,7 @@ import { Order } from '../../../microservices/order/entities/order.entity';
 export class ClientOrderService {
 	constructor(@InjectModel(Order.name) private orderModel: Model<Order>) {}
 
-	async getOrderForEachDate(
-		storeId: Types.ObjectId,
-		fromDate: string,
-		toDate: string
-	) {
+	async getOrderForEachDate(storeId: Types.ObjectId, fromDate: string, toDate: string) {
 		const fromStartDate = new Date(fromDate);
 		const fromEndDate = new Date(toDate);
 		const pipeline: PipelineStage[] = [
@@ -52,7 +48,7 @@ export class ClientOrderService {
 			},
 			{
 				$project: {
-					_id: 0, // Exclude the _id field from the output
+					_id: 0,
 					date: 1,
 					count: 1,
 					totalAmount: { $round: ['$totalAmount', 2] },
@@ -65,11 +61,7 @@ export class ClientOrderService {
 		return dateWiseOrderData;
 	}
 
-	async getBrandWiseSales(
-		storeId: Types.ObjectId,
-		fromDate: string,
-		toDate: string
-	) {
+	async getBrandWiseSales(storeId: Types.ObjectId, fromDate: string, toDate: string) {
 		const fromStartDate = new Date(fromDate);
 		const fromEndDate = new Date(toDate);
 		const pipeline: PipelineStage[] = [
@@ -132,11 +124,7 @@ export class ClientOrderService {
 		return brandWiseOrderData;
 	}
 
-	async getEmployeeWiseSales(
-		storeId: Types.ObjectId,
-		fromDate: string,
-		toDate: string
-	) {
+	async getEmployeeWiseSales(storeId: Types.ObjectId, fromDate: string, toDate: string) {
 		const fromStartDate = new Date(fromDate);
 		const fromEndDate = new Date(toDate);
 		const pipeline: PipelineStage[] = [
@@ -276,21 +264,25 @@ export class ClientOrderService {
 		return staffWiseOrderData;
 	}
 
-	async getAverageSpendAndLoyaltyPointsForAllCustomer(
-		storeId: Types.ObjectId,
-		fromDate: string,
-		toDate: string
-	) {
-		const fromStartDate = new Date(fromDate);
-		const toEndDate = new Date(toDate);
+	async getAverageSpendAndLoyaltyPointsForAllCustomer(storeId: Types.ObjectId, fromDate: string, toDate: string) {
+		const startDateStartTime = new Date(fromDate);
+		const startDateEndTime = new Date(fromDate);
+		const endDateStartTime = new Date(toDate);
+		const endDateEndTime = new Date(toDate);
+
+		startDateEndTime.setUTCHours(23, 59, 59, 999);
+		endDateStartTime.setUTCHours(0, 0, 0, 0);
+
+		console.log({});
+
 		try {
 			const pipeline: PipelineStage[] = [
 				{
 					$match: {
 						storeId,
 						posCreatedAt: {
-							$gte: fromStartDate,
-							$lte: toEndDate,
+							$gte: startDateStartTime,
+							$lte: endDateEndTime,
 						},
 					},
 				},
@@ -299,6 +291,50 @@ export class ClientOrderService {
 						_id: '$customerId',
 						averageSpend: { $avg: '$totals.finalTotal' },
 						totalPoints: { $sum: '$currentPoints' },
+						fromDateAverageSpend: {
+							$sum: {
+								$cond: [
+									{
+										$lte: ['$posCreatedAt', startDateEndTime],
+									},
+									'$totals.finalTotal',
+									0,
+								],
+							},
+						},
+						toDateAverageSpend: {
+							$sum: {
+								$cond: [
+									{
+										$gte: ['$posCreatedAt', endDateStartTime],
+									},
+									'$totals.finalTotal',
+									0,
+								],
+							},
+						},
+						fromDateTotalLoyaltyPointsConverted: {
+							$sum: {
+								$cond: [
+									{
+										$lte: ['$posCreatedAt', startDateEndTime],
+									},
+									'$currentPoints',
+									0,
+								],
+							},
+						},
+						toDateTotalLoyaltyPointsConverted: {
+							$sum: {
+								$cond: [
+									{
+										$gte: ['$posCreatedAt', endDateStartTime],
+									},
+									'$currentPoints',
+									0,
+								],
+							},
+						},
 					},
 				},
 				{
@@ -306,6 +342,10 @@ export class ClientOrderService {
 						_id: null,
 						averageSpend: { $avg: '$averageSpend' },
 						totalPointsConverted: { $sum: '$totalPoints' },
+						fromDateAverageSpend: { $avg: '$fromDateAverageSpend' },
+						toDateAverageSpend: { $avg: '$toDateAverageSpend' },
+						fromDateTotalLoyaltyPointsConverted: { $sum: '$fromDateTotalLoyaltyPointsConverted' },
+						toDateTotalLoyaltyPointsConverted: { $sum: '$toDateTotalLoyaltyPointsConverted' },
 					},
 				},
 				{
@@ -313,6 +353,41 @@ export class ClientOrderService {
 						_id: 0,
 						averageSpend: { $round: ['$averageSpend', 2] },
 						loyaltyPointsConverted: '$totalPointsConverted',
+						averageSpendGrowth: {
+							$round: [
+								{
+									$cond: [
+										{ $ne: ['$fromDateAverageSpend', 0] },
+										{
+											$multiply: [
+												{
+													$divide: [{ $subtract: ['$toDateAverageSpend', '$fromDateAverageSpend'] }, '$fromDateAverageSpend'],
+												},
+												100,
+											],
+										},
+										0,
+									],
+								},
+								2,
+							],
+						},
+						loyaltyPointsConversionGrowth: {
+							$round: [
+								{
+									$multiply: [
+										{
+											$divide: [
+												{ $subtract: ['$toDateTotalLoyaltyPointsConverted', '$fromDateTotalLoyaltyPointsConverted'] },
+												'$fromDateTotalLoyaltyPointsConverted',
+											],
+										},
+										100,
+									],
+								},
+								2,
+							],
+						},
 					},
 				},
 			];
@@ -321,17 +396,13 @@ export class ClientOrderService {
 			const averageSpendWithLoyalty =
 				result.length > 0
 					? result[0]
-					: { averageSpend: 0, loyaltyPointsConverted: 0 };
+					: { averageSpend: 0, loyaltyPointsConverted: 0, averageSpendGrowth: 0, loyaltyPointsConversionGrowth: 0 };
 
 			return averageSpendWithLoyalty;
 		} catch (error) {}
 	}
 
-	async getTopCategory(
-		storeId: Types.ObjectId,
-		fromDate: string,
-		toDate: string
-	) {
+	async getTopCategory(storeId: Types.ObjectId, fromDate: string, toDate: string) {
 		const fromStartDate = new Date(fromDate);
 		const toEndDate = new Date(toDate);
 		try {
@@ -392,11 +463,7 @@ export class ClientOrderService {
 		} catch (error) {}
 	}
 
-	async getRecurringAndNewCustomerPercentage(
-		storeId: Types.ObjectId,
-		fromDate: string,
-		toDate: string
-	) {
+	async getRecurringAndNewCustomerPercentage(storeId: Types.ObjectId, fromDate: string, toDate: string) {
 		const fromStartDate = new Date(fromDate);
 		const fromEndDate = new Date(toDate);
 		try {
@@ -482,11 +549,7 @@ export class ClientOrderService {
 		}
 	}
 
-	async totalOverViewCountForOrdersBetweenDate(
-		storeId: Types.ObjectId,
-		fromDate: string,
-		toDate: string
-	) {
+	async totalOverViewCountForOrdersBetweenDate(storeId: Types.ObjectId, fromDate: string, toDate: string) {
 		const startDateStartTime = new Date(fromDate);
 		const startDateEndTime = new Date(fromDate);
 		const endDateStartTime = new Date(toDate);
@@ -736,11 +799,7 @@ export class ClientOrderService {
 		}
 	}
 
-	async getHourWiseDateForSpecificDateRange(
-		storeId: Types.ObjectId,
-		fromDate: string,
-		toDate: string
-	) {
+	async getHourWiseDateForSpecificDateRange(storeId: Types.ObjectId, fromDate: string, toDate: string) {
 		try {
 			const fromStartDate = new Date(fromDate);
 			const toEndDate = new Date(toDate);
@@ -808,11 +867,7 @@ export class ClientOrderService {
 		} catch (error) {}
 	}
 
-	async getWeeklyBusiestDataForSpecificRange(
-		storeId: Types.ObjectId,
-		fromDate: string,
-		toDate: string
-	) {
+	async getWeeklyBusiestDataForSpecificRange(storeId: Types.ObjectId, fromDate: string, toDate: string) {
 		try {
 			const fromStartDate = new Date(fromDate);
 			const toEndDate = new Date(toDate);
@@ -882,5 +937,225 @@ export class ClientOrderService {
 			let weekData = result.length > 0 ? result : [];
 			return weekData;
 		} catch (error) {}
+	}
+
+	async topDiscountedCoupon(storeId: Types.ObjectId, fromDate: string, toDate: string) {
+		try {
+			const fromStartDate = new Date(fromDate);
+			const toEndDate = new Date(toDate);
+
+			console.log({ fromStartDate, toEndDate });
+
+			const pipeline: PipelineStage[] = [
+				{
+					$match: {
+						storeId,
+						posCreatedAt: {
+							$gte: fromStartDate,
+							$lte: toEndDate,
+						},
+					},
+				},
+				{
+					$lookup: {
+						from: 'cart',
+						localField: 'itemsInCart',
+						foreignField: '_id',
+						as: 'carts',
+					},
+				},
+				{
+					$unwind: '$carts',
+				},
+				{
+					$unwind: '$carts.itemDiscounts',
+				},
+				{
+					$match: {
+						'carts.itemDiscounts.discountType': 'couponCode',
+					},
+				},
+				{
+					$group: {
+						_id: '$carts.itemDiscounts.promoCode',
+						count: { $sum: 1 },
+					},
+				},
+				{
+					$sort: {
+						count: -1,
+					},
+				},
+				{
+					$limit: 3,
+				},
+				{
+					$project: {
+						_id: 0,
+						promoCode: '$_id',
+						count: 1,
+					},
+				},
+			];
+
+			const result = await this.orderModel.aggregate(pipeline);
+			console.log({ result });
+		} catch (error) {
+			throw error;
+		}
+	}
+
+	async averageCartSize(storeId: Types.ObjectId, fromDate: string, toDate: string) {
+		try {
+			const startDateStartTime = new Date(fromDate);
+			const startDateEndTime = new Date(fromDate);
+			const endDateStartTime = new Date(toDate);
+			const endDateEndTime = new Date(toDate);
+
+			startDateEndTime.setUTCHours(23, 59, 59, 999);
+			endDateStartTime.setUTCHours(0, 0, 0, 0);
+
+			const pipeline = [
+				{
+					$match: {
+						storeId: new Types.ObjectId(storeId),
+						posCreatedAt: {
+							$gte: startDateStartTime,
+							$lte: endDateEndTime,
+						},
+					},
+				},
+				{
+					$lookup: {
+						from: 'cart',
+						localField: 'itemsInCart',
+						foreignField: '_id',
+						as: 'carts',
+					},
+				},
+				{
+					$unwind: '$carts',
+				},
+				{
+					$group: {
+						_id: null,
+						averageCartSize: { $avg: '$carts.totalPrice' },
+						toDateAverageCartAmount: {
+							$sum: {
+								$cond: [
+									{
+										$gte: ['$posCreatedAt', endDateStartTime],
+									},
+									'$carts.totalPrice',
+									0,
+								],
+							},
+						},
+						fromDateAverageCartAmount: {
+							$sum: {
+								$cond: [
+									{
+										$lt: ['$posCreatedAt', startDateEndTime],
+									},
+									'$carts.totalPrice',
+									0,
+								],
+							},
+						},
+					},
+				},
+				{
+					$project: {
+						averageCartSize: { $round: ['$averageCartSize', 2] },
+						cartSizeGrowth: {
+							$round: [
+								{
+									$multiply: [
+										{
+											$divide: [
+												{
+													$subtract: ['$toDateAverageCartAmount', '$fromDateAverageCartAmount'],
+												},
+												{
+													$cond: [
+														{
+															$eq: ['$fromDateAverageCartAmount', 0],
+														},
+														1,
+														'$fromDateAverageCartAmount',
+													],
+												},
+											],
+										},
+										100,
+									],
+								},
+								2,
+							],
+						},
+					},
+				},
+			];
+
+			const result = await this.orderModel.aggregate(pipeline);
+			const { averageCartSize, cartSizeGrowth } = result[0];
+			return { averageCartSize, cartSizeGrowth };
+		} catch (error) {
+			throw error;
+		}
+	}
+
+	async topDiscountedItem(storeId: Types.ObjectId, fromDate: string, toDate: string) {
+		try {
+			const fromStartDate = new Date(fromDate);
+			const toEndDate = new Date(toDate);
+
+			const pipeline: PipelineStage[] = [
+				{
+					$match: {
+						storeId: new Types.ObjectId(storeId),
+						posCreatedAt: {
+							$gte: fromStartDate,
+							$lte: toEndDate,
+						},
+					},
+				},
+				{
+					$unwind: '$itemsInCart',
+				},
+				{
+					$lookup: {
+						from: 'cart',
+						localField: 'itemsInCart',
+						foreignField: '_id',
+						as: 'cart',
+					},
+				},
+				{
+					$unwind: '$cart',
+				},
+				{
+					$unwind: '$cart.itemDiscounts',
+				},
+				{
+					$group: {
+						_id: '$cart.productName',
+						totalDiscountAmount: { $sum: '$cart.itemDiscounts.discountAmount' },
+					},
+				},
+				{
+					$sort: { totalDiscountAmount: -1 },
+				},
+				{
+					$limit: 1,
+				},
+			];
+
+			const result = await this.orderModel.aggregate(pipeline);
+			const { _id } = result.length > 0 ? result[0] : null;
+			return _id;
+		} catch (error) {
+			throw error;
+		}
 	}
 }
