@@ -446,13 +446,9 @@ export class ClientOrderService {
 					},
 				},
 			];
-			console.log('====================================');
-			console.log(JSON.stringify(pipeline));
-			console.log('====================================');
+
 			const result = await this.orderModel.aggregate(pipeline);
-			console.log('====================================');
-			console.log(JSON.stringify(JSON.stringify(result)));
-			console.log('====================================');
+
 			const averageSpendWithLoyalty =
 				result.length > 0
 					? result[0]
@@ -1041,8 +1037,6 @@ export class ClientOrderService {
 			const fromStartDate = new Date(fromDate);
 			const toEndDate = new Date(toDate);
 
-			console.log({ fromStartDate, toEndDate });
-
 			const pipeline: PipelineStage[] = [
 				{
 					$match: {
@@ -1096,7 +1090,7 @@ export class ClientOrderService {
 			];
 
 			const result = await this.orderModel.aggregate(pipeline);
-			console.log({ result });
+			return result;
 		} catch (error) {
 			throw error;
 		}
@@ -1233,7 +1227,7 @@ export class ClientOrderService {
 			const pipeline: PipelineStage[] = [
 				{
 					$match: {
-						storeId: new Types.ObjectId(storeId),
+						storeId,
 						posCreatedAt: {
 							$gte: fromStartDate,
 							$lte: toEndDate,
@@ -1266,20 +1260,6 @@ export class ClientOrderService {
 						totalDiscountAmount: {
 							$sum: '$cart.itemDiscounts.discountAmount',
 						},
-						orders: {
-							$addToSet: '$_id',
-						},
-					},
-				},
-				{
-					$group: {
-						_id: '$_id.productName',
-						totalDiscountAmount: {
-							$sum: '$totalDiscountAmount',
-						},
-						orderCount: {
-							$sum: { $size: '$orders' },
-						},
 					},
 				},
 				{
@@ -1293,19 +1273,17 @@ export class ClientOrderService {
 				{
 					$project: {
 						_id: 0,
-						productName: '$_id',
+						productName: '$_id.productName',
 						totalDiscountAmount: 1,
 						orderCount: 1,
 					},
 				},
 			];
-			console.log('====================================');
-			console.log(JSON.stringify(pipeline));
 
-			console.log('====================================');
 			const result = await this.orderModel.aggregate(pipeline);
-			const { _id } = result.length > 0 ? result[0] : { _id: null };
-			return _id;
+			console.log(result);
+			const { _id } = result.length > 0 ? result[0] : [];
+			return result;
 		} catch (error) {
 			throw error;
 		}

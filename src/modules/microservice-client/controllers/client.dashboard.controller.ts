@@ -41,9 +41,7 @@ export class ClientDashboardController {
 					objectId,
 					query
 				);
-			console.log('====================================');
-			console.log();
-			console.log('====================================');
+
 			return sendSuccess({ overview, customer, sales, operations });
 		} catch (error) {
 			console.log(error);
