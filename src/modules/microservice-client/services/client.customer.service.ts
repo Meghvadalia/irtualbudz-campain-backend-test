@@ -26,7 +26,7 @@ export class ClientCustomerService {
 		const aggregationPipeline = [
 			{
 				$match: {
-					storeId,
+					storeId: { $in: [storeId] },
 					userCreatedAt: {
 						$gte: startDateStartTime,
 						$lte: endDateEndTime,
@@ -114,8 +114,11 @@ export class ClientCustomerService {
 		];
 
 		const result = await this.customerModel.aggregate(aggregationPipeline);
+		console.log(result);
 		const { averageAge, averageAgeGrowth } =
-			result.length > 0 ? result[0] : null;
+			result.length > 0
+				? result[0]
+				: { averageAge: null, averageAgeGrowth: null };
 
 		return { averageAge, averageAgeGrowth };
 	}
