@@ -1259,17 +1259,44 @@ export class ClientOrderService {
 				},
 				{
 					$group: {
-						_id: '$cart.productName',
+						_id: {
+							cartId: '$cart._id',
+							productName: '$cart.productName',
+						},
 						totalDiscountAmount: {
 							$sum: '$cart.itemDiscounts.discountAmount',
+						},
+						orders: {
+							$addToSet: '$_id',
 						},
 					},
 				},
 				{
-					$sort: { totalDiscountAmount: -1 },
+					$group: {
+						_id: '$_id.productName',
+						totalDiscountAmount: {
+							$sum: '$totalDiscountAmount',
+						},
+						orderCount: {
+							$sum: { $size: '$orders' },
+						},
+					},
+				},
+				{
+					$sort: {
+						totalDiscountAmount: -1,
+					},
 				},
 				{
 					$limit: 5,
+				},
+				{
+					$project: {
+						_id: 0,
+						productName: '$_id',
+						totalDiscountAmount: 1,
+						orderCount: 1,
+					},
 				},
 			];
 			console.log('====================================');
