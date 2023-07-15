@@ -8,7 +8,11 @@ import { Order } from '../../../microservices/order/entities/order.entity';
 export class ClientOrderService {
 	constructor(@InjectModel(Order.name) private orderModel: Model<Order>) {}
 
-	async getOrderForEachDate(storeId: Types.ObjectId, fromDate: string, toDate: string) {
+	async getOrderForEachDate(
+		storeId: Types.ObjectId,
+		fromDate: string,
+		toDate: string
+	) {
 		const fromStartDate = new Date(fromDate);
 		const fromEndDate = new Date(toDate);
 		const pipeline: PipelineStage[] = [
@@ -61,7 +65,11 @@ export class ClientOrderService {
 		return dateWiseOrderData;
 	}
 
-	async getBrandWiseSales(storeId: Types.ObjectId, fromDate: string, toDate: string) {
+	async getBrandWiseSales(
+		storeId: Types.ObjectId,
+		fromDate: string,
+		toDate: string
+	) {
 		const fromStartDate = new Date(fromDate);
 		const fromEndDate = new Date(toDate);
 		const pipeline: PipelineStage[] = [
@@ -124,7 +132,11 @@ export class ClientOrderService {
 		return brandWiseOrderData;
 	}
 
-	async getEmployeeWiseSales(storeId: Types.ObjectId, fromDate: string, toDate: string) {
+	async getEmployeeWiseSales(
+		storeId: Types.ObjectId,
+		fromDate: string,
+		toDate: string
+	) {
 		const fromStartDate = new Date(fromDate);
 		const fromEndDate = new Date(toDate);
 		const pipeline: PipelineStage[] = [
@@ -264,7 +276,11 @@ export class ClientOrderService {
 		return staffWiseOrderData;
 	}
 
-	async getAverageSpendAndLoyaltyPointsForAllCustomer(storeId: Types.ObjectId, fromDate: string, toDate: string) {
+	async getAverageSpendAndLoyaltyPointsForAllCustomer(
+		storeId: Types.ObjectId,
+		fromDate: string,
+		toDate: string
+	) {
 		const startDateStartTime = new Date(fromDate);
 		const startDateEndTime = new Date(fromDate);
 		const endDateStartTime = new Date(toDate);
@@ -272,8 +288,6 @@ export class ClientOrderService {
 
 		startDateEndTime.setUTCHours(23, 59, 59, 999);
 		endDateStartTime.setUTCHours(0, 0, 0, 0);
-
-		console.log({});
 
 		try {
 			const pipeline: PipelineStage[] = [
@@ -295,7 +309,10 @@ export class ClientOrderService {
 							$sum: {
 								$cond: [
 									{
-										$lte: ['$posCreatedAt', startDateEndTime],
+										$lte: [
+											'$posCreatedAt',
+											startDateEndTime,
+										],
 									},
 									'$totals.finalTotal',
 									0,
@@ -306,7 +323,10 @@ export class ClientOrderService {
 							$sum: {
 								$cond: [
 									{
-										$gte: ['$posCreatedAt', endDateStartTime],
+										$gte: [
+											'$posCreatedAt',
+											endDateStartTime,
+										],
 									},
 									'$totals.finalTotal',
 									0,
@@ -317,7 +337,10 @@ export class ClientOrderService {
 							$sum: {
 								$cond: [
 									{
-										$lte: ['$posCreatedAt', startDateEndTime],
+										$lte: [
+											'$posCreatedAt',
+											startDateEndTime,
+										],
 									},
 									'$currentPoints',
 									0,
@@ -328,7 +351,10 @@ export class ClientOrderService {
 							$sum: {
 								$cond: [
 									{
-										$gte: ['$posCreatedAt', endDateStartTime],
+										$gte: [
+											'$posCreatedAt',
+											endDateStartTime,
+										],
 									},
 									'$currentPoints',
 									0,
@@ -344,14 +370,20 @@ export class ClientOrderService {
 						totalPointsConverted: { $sum: '$totalPoints' },
 						fromDateAverageSpend: { $avg: '$fromDateAverageSpend' },
 						toDateAverageSpend: { $avg: '$toDateAverageSpend' },
-						fromDateTotalLoyaltyPointsConverted: { $sum: '$fromDateTotalLoyaltyPointsConverted' },
-						toDateTotalLoyaltyPointsConverted: { $sum: '$toDateTotalLoyaltyPointsConverted' },
+						fromDateTotalLoyaltyPointsConverted: {
+							$sum: '$fromDateTotalLoyaltyPointsConverted',
+						},
+						toDateTotalLoyaltyPointsConverted: {
+							$sum: '$toDateTotalLoyaltyPointsConverted',
+						},
 					},
 				},
 				{
 					$project: {
 						_id: 0,
-						averageSpend: { $round: ['$averageSpend', 2] },
+						averageSpend: {
+							$round: [{ $ifNull: ['$averageSpend', 0] }, 2],
+						},
 						loyaltyPointsConverted: '$totalPointsConverted',
 						averageSpendGrowth: {
 							$round: [
@@ -361,7 +393,20 @@ export class ClientOrderService {
 										{
 											$multiply: [
 												{
-													$divide: [{ $subtract: ['$toDateAverageSpend', '$fromDateAverageSpend'] }, '$fromDateAverageSpend'],
+													$divide: [
+														{
+															$subtract: [
+																'$toDateAverageSpend',
+																'$fromDateAverageSpend',
+															],
+														},
+														{
+															$ifNull: [
+																'$fromDateAverageSpend',
+																1,
+															],
+														},
+													],
 												},
 												100,
 											],
@@ -378,8 +423,18 @@ export class ClientOrderService {
 									$multiply: [
 										{
 											$divide: [
-												{ $subtract: ['$toDateTotalLoyaltyPointsConverted', '$fromDateTotalLoyaltyPointsConverted'] },
-												'$fromDateTotalLoyaltyPointsConverted',
+												{
+													$subtract: [
+														'$toDateTotalLoyaltyPointsConverted',
+														'$fromDateTotalLoyaltyPointsConverted',
+													],
+												},
+												{
+													$ifNull: [
+														'$fromDateTotalLoyaltyPointsConverted',
+														1,
+													],
+												},
 											],
 										},
 										100,
@@ -391,18 +446,40 @@ export class ClientOrderService {
 					},
 				},
 			];
+			console.log('====================================');
+			console.log(JSON.stringify(pipeline));
+			console.log('====================================');
 			const result = await this.orderModel.aggregate(pipeline);
-
+			console.log('====================================');
+			console.log(JSON.stringify(JSON.stringify(result)));
+			console.log('====================================');
 			const averageSpendWithLoyalty =
 				result.length > 0
 					? result[0]
-					: { averageSpend: 0, loyaltyPointsConverted: 0, averageSpendGrowth: 0, loyaltyPointsConversionGrowth: 0 };
+					: {
+							averageSpend: 0,
+							loyaltyPointsConverted: 0,
+							averageSpendGrowth: 0,
+							loyaltyPointsConversionGrowth: 0,
+					  };
 
 			return averageSpendWithLoyalty;
-		} catch (error) {}
+		} catch (error) {
+			console.log(error);
+			return {
+				averageSpend: 0,
+				loyaltyPointsConverted: 0,
+				averageSpendGrowth: 0,
+				loyaltyPointsConversionGrowth: 0,
+			};
+		}
 	}
 
-	async getTopCategory(storeId: Types.ObjectId, fromDate: string, toDate: string) {
+	async getTopCategory(
+		storeId: Types.ObjectId,
+		fromDate: string,
+		toDate: string
+	) {
 		const fromStartDate = new Date(fromDate);
 		const toEndDate = new Date(toDate);
 		try {
@@ -463,7 +540,11 @@ export class ClientOrderService {
 		} catch (error) {}
 	}
 
-	async getRecurringAndNewCustomerPercentage(storeId: Types.ObjectId, fromDate: string, toDate: string) {
+	async getRecurringAndNewCustomerPercentage(
+		storeId: Types.ObjectId,
+		fromDate: string,
+		toDate: string
+	) {
 		const fromStartDate = new Date(fromDate);
 		const fromEndDate = new Date(toDate);
 		try {
@@ -549,7 +630,11 @@ export class ClientOrderService {
 		}
 	}
 
-	async totalOverViewCountForOrdersBetweenDate(storeId: Types.ObjectId, fromDate: string, toDate: string) {
+	async totalOverViewCountForOrdersBetweenDate(
+		storeId: Types.ObjectId,
+		fromDate: string,
+		toDate: string
+	) {
 		const startDateStartTime = new Date(fromDate);
 		const startDateEndTime = new Date(fromDate);
 		const endDateStartTime = new Date(toDate);
@@ -799,7 +884,11 @@ export class ClientOrderService {
 		}
 	}
 
-	async getHourWiseDateForSpecificDateRange(storeId: Types.ObjectId, fromDate: string, toDate: string) {
+	async getHourWiseDateForSpecificDateRange(
+		storeId: Types.ObjectId,
+		fromDate: string,
+		toDate: string
+	) {
 		try {
 			const fromStartDate = new Date(fromDate);
 			const toEndDate = new Date(toDate);
@@ -867,7 +956,11 @@ export class ClientOrderService {
 		} catch (error) {}
 	}
 
-	async getWeeklyBusiestDataForSpecificRange(storeId: Types.ObjectId, fromDate: string, toDate: string) {
+	async getWeeklyBusiestDataForSpecificRange(
+		storeId: Types.ObjectId,
+		fromDate: string,
+		toDate: string
+	) {
 		try {
 			const fromStartDate = new Date(fromDate);
 			const toEndDate = new Date(toDate);
@@ -939,7 +1032,11 @@ export class ClientOrderService {
 		} catch (error) {}
 	}
 
-	async topDiscountedCoupon(storeId: Types.ObjectId, fromDate: string, toDate: string) {
+	async topDiscountedCoupon(
+		storeId: Types.ObjectId,
+		fromDate: string,
+		toDate: string
+	) {
 		try {
 			const fromStartDate = new Date(fromDate);
 			const toEndDate = new Date(toDate);
@@ -1005,7 +1102,11 @@ export class ClientOrderService {
 		}
 	}
 
-	async averageCartSize(storeId: Types.ObjectId, fromDate: string, toDate: string) {
+	async averageCartSize(
+		storeId: Types.ObjectId,
+		fromDate: string,
+		toDate: string
+	) {
 		try {
 			const startDateStartTime = new Date(fromDate);
 			const startDateEndTime = new Date(fromDate);
@@ -1044,7 +1145,10 @@ export class ClientOrderService {
 							$sum: {
 								$cond: [
 									{
-										$gte: ['$posCreatedAt', endDateStartTime],
+										$gte: [
+											'$posCreatedAt',
+											endDateStartTime,
+										],
 									},
 									'$carts.totalPrice',
 									0,
@@ -1055,7 +1159,10 @@ export class ClientOrderService {
 							$sum: {
 								$cond: [
 									{
-										$lt: ['$posCreatedAt', startDateEndTime],
+										$lt: [
+											'$posCreatedAt',
+											startDateEndTime,
+										],
 									},
 									'$carts.totalPrice',
 									0,
@@ -1074,12 +1181,18 @@ export class ClientOrderService {
 										{
 											$divide: [
 												{
-													$subtract: ['$toDateAverageCartAmount', '$fromDateAverageCartAmount'],
+													$subtract: [
+														'$toDateAverageCartAmount',
+														'$fromDateAverageCartAmount',
+													],
 												},
 												{
 													$cond: [
 														{
-															$eq: ['$fromDateAverageCartAmount', 0],
+															$eq: [
+																'$fromDateAverageCartAmount',
+																0,
+															],
 														},
 														1,
 														'$fromDateAverageCartAmount',
@@ -1098,14 +1211,21 @@ export class ClientOrderService {
 			];
 
 			const result = await this.orderModel.aggregate(pipeline);
-			const { averageCartSize, cartSizeGrowth } = result[0];
+			const { averageCartSize, cartSizeGrowth } =
+				result.length > 0
+					? result[0]
+					: { averageCartSize: null, cartSizeGrowth: null };
 			return { averageCartSize, cartSizeGrowth };
 		} catch (error) {
 			throw error;
 		}
 	}
 
-	async topDiscountedItem(storeId: Types.ObjectId, fromDate: string, toDate: string) {
+	async topDiscountedItem(
+		storeId: Types.ObjectId,
+		fromDate: string,
+		toDate: string
+	) {
 		try {
 			const fromStartDate = new Date(fromDate);
 			const toEndDate = new Date(toDate);
@@ -1140,19 +1260,24 @@ export class ClientOrderService {
 				{
 					$group: {
 						_id: '$cart.productName',
-						totalDiscountAmount: { $sum: '$cart.itemDiscounts.discountAmount' },
+						totalDiscountAmount: {
+							$sum: '$cart.itemDiscounts.discountAmount',
+						},
 					},
 				},
 				{
 					$sort: { totalDiscountAmount: -1 },
 				},
 				{
-					$limit: 1,
+					$limit: 5,
 				},
 			];
+			console.log('====================================');
+			console.log(JSON.stringify(pipeline));
 
+			console.log('====================================');
 			const result = await this.orderModel.aggregate(pipeline);
-			const { _id } = result.length > 0 ? result[0] : null;
+			const { _id } = result.length > 0 ? result[0] : { _id: null };
 			return _id;
 		} catch (error) {
 			throw error;
