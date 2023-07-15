@@ -1048,6 +1048,9 @@ export class ClientOrderService {
 					},
 				},
 				{
+					$unwind: '$itemsInCart',
+				},
+				{
 					$lookup: {
 						from: 'cart',
 						localField: 'itemsInCart',
@@ -1068,24 +1071,54 @@ export class ClientOrderService {
 				},
 				{
 					$group: {
-						_id: '$carts.itemDiscounts.promoCode',
+						_id: '$carts.itemDiscounts.name',
 						count: { $sum: 1 },
 					},
 				},
 				{
-					$sort: {
-						count: -1,
-					},
+					$sort: { count: -1 },
 				},
 				{
 					$limit: 3,
 				},
 				{
+					$group: {
+						_id: null,
+						totalOrders: { $sum: '$count' },
+						discounts: { $push: { name: '$_id', count: '$count' } },
+					},
+				},
+				{
+					$unwind: '$discounts',
+				},
+				{
 					$project: {
 						_id: 0,
-						promoCode: '$_id',
-						count: 1,
+						promoName: '$discounts.name',
+
+						percentage: {
+							$round: [
+								{
+									$multiply: [
+										{
+											$divide: [
+												'$discounts.count',
+												'$totalOrders',
+											],
+										},
+										100,
+									],
+								},
+								2,
+							],
+						},
 					},
+				},
+				{
+					$sort: { percentage: -1 },
+				},
+				{
+					$limit: 3,
 				},
 			];
 
