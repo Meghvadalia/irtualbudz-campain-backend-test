@@ -15,15 +15,21 @@ export class ClientCustomerService {
 		fromDate: string,
 		toDate: string
 	) {
-		const fromStartDate = new Date(fromDate);
-		const toEndDate = new Date(toDate);
+		const startDateStartTime = new Date(fromDate);
+		const startDateEndTime = new Date(fromDate);
+		const endDateStartTime = new Date(toDate);
+		const endDateEndTime = new Date(toDate);
+
+		startDateEndTime.setUTCHours(23, 59, 59, 999);
+		endDateStartTime.setUTCHours(0, 0, 0, 0);
+
 		const aggregationPipeline = [
 			{
 				$match: {
 					storeId: { $in: [storeId] },
 					userCreatedAt: {
-						$gte: fromStartDate,
-						$lte: toEndDate,
+						$gte: startDateStartTime,
+						$lte: endDateEndTime,
 					},
 				},
 			},
@@ -38,19 +44,82 @@ export class ClientCustomerService {
 							],
 						},
 					},
+					toDateAverageAge: {
+						$avg: {
+							$cond: [
+								{ $gte: ['$userCreatedAt', endDateStartTime] },
+								{
+									$divide: [
+										{
+											$subtract: [
+												new Date(),
+												'$birthDate',
+											],
+										},
+										1000 * 60 * 60 * 24 * 365,
+									],
+								},
+								null,
+							],
+						},
+					},
+					fromDateAverageAge: {
+						$avg: {
+							$cond: [
+								{ $lte: ['$userCreatedAt', startDateEndTime] },
+								{
+									$divide: [
+										{
+											$subtract: [
+												new Date(),
+												'$birthDate',
+											],
+										},
+										1000 * 60 * 60 * 24 * 365,
+									],
+								},
+								null,
+							],
+						},
+					},
 				},
 			},
 			{
 				$project: {
 					_id: 0,
 					averageAge: { $round: ['$averageAge', 2] },
+					averageAgeGrowth: {
+						$round: [
+							{
+								$multiply: [
+									{
+										$divide: [
+											{
+												$subtract: [
+													'$toDateAverageAge',
+													'$fromDateAverageAge',
+												],
+											},
+											'$fromDateAverageAge',
+										],
+									},
+									100,
+								],
+							},
+							2,
+						],
+					},
 				},
 			},
 		];
 
 		const result = await this.customerModel.aggregate(aggregationPipeline);
-		const averageAge = result.length > 0 ? result[0].averageAge : null;
+		console.log(result);
+		const { averageAge, averageAgeGrowth } =
+			result.length > 0
+				? result[0]
+				: { averageAge: null, averageAgeGrowth: null };
 
-		return averageAge;
+		return { averageAge, averageAgeGrowth };
 	}
 }

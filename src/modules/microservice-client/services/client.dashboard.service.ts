@@ -16,18 +16,29 @@ export class ClientDashboardService {
 		storeId: Types.ObjectId,
 		query: { fromDate: string; toDate: string }
 	) {
-		const averageAge = await this.calculateAverageAge(
-			storeId,
-			query.fromDate,
-			query.toDate
+		const formattedFromDate = dayjs(query.fromDate).format(
+			'YYYY-MM-DDT00:00:00.000[Z]'
+		);
+		const formattedToDate = dayjs(query.toDate).format(
+			'YYYY-MM-DDT23:59:59.999[Z]'
 		);
 
-		const { averageSpend, loyaltyPointsConverted } =
-			await this.calculateAverageSpendAndLoyaltyPoints(
-				storeId,
-				query.fromDate,
-				query.toDate
-			);
+		const averageAge = await this.calculateAverageAge(
+			storeId,
+			formattedFromDate,
+			formattedToDate
+		);
+
+		const {
+			averageSpend,
+			loyaltyPointsConverted,
+			averageSpendGrowth,
+			loyaltyPointsConversionGrowth,
+		} = await this.calculateAverageSpendAndLoyaltyPoints(
+			storeId,
+			formattedFromDate,
+			formattedToDate
+		);
 
 		const {
 			totalOrderAmount,
@@ -37,7 +48,7 @@ export class ClientDashboardService {
 			totalDiscounts,
 			discountGrowth,
 			orderCountGrowth,
-		} = await this.totalSales(storeId, query);
+		} = await this.totalSales(storeId, formattedFromDate, formattedToDate);
 
 		const topCategory = await this.topSellingCategory(
 			storeId,
@@ -67,7 +78,21 @@ export class ClientDashboardService {
 			query.fromDate,
 			query.toDate
 		);
-
+		const averageCartSize = await this.orderService.averageCartSize(
+			storeId,
+			formattedFromDate,
+			formattedToDate
+		);
+		const topDiscountedProduct = await this.orderService.topDiscountedItem(
+			storeId,
+			formattedFromDate,
+			formattedToDate
+		);
+		const topUsedCoupon = await this.orderService.topDiscountedCoupon(
+			storeId,
+			formattedFromDate,
+			formattedToDate
+		);
 		return {
 			overview: {
 				totalSales: {
@@ -85,17 +110,26 @@ export class ClientDashboardService {
 				dateWiseOrderData,
 			},
 			customer: {
-				averageAge,
-				averageSpend,
-				loyaltyPointsConverted,
+				age: averageAge,
+				averageSpend: {
+					averageSpend,
+					averageSpendGrowth,
+				},
+				cart: averageCartSize,
+				loyaltyPoints: {
+					loyaltyPointsConverted,
+					loyaltyPointsConversionGrowth,
+				},
 				topCategory,
 				recOrMedCustomer: {
 					newCustomer: newCustomer,
-					returnningCustomer: returningCustomer,
+					returningCustomer: returningCustomer,
 				},
 			},
 			sales: {
 				brandWiseSalesData: brandWiseOrderData,
+				topDiscountedProduct,
+				topUsedCoupon,
 			},
 			operations: {
 				weekOrders,
@@ -146,15 +180,11 @@ export class ClientDashboardService {
 		return averageSpendWithLoyalty;
 	}
 
-	async totalSales(storeId: Types.ObjectId, query) {
-		const { fromDate, toDate } = query;
-		const formattedFromDate = dayjs(fromDate).format(
-			'YYYY-MM-DDT00:00:00.000[Z]'
-		);
-		const formattedToDate = dayjs(toDate).format(
-			'YYYY-MM-DDT23:59:59.999[Z]'
-		);
-
+	async totalSales(
+		storeId: Types.ObjectId,
+		fromDate: string,
+		toDate: string
+	) {
 		const {
 			totalOrderAmount,
 			totalDiscounts,
@@ -164,14 +194,14 @@ export class ClientDashboardService {
 			orderCountGrowth,
 		} = await this.orderService.totalOverViewCountForOrdersBetweenDate(
 			storeId,
-			formattedFromDate,
-			formattedToDate
+			fromDate,
+			toDate
 		);
 
 		const dateWiseOrderData = await this.orderService.getOrderForEachDate(
 			storeId,
-			formattedFromDate,
-			formattedToDate
+			fromDate,
+			toDate
 		);
 
 		return {

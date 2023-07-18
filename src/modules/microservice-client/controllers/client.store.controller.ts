@@ -3,6 +3,7 @@ import { ClientStoreService } from '../services/client.store.service';
 import { Roles, RolesGuard } from 'src/common/guards/auth.guard';
 import { USER_TYPE } from 'src/microservices/user/constants/user.constant';
 import { Request } from 'express';
+import { sendSuccess } from 'src/utils/request-response.utils';
 
 @Controller('store')
 export class ClientStoreController {
@@ -10,10 +11,17 @@ export class ClientStoreController {
 
 	@Get('list')
 	@UseGuards(RolesGuard)
-	@Roles(USER_TYPE.SUPER_ADMIN, USER_TYPE.ADMIN, USER_TYPE.COMPANY_ADMIN, USER_TYPE.STORE_ADMIN, USER_TYPE.MANAGER)
+	@Roles(
+		USER_TYPE.SUPER_ADMIN,
+		USER_TYPE.ADMIN,
+		USER_TYPE.COMPANY_ADMIN,
+		USER_TYPE.STORE_ADMIN,
+		USER_TYPE.MANAGER
+	)
 	async storeList(@Req() req: Request) {
 		try {
-			return await this.clientStoreService.getStores(req);
+			const storeList = await this.clientStoreService.getStores(req);
+			return sendSuccess(storeList);
 		} catch (error) {
 			throw new Error(error);
 		}
