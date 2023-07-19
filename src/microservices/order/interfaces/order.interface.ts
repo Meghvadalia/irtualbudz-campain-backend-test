@@ -98,15 +98,6 @@ export enum CustomerType {
 // 	sold = 'Sold',
 // }
 
-export enum Category {
-	BulkBud = 'BulkBud',
-	PackedBud = 'PackedBud',
-	Edible = 'Edible',
-	NonEdible = 'NonEdible',
-	Concentrate = 'Concentrate',
-	Accessory = 'Accessory',
-}
-
 // export enum UnitOfWeight {
 // 	Each = 'Each',
 // 	Gram = 'Gram',
@@ -115,7 +106,7 @@ export enum Category {
 export interface ItemsCart {
 	_id: string;
 	sku: string;
-	category: Category;
+	category: string;
 	title1: string;
 	title2: string;
 	productName: string;

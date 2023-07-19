@@ -527,7 +527,9 @@ export class ClientOrderService {
 			];
 
 			const result = await this.orderModel.aggregate(pipeline);
-
+			console.log('====================================');
+			console.log(JSON.stringify(pipeline));
+			console.log('====================================');
 			const { totalAmount, topCategory } =
 				result.length > 0
 					? result[0]
