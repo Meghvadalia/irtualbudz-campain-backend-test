@@ -93,7 +93,14 @@ export class ClientUserController implements OnModuleInit {
 			throw new Error(error);
 		}
 	}
-
+	@UseGuards(RolesGuard)
+	@Roles(
+		USER_TYPE.SUPER_ADMIN,
+		USER_TYPE.ADMIN,
+		USER_TYPE.COMPANY_ADMIN,
+		USER_TYPE.STORE_ADMIN,
+		USER_TYPE.MANAGER
+	)
 	@Post('logout')
 	async logout(@Req() req: Request): Promise<any> {
 		try {
