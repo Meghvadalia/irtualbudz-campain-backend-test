@@ -13,10 +13,9 @@ import { Company } from 'src/model/company/entities/company.entity';
 import { POS } from 'src/model/pos/entities/pos.entity';
 import { Store } from 'src/model/store/entities/store.entity';
 import { IOrder } from '../interfaces/order.interface';
-import { CustomerService } from '../../customers/service/customer.service';
 import { IStore } from 'src/model/store/interface/store.inteface';
 import { ItemsCart } from '../interfaces/cart.interface';
-import { Customer, ICustomer } from 'src/microservices/customers';
+import { Customer } from 'src/microservices/customers';
 
 @Injectable()
 export class OrderService {
@@ -27,8 +26,7 @@ export class OrderService {
 		@InjectModel(Company.name) private companyModel: Model<Company>,
 		@InjectModel(POS.name) private posModel: Model<POS>,
 		@InjectModel(Store.name) private storeModel: Model<Store>,
-		@InjectModel(Customer.name) private customerModel: Model<Customer>,
-		private readonly customerService: CustomerService
+		@InjectModel(Customer.name) private customerModel: Model<Customer>
 	) {}
 
 	async scheduleCronJob(posName: string) {
@@ -111,8 +109,8 @@ export class OrderService {
 						key,
 						clientId,
 						location.importId,
-						posName,
-						companyId
+						companyId,
+						posData
 					);
 				} else {
 					await this.seedOrders(
@@ -121,8 +119,8 @@ export class OrderService {
 						key,
 						clientId,
 						location.importId,
-						posName,
-						companyId
+						companyId,
+						posData
 					);
 				}
 			};
@@ -150,14 +148,10 @@ export class OrderService {
 		key: string,
 		clientId: string,
 		importId: string,
-		posName: string,
-		companyId: string
+		companyId: string,
+		posData
 	) {
 		try {
-			const posData: IPOS = await this.posModel.findOne<IPOS>({
-				name: posName,
-			});
-
 			const storeData = await this.storeModel.findOne({
 				'location.importId': importId,
 			});
@@ -270,7 +264,7 @@ export class OrderService {
 				element.posCreatedAt = new Date(element.createdAt.toString());
 				element.companyId = companyId;
 				element.posId = posId;
-				element.storeId = storeId;
+				element.storeId = new Types.ObjectId(storeId);
 
 				delete element.createdAt;
 				delete element._id;
@@ -368,18 +362,28 @@ export class OrderService {
 			);
 
 			const itemPromises = orders.map((order) =>
-				this.addItemsToCart(order.itemsInCart, storeId, order._id)
+				this.addItemsToCart(
+					order.itemsInCart,
+					storeId,
+					order._id ? order._id.toString() : order.id.toString()
+				)
 			);
+
 			const cart = await Promise.all(itemPromises);
 
 			const orderPromises = orders.map(async (order) => {
 				const staffId = staffData.find(
 					(staff) => staff.staffName === order.budtender
 				)._id;
+				const cartEntry = cart.find((item) => {
+					return (
+						item.id ===
+						(order._id ? order._id.toString() : order.id.toString())
+					);
+				});
 
-				const items = cart.find((item) => item.id === order._id).data;
+				const items = cartEntry ? cartEntry.data : [];
 
-				delete order.itemsInCart;
 				order.itemsInCart = items;
 				order.staffId = staffId;
 
