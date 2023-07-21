@@ -924,6 +924,9 @@ export class ClientOrderService {
 					},
 				},
 				{
+					$sort: { '_id.hour': 1 },
+				},
+				{
 					$project: {
 						_id: 0,
 						hour: {
@@ -956,9 +959,6 @@ export class ClientOrderService {
 						},
 						count: 1,
 					},
-				},
-				{
-					$sort: { '_id.hour': -1 },
 				},
 			];
 			const result = await this.orderModel.aggregate(pipeline);
