@@ -1,5 +1,5 @@
 import { Controller, Get } from '@nestjs/common';
-import { Cron } from '@nestjs/schedule';
+import { Cron, CronExpression } from '@nestjs/schedule';
 import { SeederService } from 'src/common/seeders/seeders';
 import { CustomerService } from 'src/microservices/customers';
 import { InventoryService } from 'src/microservices/inventory';
@@ -15,7 +15,7 @@ export class DutchieController {
 	) {}
 
 	@Get('seed')
-	@Cron('0 0 0 * * *')
+	@Cron(CronExpression.EVERY_DAY_AT_5AM)
 	async seedData() {
 		await this.storeService.seedDutchieStores('dutchie');
 		// await this.orderService.seedDutchieOrders('dutchie');
