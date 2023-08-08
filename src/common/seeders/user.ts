@@ -44,4 +44,12 @@ export const userArrayForCompany: Array<UserSeeder> = [
 		phone: '+911234567890',
 		companyName: 'Zen Barn Farms',
 	},
+	{
+		name: 'Valley Meade Admin',
+		email: 'valleymeadeadmin@valleymeade.com',
+		password: 'ValleyMeadeadmin@123',
+		type: USER_TYPE.COMPANY_ADMIN,
+		phone: '+911234567890',
+		companyName: 'Valley Meade',
+	},
 ];
