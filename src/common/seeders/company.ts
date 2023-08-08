@@ -32,4 +32,15 @@ export const companyData = [
 		posName: 'flowhub',
 		lastSyncDataDuration: 300,
 	},
+	{
+		name: 'Valley Meade',
+		posId: '',
+		totalStore: 0,
+		dataObject: {
+			clientId: 'e4db10ef-ea11-48d3-b394-73a336c6ad3b',
+			key: 'b28a6382-6c8f-4480-863b-f6682d8ce30d',
+		},
+		posName: 'flowhub',
+		lastSyncDataDuration: 100,
+	},
 ];
