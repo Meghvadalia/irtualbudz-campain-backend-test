@@ -1,7 +1,7 @@
 import { Schema } from 'mongoose';
 
 export interface ItemsCart {
-	_id: Schema.Types.ObjectId;
+	_id?: string;
 	posCartId: string;
 	locationId: Schema.Types.ObjectId;
 	productId: Schema.Types.ObjectId;
@@ -19,6 +19,7 @@ export interface ItemsCart {
 	totalCost: number;
 	itemDiscounts: ItemDiscounts;
 	tax: Tax;
+	id?: string;
 	[property: string]: any;
 }
 

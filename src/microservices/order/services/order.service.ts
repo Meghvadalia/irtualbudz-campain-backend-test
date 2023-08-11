@@ -40,111 +40,101 @@ export class OrderService {
 					posId: posData._id,
 				});
 
-			let fromDate: string;
-
 			const currentDate = new Date();
-			fromDate = new Date(
-				currentDate.getFullYear(),
-				currentDate.getMonth(),
-				currentDate.getDate() - 1,
-				0,
-				0,
-				0
-			)
-				.toISOString()
-				.split('T')[0];
-			const toDate = new Date(
-				currentDate.getFullYear(),
-				currentDate.getMonth(),
-				currentDate.getDate(),
-				0,
-				0,
-				0
-			)
-				.toISOString()
-				.split('T')[0];
+
+			const storeListsPromises = flowhubCompaniesList.map(
+				async (companyData) => {
+					return this.storeModel.find({
+						companyId: companyData._id,
+					});
+				}
+			);
+
+			const storeLists = await Promise.all(storeListsPromises);
 
 			const combinedArray = [];
 			for (let i = 0; i < flowhubCompaniesList.length; i++) {
 				const companyData = flowhubCompaniesList[i];
-				const storeList = await this.storeModel.find({
-					companyId: companyData._id,
-				});
+				const storeList = storeLists[i];
 
-				for (let j = 0; j < storeList.length; j++) {
-					const storeData = storeList[j];
-					combinedArray.push({
+				combinedArray.push(
+					...storeList.map((storeData) => ({
 						companyId: companyData._id,
 						key: companyData.dataObject.key,
 						clientId: companyData.dataObject.clientId,
 						location: storeData.location,
 						_id: storeData._id,
 						lastSyncDataDuration: companyData.lastSyncDataDuration,
-					});
-				}
+					}))
+				);
 			}
 
 			const intervalDuration = 2000;
 
-			const processStoreData = async (storeData) => {
-				const { key, clientId, location, _id, companyId } = storeData;
-
-				const ordersCount = await this.orderModel.countDocuments({
-					storeId: _id,
-				});
-				if (ordersCount === 0) {
-					fromDate = new Date(
-						currentDate.getFullYear(),
-						currentDate.getMonth(),
-						currentDate.getDate() - storeData.lastSyncDataDuration,
-						0,
-						0,
-						0
-					)
-						.toISOString()
-						.split('T')[0];
-					await this.seedOrders(
-						fromDate,
-						toDate,
-						key,
-						clientId,
-						location.importId,
-						companyId,
-						posData
-					);
-				} else {
-					await this.seedOrders(
-						fromDate,
-						toDate,
-						key,
-						clientId,
-						location.importId,
-						companyId,
-						posData
-					);
-				}
-			};
-
-			const processStoresSequentially = async () => {
-				for (let i = 0; i < combinedArray.length; i++) {
-					await processStoreData(combinedArray[i]);
-					await new Promise((resolve) =>
-						setTimeout(resolve, intervalDuration)
-					);
-				}
+			const processStoresParallel = async () => {
+				await Promise.all(combinedArray.map(processStoreDataWithDelay));
 
 				console.log('All stores processed');
 			};
 
-			await processStoresSequentially();
+			const processStoreDataWithDelay = async (storeData) => {
+				await this.processStoreData(storeData, currentDate, posData);
+				await delay(intervalDuration);
+			};
+
+			const delay = (ms) =>
+				new Promise((resolve) => setTimeout(resolve, ms));
+
+			await processStoresParallel();
 		} catch (error) {
 			console.error('Error while scheduling cron job:', error.message);
 		}
 	}
+	async processStoreData(storeData, currentDate: Date, posData) {
+		const { key, clientId, location, _id, companyId } = storeData;
+
+		const ordersCount = await this.orderModel.countDocuments({
+			storeId: _id,
+		});
+		if (ordersCount === 0) {
+			const fromDate = new Date(currentDate);
+			fromDate.setDate(
+				currentDate.getDate() - storeData.lastSyncDataDuration
+			);
+			fromDate.setHours(0, 0, 0, 0);
+			const toDate = new Date(currentDate);
+			toDate.setHours(0, 0, 0, 0);
+
+			await this.seedOrders(
+				fromDate,
+				toDate,
+				key,
+				clientId,
+				location.importId,
+				companyId,
+				posData
+			);
+		} else {
+			const fromDate = new Date(currentDate);
+			fromDate.setDate(currentDate.getDate() - 1);
+			fromDate.setHours(0, 0, 0, 0);
+			const toDate = new Date(currentDate);
+			toDate.setHours(0, 0, 0, 0);
+			await this.seedOrders(
+				fromDate,
+				toDate,
+				key,
+				clientId,
+				location.importId,
+				companyId,
+				posData
+			);
+		}
+	}
 
 	async seedOrders(
-		startDate: string,
-		endDate: string,
+		startDate: Date,
+		endDate: Date,
 		key: string,
 		clientId: string,
 		importId: string,
@@ -160,8 +150,8 @@ export class OrderService {
 				method: 'get',
 				url: `${posData.liveUrl}/v1/orders/findByLocationId/${importId}`,
 				params: {
-					created_after: startDate,
-					created_before: endDate,
+					created_after: startDate.toISOString().split('T')[0],
+					created_before: endDate.toISOString().split('T')[0],
 					page_size: 10000,
 				},
 				headers: {
@@ -196,7 +186,7 @@ export class OrderService {
 		}
 	}
 
-	async addStaff(element: any, storeId: string) {
+	async addStaff(element: IStaff, storeId: string) {
 		try {
 			const staffObject: IStaff = {
 				staffName: element.staffName,
@@ -216,11 +206,42 @@ export class OrderService {
 			throw error;
 		}
 	}
-
+	async syncCompanyWiseStoreData(fromDate: Date, toDate: Date, companyId) {
+		try {
+			const company: ICompany = await this.companyModel.findOne<ICompany>(
+				{
+					isActive: true,
+					_id: companyId,
+				}
+			);
+			if (company) {
+				const storeList: IStore[] = await this.storeModel.find({
+					companyId: company._id,
+				});
+				const posData = await this.posModel.findOne({
+					_id: company.posId,
+				});
+				storeList.map((storeData) => {
+					this.seedOrders(
+						fromDate,
+						toDate,
+						company.dataObject.key,
+						company.dataObject.clientId,
+						storeData.location.importId,
+						company._id,
+						posData
+					);
+				});
+			}
+		} catch (error) {
+			console.log('Error While syncing Data for Specific Date,', error);
+		}
+	}
 	async addSingleData(cart: ItemsCart, storeId: string) {
 		try {
+			const posCartId = cart._id ? cart._id : cart.id;
 			const existingCartItem = await this.cartModel.findOne({
-				posCartId: cart.id,
+				posCartId: posCartId,
 				storeId,
 				productName: cart.productName,
 			});
@@ -228,10 +249,11 @@ export class OrderService {
 			if (existingCartItem === null) {
 				const newCartItem = {
 					...cart,
-					posCartId: cart.id,
+					posCartId: posCartId,
 					storeId,
 				};
-
+				delete newCartItem._id;
+				delete newCartItem.id;
 				const createdCartItem = await this.cartModel.create(
 					newCartItem
 				);
@@ -244,36 +266,6 @@ export class OrderService {
 				'Error while adding single data to cart:',
 				error.message
 			);
-			throw error;
-		}
-	}
-
-	async addOrder(
-		element: any,
-		posId: string,
-		companyId: string,
-		storeId: string
-	) {
-		try {
-			const existingOrder = await this.orderModel.findOne({
-				posOrderId: element._id,
-			});
-
-			if (existingOrder === null) {
-				element.posOrderId = element._id ? element._id : element.id;
-				element.posCreatedAt = new Date(element.createdAt.toString());
-				element.companyId = companyId;
-				element.posId = posId;
-				element.storeId = new Types.ObjectId(storeId);
-
-				delete element.createdAt;
-				delete element._id;
-
-				const newOrder = await this.orderModel.create(element);
-				return newOrder;
-			}
-		} catch (error) {
-			console.error('Error while adding order:', error);
 			throw error;
 		}
 	}
@@ -316,7 +308,6 @@ export class OrderService {
 			throw error;
 		}
 	}
-
 	async processOrderBatch(
 		orders: IOrder,
 		page: number,
@@ -371,7 +362,7 @@ export class OrderService {
 
 			const cart = await Promise.all(itemPromises);
 
-			const orderPromises = orders.map(async (order) => {
+			const orderPromises = orders.map((order) => {
 				const staffId = staffData.find(
 					(staff) => staff.staffName === order.budtender
 				)._id;
@@ -395,22 +386,37 @@ export class OrderService {
 				let objectIdStoreId = new Types.ObjectId(storeId);
 				if (customer && !customer.storeId.includes(objectIdStoreId)) {
 					customer.storeId.push(objectIdStoreId);
-					await this.customerModel.updateOne(
+					this.customerModel.updateOne(
 						{ _id: customer._id },
 						{ $set: { storeId: customer.storeId } }
 					);
 				}
+				order.posOrderId = order._id ? order._id : order.id;
 
-				const newOrder = await this.addOrder(
-					order,
-					posId,
+				delete order._id;
+				delete order.id;
+				const processOrder = {
+					...order,
+					posCreatedAt: new Date(order.createdAt.toString()),
 					companyId,
-					storeId
-				);
-				return newOrder;
+					posId,
+					storeId: new Types.ObjectId(storeId),
+				};
+				delete processOrder.createdAt;
+				return {
+					updateOne: {
+						filter: {
+							posOrderId: order.posOrderId,
+						},
+						update: { $set: processOrder },
+						upsert: true,
+					},
+				};
 			});
 
-			const processedOrders = await Promise.all(orderPromises);
+			const processedOrders = await this.orderModel.bulkWrite(
+				orderPromises
+			);
 			return processedOrders;
 		} catch (error) {
 			console.error('Error while processing order batch:', error.message);

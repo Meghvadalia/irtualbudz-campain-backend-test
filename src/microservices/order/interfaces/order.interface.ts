@@ -103,24 +103,6 @@ export enum CustomerType {
 // 	Gram = 'Gram',
 // }
 
-export interface ItemsCart {
-	_id: string;
-	sku: string;
-	category: string;
-	title1: string;
-	title2: string;
-	productName: string;
-	strainName: string;
-	unitOfWeight: string;
-	quantity: number;
-	unitPrice: number;
-	totalPrice: number;
-	unitCost: number;
-	totalCost: number;
-	itemDiscounts: ItemDiscounts;
-	tax: Tax;
-}
-
 export interface LocationData {
 	_id: string;
 	location: {

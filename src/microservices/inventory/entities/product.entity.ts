@@ -5,16 +5,24 @@ import { DATABASE_COLLECTION } from 'src/common/constants';
 
 @Schema({ collection: DATABASE_COLLECTION.PRODUCT, timestamps: true })
 export class Product extends Model<IProduct> {
-	@Prop({ required: true, type: Types.ObjectId, ref: DATABASE_COLLECTION.COMPANIES })
+	@Prop({
+		required: true,
+		type: Types.ObjectId,
+		ref: DATABASE_COLLECTION.COMPANIES,
+	})
 	companyId: string;
 
-	@Prop({ required: true, type: Types.ObjectId, ref: DATABASE_COLLECTION.POS })
+	@Prop({
+		required: true,
+		type: Types.ObjectId,
+		ref: DATABASE_COLLECTION.POS,
+	})
 	posId: string;
 
 	@Prop({ trim: true })
 	productName: string;
 
-	@Prop({ trim: true, unique: true })
+	@Prop({ trim: true })
 	posProductId: string;
 
 	@Prop({ trim: true })
@@ -73,3 +81,4 @@ export class Product extends Model<IProduct> {
 }
 
 export const ProductSchema = SchemaFactory.createForClass(Product);
+ProductSchema.index({ posProductId: 1, companyId: 1 }, { unique: true });

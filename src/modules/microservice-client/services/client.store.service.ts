@@ -57,7 +57,6 @@ export class ClientStoreService {
 					});
 
 					if (existingStore) {
-						console.log('Store already exists:', existingStore);
 						continue;
 					}
 					storeArea.push({
