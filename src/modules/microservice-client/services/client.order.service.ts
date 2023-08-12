@@ -3,10 +3,11 @@ import { InjectModel } from '@nestjs/mongoose';
 import { Model, PipelineStage, Types } from 'mongoose';
 
 import { Order } from '../../../microservices/order/entities/order.entity';
+import { ClientStoreService } from './client.store.service';
 
 @Injectable()
 export class ClientOrderService {
-	constructor(@InjectModel(Order.name) private orderModel: Model<Order>) {}
+	constructor(@InjectModel(Order.name) private orderModel: Model<Order>,private clientStoreService:ClientStoreService) {}
 
 	async getOrderForEachDate(
 		storeId: Types.ObjectId,
@@ -901,6 +902,8 @@ export class ClientOrderService {
 		fromDate: string,
 		toDate: string
 	) {
+		let storeData = await this.clientStoreService.storeById(storeId.toString())
+		console.log("storeData",storeData)
 		try {
 			const fromStartDate = new Date(fromDate);
 			const toEndDate = new Date(toDate);
@@ -917,8 +920,8 @@ export class ClientOrderService {
 				{
 					$group: {
 						_id: {
-							hour: { $hour: '$posCreatedAt' },
-							isAM: { $lt: [{ $hour: '$posCreatedAt' }, 12] },
+							hour: { $hour: { date: '$posCreatedAt', timezone: storeData.timeZone } },
+							isAM: { $lt: [{ $hour: { date: '$posCreatedAt', timezone: storeData.timeZone } }, 12] },
 						},
 						count: { $sum: 1 },
 					},
@@ -958,6 +961,7 @@ export class ClientOrderService {
 							],
 						},
 						count: 1,
+						convertedDate: 1
 					},
 				},
 			];
