@@ -1304,53 +1304,16 @@ export class ClientOrderService {
 					},
 				},
 				{
-					$lookup: {
-						from: 'cart',
-						localField: 'itemsInCart',
-						foreignField: '_id',
-						as: 'carts',
-					},
-				},
-				{
-					$unwind: '$carts',
-				},
-				{
 					$group: {
 						_id: null,
-						averageCartSize: { $avg: '$carts.totalPrice' },
-						toDateAverageCartAmount: {
-							$sum: {
-								$cond: [
-									{
-										$gte: [
-											'$posCreatedAt',
-											endDateStartTime,
-										],
-									},
-									'$carts.totalPrice',
-									0,
-								],
-							},
-						},
-						fromDateAverageCartAmount: {
-							$sum: {
-								$cond: [
-									{
-										$lt: [
-											'$posCreatedAt',
-											startDateEndTime,
-										],
-									},
-									'$carts.totalPrice',
-									0,
-								],
-							},
-						},
-					},
+						averageCartSize: { $avg: "$totals.subTotal" },
+						firstDaySubTotal: { $first: "$totals.subTotal" },
+						lastDaySubTotal: { $last: "$totals.subTotal" }
+					}
 				},
 				{
 					$project: {
-						averageCartSize: { $round: ['$averageCartSize', 2] },
+						_id: 0,
 						cartSizeGrowth: {
 							$round: [
 								{
@@ -1358,33 +1321,20 @@ export class ClientOrderService {
 										{
 											$divide: [
 												{
-													$subtract: [
-														'$toDateAverageCartAmount',
-														'$fromDateAverageCartAmount',
-													],
+													$subtract: ["$lastDaySubTotal", "$firstDaySubTotal"]
 												},
-												{
-													$cond: [
-														{
-															$eq: [
-																'$fromDateAverageCartAmount',
-																0,
-															],
-														},
-														1,
-														'$fromDateAverageCartAmount',
-													],
-												},
-											],
+												{ $abs: "$firstDaySubTotal" }
+											]
 										},
-										100,
-									],
+										100
+									]
 								},
-								2,
-							],
+								2
+							]
 						},
-					},
-				},
+						averageCartSize: { $round: ["$averageCartSize", 2] }
+					}
+				}
 			];
 
 			const result = await this.orderModel.aggregate(pipeline);
