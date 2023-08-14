@@ -7,7 +7,10 @@ import { ClientStoreService } from './client.store.service';
 
 @Injectable()
 export class ClientOrderService {
-	constructor(@InjectModel(Order.name) private orderModel: Model<Order>,private clientStoreService:ClientStoreService) {}
+	constructor(
+		@InjectModel(Order.name) private orderModel: Model<Order>,
+		private clientStoreService: ClientStoreService
+	) {}
 
 	async getOrderForEachDate(
 		storeId: Types.ObjectId,
@@ -902,8 +905,10 @@ export class ClientOrderService {
 		fromDate: string,
 		toDate: string
 	) {
-		let storeData = await this.clientStoreService.storeById(storeId.toString())
-		console.log("storeData",storeData)
+		let storeData = await this.clientStoreService.storeById(
+			storeId.toString()
+		);
+		console.log('storeData', storeData);
 		try {
 			const fromStartDate = new Date(fromDate);
 			const toEndDate = new Date(toDate);
@@ -920,8 +925,23 @@ export class ClientOrderService {
 				{
 					$group: {
 						_id: {
-							hour: { $hour: { date: '$posCreatedAt', timezone: storeData.timeZone } },
-							isAM: { $lt: [{ $hour: { date: '$posCreatedAt', timezone: storeData.timeZone } }, 12] },
+							hour: {
+								$hour: {
+									date: '$posCreatedAt',
+									timezone: storeData.timeZone,
+								},
+							},
+							isAM: {
+								$lt: [
+									{
+										$hour: {
+											date: '$posCreatedAt',
+											timezone: storeData.timeZone,
+										},
+									},
+									12,
+								],
+							},
 						},
 						count: { $sum: 1 },
 					},
@@ -961,7 +981,7 @@ export class ClientOrderService {
 							],
 						},
 						count: 1,
-						convertedDate: 1
+						convertedDate: 1,
 					},
 				},
 			];
@@ -1099,15 +1119,10 @@ export class ClientOrderService {
 							{
 								$unwind: '$carts.itemDiscounts',
 							},
-							{
-								$match: {
-									'carts.itemDiscounts.discountType':
-										'couponCode',
-								},
-							},
+
 							{
 								$group: {
-									_id: '$carts.itemDiscounts.promoCode',
+									_id: '$carts.itemDiscounts.name',
 									count: { $sum: 1 },
 								},
 							},
@@ -1310,10 +1325,10 @@ export class ClientOrderService {
 				{
 					$group: {
 						_id: null,
-						averageCartSize: { $avg: "$totals.subTotal" },
-						firstDaySubTotal: { $first: "$totals.subTotal" },
-						lastDaySubTotal: { $last: "$totals.subTotal" }
-					}
+						averageCartSize: { $avg: '$totals.subTotal' },
+						firstDaySubTotal: { $first: '$totals.subTotal' },
+						lastDaySubTotal: { $last: '$totals.subTotal' },
+					},
 				},
 				{
 					$project: {
@@ -1325,20 +1340,23 @@ export class ClientOrderService {
 										{
 											$divide: [
 												{
-													$subtract: ["$lastDaySubTotal", "$firstDaySubTotal"]
+													$subtract: [
+														'$lastDaySubTotal',
+														'$firstDaySubTotal',
+													],
 												},
-												{ $abs: "$firstDaySubTotal" }
-											]
+												{ $abs: '$firstDaySubTotal' },
+											],
 										},
-										100
-									]
+										100,
+									],
 								},
-								2
-							]
+								2,
+							],
 						},
-						averageCartSize: { $round: ["$averageCartSize", 2] }
-					}
-				}
+						averageCartSize: { $round: ['$averageCartSize', 2] },
+					},
+				},
 			];
 
 			const result = await this.orderModel.aggregate(pipeline);
