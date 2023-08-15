@@ -1137,7 +1137,7 @@ export class ClientOrderService {
 							{
 								$project: {
 									_id: 0,
-									promoCode: '$_id',
+									promoName: '$_id',
 									count: 1,
 								},
 							},
