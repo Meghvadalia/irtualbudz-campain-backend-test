@@ -1149,8 +1149,7 @@ export class ClientOrderService {
 				},
 				{
 					$project: {
-						promoCode: '$promoCodeCounts.promoCode',
-						count: '$promoCodeCounts.count',
+						promoName: '$promoCodeCounts.promoName',
 						percentage: {
 							$multiply: [
 								{
