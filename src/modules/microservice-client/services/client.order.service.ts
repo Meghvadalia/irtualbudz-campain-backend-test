@@ -1170,7 +1170,7 @@ export class ClientOrderService {
 				},
 				{
 					$project: {
-						promoCode: 1,
+						promoName: 1,
 						percentage: { $round: ['$percentage', 2] },
 					},
 				},
