@@ -12,6 +12,7 @@ import { IStoreResponseFlowHub } from 'src/common/interface';
 import { User } from 'src/microservices/user/entities/user.entity';
 import { IUser } from 'src/microservices/user/interfaces/user.interface';
 import { USER_TYPE } from 'src/microservices/user/constants/user.constant';
+import { RedisService } from 'src/config/cache/config.service';
 
 @Injectable()
 export class ClientStoreService {
@@ -19,7 +20,8 @@ export class ClientStoreService {
 		@InjectModel(Store.name) private storeModel: Model<IStore>,
 		@InjectModel(Company.name) private companyModel: Model<ICompany>,
 		@InjectModel(POS.name) private posModel: Model<ICompany>,
-		@InjectModel(User.name) private userModel: Model<IUser>
+		@InjectModel(User.name) private userModel: Model<IUser>,
+		private readonly redisService: RedisService
 	) {}
 
 	async seedStoreData() {
@@ -108,11 +110,19 @@ export class ClientStoreService {
 		}
 	}
 
-	async storeById(id: string): Promise<any> {
+	async storeById(id: string): Promise<IStore> {
 		try {
-			const store = await this.storeModel.findById(id);
-			if (!store) throw Error('Store not found.');
-			return store;
+			const cachedStoreData: IStore = JSON.parse(
+				await this.redisService.getValue(id)
+			);
+			if (cachedStoreData) {
+				return cachedStoreData;
+			} else {
+				const store: IStore = await this.storeModel.findById(id);
+				if (!store) throw Error('Store not found.');
+				await this.redisService.setValue(store._id.toString(), store);
+				return store;
+			}
 		} catch (error) {
 			throw error;
 		}

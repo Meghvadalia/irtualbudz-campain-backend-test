@@ -24,3 +24,7 @@ export const enum PERMISSIONS_FOR_DATABASE {
 	MANAGE = 'manage',
 	ALL = 'all',
 }
+
+export const enum DATE_FORMAT {
+	MM_DD_YYYY = 'MM/DD/YYYY',
+}

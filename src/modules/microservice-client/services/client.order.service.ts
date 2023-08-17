@@ -4,6 +4,8 @@ import { Model, PipelineStage, Types } from 'mongoose';
 
 import { Order } from '../../../microservices/order/entities/order.entity';
 import { ClientStoreService } from './client.store.service';
+import { from } from 'rxjs';
+import * as moment from 'moment-timezone';
 
 @Injectable()
 export class ClientOrderService {
@@ -14,12 +16,15 @@ export class ClientOrderService {
 
 	async getOrderForEachDate(
 		storeId: Types.ObjectId,
-		fromDate: string,
-		toDate: string
+		fromDate: Date,
+		toDate: Date
 	) {
 		try {
-			const fromStartDate = new Date(fromDate);
-			const fromEndDate = new Date(toDate);
+			let storeData = await this.clientStoreService.storeById(
+				storeId.toString()
+			);
+			const fromStartDate = fromDate;
+			const fromEndDate = toDate;
 			const pipeline: PipelineStage[] = [
 				{
 					$match: {
@@ -36,6 +41,7 @@ export class ClientOrderService {
 							$dateToString: {
 								format: '%Y-%m-%d',
 								date: '$posCreatedAt',
+								timezone: storeData.timeZone,
 							},
 						},
 						date: {
@@ -43,6 +49,7 @@ export class ClientOrderService {
 								$dateToString: {
 									format: '%Y-%m-%d',
 									date: '$posCreatedAt',
+									timezone: storeData.timeZone,
 								},
 							},
 						},
@@ -75,18 +82,16 @@ export class ClientOrderService {
 
 	async getBrandWiseSales(
 		storeId: Types.ObjectId,
-		fromDate: string,
-		toDate: string
+		fromDate: Date,
+		toDate: Date
 	) {
-		const fromStartDate = new Date(fromDate);
-		const fromEndDate = new Date(toDate);
 		const pipeline: PipelineStage[] = [
 			{
 				$match: {
 					storeId,
 					posCreatedAt: {
-						$gte: fromStartDate,
-						$lte: fromEndDate,
+						$gte: fromDate,
+						$lte: toDate,
 					},
 				},
 			},
@@ -142,19 +147,17 @@ export class ClientOrderService {
 
 	async getEmployeeWiseSales(
 		storeId: Types.ObjectId,
-		fromDate: string,
-		toDate: string
+		fromDate: Date,
+		toDate: Date
 	) {
 		try {
-			const fromStartDate = new Date(fromDate);
-			const fromEndDate = new Date(toDate);
 			const pipeline: PipelineStage[] = [
 				{
 					$match: {
 						storeId,
 						posCreatedAt: {
-							$gte: fromStartDate,
-							$lte: fromEndDate,
+							$gte: fromDate,
+							$lte: toDate,
 						},
 					},
 				},
@@ -292,16 +295,14 @@ export class ClientOrderService {
 
 	async getAverageSpendAndLoyaltyPointsForAllCustomer(
 		storeId: Types.ObjectId,
-		fromDate: string,
-		toDate: string
+		fromDate: Date,
+		toDate: Date
 	) {
-		const startDateStartTime = new Date(fromDate);
-		const startDateEndTime = new Date(fromDate);
-		const endDateStartTime = new Date(toDate);
-		const endDateEndTime = new Date(toDate);
-
-		startDateEndTime.setUTCHours(23, 59, 59, 999);
-		endDateStartTime.setUTCHours(0, 0, 0, 0);
+		const startDateStartTime = fromDate;
+		const storeData = await this.clientStoreService.storeById(
+			storeId.toString()
+		);
+		const endDateEndTime = toDate;
 
 		try {
 			const pipeline: PipelineStage[] = [
@@ -315,17 +316,35 @@ export class ClientOrderService {
 					},
 				},
 				{
+					$addFields: {
+						posCreatedAtLocal: {
+							$dateToString: {
+								format: '%Y-%m-%d',
+								date: '$posCreatedAt',
+								timezone: storeData.timeZone,
+							},
+						},
+					},
+				},
+				{
 					$group: {
 						_id: '$customerId',
 						averageSpend: { $avg: '$totals.finalTotal' },
 						totalPoints: { $sum: '$currentPoints' },
 						fromDateAverageSpend: {
-							$sum: {
+							$avg: {
 								$cond: [
 									{
-										$lte: [
-											'$posCreatedAt',
-											startDateEndTime,
+										$eq: [
+											'$posCreatedAtLocal',
+											{
+												$dateToString: {
+													format: '%Y-%m-%d',
+													date: startDateStartTime,
+													timezone:
+														storeData.timeZone,
+												},
+											},
 										],
 									},
 									'$totals.finalTotal',
@@ -334,12 +353,19 @@ export class ClientOrderService {
 							},
 						},
 						toDateAverageSpend: {
-							$sum: {
+							$avg: {
 								$cond: [
 									{
-										$gte: [
-											'$posCreatedAt',
-											endDateStartTime,
+										$eq: [
+											'$posCreatedAtLocal',
+											{
+												$dateToString: {
+													format: '%Y-%m-%d',
+													date: endDateEndTime,
+													timezone:
+														storeData.timeZone,
+												},
+											},
 										],
 									},
 									'$totals.finalTotal',
@@ -351,9 +377,16 @@ export class ClientOrderService {
 							$sum: {
 								$cond: [
 									{
-										$lte: [
-											'$posCreatedAt',
-											startDateEndTime,
+										$eq: [
+											'$posCreatedAtLocal',
+											{
+												$dateToString: {
+													format: '%Y-%m-%d',
+													date: startDateStartTime,
+													timezone:
+														storeData.timeZone,
+												},
+											},
 										],
 									},
 									'$currentPoints',
@@ -365,9 +398,16 @@ export class ClientOrderService {
 							$sum: {
 								$cond: [
 									{
-										$gte: [
-											'$posCreatedAt',
-											endDateStartTime,
+										$eq: [
+											'$posCreatedAtLocal',
+											{
+												$dateToString: {
+													format: '%Y-%m-%d',
+													date: endDateEndTime,
+													timezone:
+														storeData.timeZone,
+												},
+											},
 										],
 									},
 									'$currentPoints',
@@ -434,24 +474,45 @@ export class ClientOrderService {
 						loyaltyPointsConversionGrowth: {
 							$round: [
 								{
-									$multiply: [
+									$cond: [
 										{
-											$divide: [
+											$and: [
 												{
-													$subtract: [
+													$ne: [
 														'$toDateTotalLoyaltyPointsConverted',
-														'$fromDateTotalLoyaltyPointsConverted',
+														0,
 													],
 												},
 												{
-													$ifNull: [
+													$ne: [
 														'$fromDateTotalLoyaltyPointsConverted',
-														1,
+														0,
 													],
 												},
 											],
 										},
-										100,
+										{
+											$multiply: [
+												{
+													$divide: [
+														{
+															$subtract: [
+																'$toDateTotalLoyaltyPointsConverted',
+																'$fromDateTotalLoyaltyPointsConverted',
+															],
+														},
+														{
+															$ifNull: [
+																'$fromDateTotalLoyaltyPointsConverted',
+																1,
+															],
+														},
+													],
+												},
+												100,
+											],
+										},
+										0,
 									],
 								},
 								2,
@@ -487,11 +548,11 @@ export class ClientOrderService {
 
 	async getTopCategory(
 		storeId: Types.ObjectId,
-		fromDate: string,
-		toDate: string
+		fromDate: Date,
+		toDate: Date
 	) {
-		const fromStartDate = new Date(fromDate);
-		const toEndDate = new Date(toDate);
+		const fromStartDate = fromDate;
+		const toEndDate = toDate;
 		try {
 			const pipeline: PipelineStage[] = [
 				{
@@ -541,9 +602,6 @@ export class ClientOrderService {
 			];
 
 			const result = await this.orderModel.aggregate(pipeline);
-			console.log('====================================');
-			console.log(JSON.stringify(pipeline));
-			console.log('====================================');
 			const { totalAmount, topCategory } =
 				result.length > 0
 					? result[0]
@@ -556,11 +614,11 @@ export class ClientOrderService {
 
 	async getRecurringAndNewCustomerPercentage(
 		storeId: Types.ObjectId,
-		fromDate: string,
-		toDate: string
+		fromDate: Date,
+		toDate: Date
 	) {
-		const fromStartDate = new Date(fromDate);
-		const fromEndDate = new Date(toDate);
+		const fromStartDate = fromDate;
+		const fromEndDate = toDate;
 		try {
 			const pipeline: PipelineStage[] = [
 				{
@@ -646,25 +704,31 @@ export class ClientOrderService {
 
 	async totalOverViewCountForOrdersBetweenDate(
 		storeId: Types.ObjectId,
-		fromDate: string,
-		toDate: string
+		fromDate: Date,
+		toDate: Date
 	) {
-		const startDateStartTime = new Date(fromDate);
-		const startDateEndTime = new Date(fromDate);
-		const endDateStartTime = new Date(toDate);
-		const endDateEndTime = new Date(toDate);
-
-		startDateEndTime.setUTCHours(23, 59, 59, 999);
-		endDateStartTime.setUTCHours(0, 0, 0, 0);
-
 		try {
+			let storeData = await this.clientStoreService.storeById(
+				storeId.toString()
+			);
 			const pipeline: PipelineStage[] = [
 				{
 					$match: {
 						storeId,
 						posCreatedAt: {
-							$gte: startDateStartTime,
-							$lte: endDateEndTime,
+							$gte: fromDate,
+							$lte: toDate,
+						},
+					},
+				},
+				{
+					$addFields: {
+						posCreatedAtLocal: {
+							$dateToString: {
+								format: '%Y-%m-%d',
+								date: '$posCreatedAt',
+								timezone: storeData.timeZone,
+							},
 						},
 					},
 				},
@@ -680,9 +744,16 @@ export class ClientOrderService {
 							$sum: {
 								$cond: [
 									{
-										$lt: [
-											'$posCreatedAt',
-											startDateEndTime,
+										$eq: [
+											'$posCreatedAtLocal',
+											{
+												$dateToString: {
+													format: '%Y-%m-%d',
+													date: fromDate,
+													timezone:
+														storeData.timeZone,
+												},
+											},
 										],
 									},
 									'$totals.finalTotal',
@@ -694,9 +765,16 @@ export class ClientOrderService {
 							$sum: {
 								$cond: [
 									{
-										$gte: [
-											'$posCreatedAt',
-											endDateStartTime,
+										$eq: [
+											'$posCreatedAtLocal',
+											{
+												$dateToString: {
+													format: '%Y-%m-%d',
+													date: toDate,
+													timezone:
+														storeData.timeZone,
+												},
+											},
 										],
 									},
 									'$totals.finalTotal',
@@ -708,9 +786,16 @@ export class ClientOrderService {
 							$sum: {
 								$cond: [
 									{
-										$lt: [
-											'$posCreatedAt',
-											startDateEndTime,
+										$eq: [
+											'$posCreatedAtLocal',
+											{
+												$dateToString: {
+													format: '%Y-%m-%d',
+													date: fromDate,
+													timezone:
+														storeData.timeZone,
+												},
+											},
 										],
 									},
 									'$totals.totalDiscounts',
@@ -722,9 +807,16 @@ export class ClientOrderService {
 							$sum: {
 								$cond: [
 									{
-										$gte: [
-											'$posCreatedAt',
-											endDateStartTime,
+										$eq: [
+											'$posCreatedAtLocal',
+											{
+												$dateToString: {
+													format: '%Y-%m-%d',
+													date: toDate,
+													timezone:
+														storeData.timeZone,
+												},
+											},
 										],
 									},
 									'$totals.totalDiscounts',
@@ -736,9 +828,16 @@ export class ClientOrderService {
 							$sum: {
 								$cond: [
 									{
-										$lt: [
-											'$posCreatedAt',
-											startDateEndTime,
+										$eq: [
+											'$posCreatedAtLocal',
+											{
+												$dateToString: {
+													format: '%Y-%m-%d',
+													date: fromDate,
+													timezone:
+														storeData.timeZone,
+												},
+											},
 										],
 									},
 									1,
@@ -750,9 +849,16 @@ export class ClientOrderService {
 							$sum: {
 								$cond: [
 									{
-										$gte: [
-											'$posCreatedAt',
-											endDateStartTime,
+										$eq: [
+											'$posCreatedAtLocal',
+											{
+												$dateToString: {
+													format: '%Y-%m-%d',
+													date: toDate,
+													timezone:
+														storeData.timeZone,
+												},
+											},
 										],
 									},
 									1,
@@ -867,8 +973,8 @@ export class ClientOrderService {
 					},
 				},
 			];
-			const result = await this.orderModel.aggregate(pipeline);
 
+			const result = await this.orderModel.aggregate(pipeline);
 			const {
 				totalOrderAmount,
 				totalDiscounts,
@@ -902,16 +1008,16 @@ export class ClientOrderService {
 
 	async getHourWiseDateForSpecificDateRange(
 		storeId: Types.ObjectId,
-		fromDate: string,
-		toDate: string
+		fromDate: Date,
+		toDate: Date
 	) {
 		let storeData = await this.clientStoreService.storeById(
 			storeId.toString()
 		);
 		console.log('storeData', storeData);
 		try {
-			const fromStartDate = new Date(fromDate);
-			const toEndDate = new Date(toDate);
+			const fromStartDate = fromDate;
+			const toEndDate = toDate;
 			const pipeline: PipelineStage[] = [
 				{
 					$match: {
@@ -996,12 +1102,12 @@ export class ClientOrderService {
 
 	async getWeeklyBusiestDataForSpecificRange(
 		storeId: Types.ObjectId,
-		fromDate: string,
-		toDate: string
+		fromDate: Date,
+		toDate: Date
 	) {
 		try {
-			const fromStartDate = new Date(fromDate);
-			const toEndDate = new Date(toDate);
+			const fromStartDate = fromDate;
+			const toEndDate = toDate;
 			const pipeline: PipelineStage[] = [
 				{
 					$match: {
@@ -1074,20 +1180,17 @@ export class ClientOrderService {
 
 	async topDiscountedCoupon(
 		storeId: Types.ObjectId,
-		fromDate: string,
-		toDate: string
+		fromDate: Date,
+		toDate: Date
 	) {
 		try {
-			const fromStartDate = new Date(fromDate);
-			const toEndDate = new Date(toDate);
-
 			const pipeline: PipelineStage[] = [
 				{
 					$match: {
 						storeId,
 						posCreatedAt: {
-							$gte: fromStartDate,
-							$lte: toEndDate,
+							$gte: fromDate,
+							$lte: toDate,
 						},
 					},
 				},
@@ -1186,20 +1289,17 @@ export class ClientOrderService {
 	// Top Discounted Items
 	async topDiscountedItem(
 		storeId: Types.ObjectId,
-		fromDate: string,
-		toDate: string
+		fromDate: Date,
+		toDate: Date
 	) {
 		try {
-			const fromStartDate = new Date(fromDate);
-			const toEndDate = new Date(toDate);
-
 			const pipeline: PipelineStage[] = [
 				{
 					$match: {
 						storeId,
 						posCreatedAt: {
-							$gte: fromStartDate,
-							$lte: toEndDate,
+							$gte: fromDate,
+							$lte: toDate,
 						},
 					},
 				},
@@ -1299,18 +1399,15 @@ export class ClientOrderService {
 
 	async averageCartSize(
 		storeId: Types.ObjectId,
-		fromDate: string,
-		toDate: string
+		fromDate: Date,
+		toDate: Date
 	) {
 		try {
-			const startDateStartTime = new Date(fromDate);
-			const startDateEndTime = new Date(fromDate);
-			const endDateStartTime = new Date(toDate);
-			const endDateEndTime = new Date(toDate);
-
-			startDateEndTime.setUTCHours(23, 59, 59, 999);
-			endDateStartTime.setUTCHours(0, 0, 0, 0);
-
+			const startDateStartTime = fromDate;
+			const endDateEndTime = toDate;
+			const storeData = await this.clientStoreService.storeById(
+				storeId.toString()
+			);
 			const pipeline = [
 				{
 					$match: {
@@ -1322,11 +1419,62 @@ export class ClientOrderService {
 					},
 				},
 				{
+					$addFields: {
+						posCreatedAtLocal: {
+							$dateToString: {
+								format: '%Y-%m-%d',
+								date: '$posCreatedAt',
+								timezone: storeData.timeZone,
+							},
+						},
+					},
+				},
+				{
 					$group: {
 						_id: null,
 						averageCartSize: { $avg: '$totals.subTotal' },
-						firstDaySubTotal: { $first: '$totals.subTotal' },
-						lastDaySubTotal: { $last: '$totals.subTotal' },
+						firstDaySubTotal: {
+							$avg: {
+								$cond: [
+									{
+										$eq: [
+											'$posCreatedAtLocal',
+											{
+												$dateToString: {
+													format: '%Y-%m-%d',
+													date: startDateStartTime,
+													timezone:
+														storeData.timeZone,
+												},
+											},
+										],
+									},
+									'$totals.subTotal',
+									0,
+								],
+							},
+						},
+						lastDaySubTotal: {
+							$avg: {
+								$cond: [
+									{
+										$eq: [
+											'$posCreatedAtLocal',
+											{
+												$dateToString: {
+													format: '%Y-%m-%d',
+													date: endDateEndTime,
+													timezone:
+														storeData.timeZone,
+												},
+											},
+										],
+									},
+									'$totals.subTotal',
+									0,
+								],
+							},
+						},
 					},
 				},
 				{

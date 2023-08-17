@@ -3,26 +3,21 @@ import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 
 import { Customer } from '../../../microservices/customers/entities/customer.entity';
+import { ClientStoreService } from './client.store.service';
 
 @Injectable()
 export class ClientCustomerService {
 	constructor(
-		@InjectModel(Customer.name) private customerModel: Model<Customer>
+		@InjectModel(Customer.name) private customerModel: Model<Customer>,
+		private clientStoreService: ClientStoreService
 	) {}
 
-	async getAverageAge(
-		storeId: Types.ObjectId,
-		fromDate: string,
-		toDate: string
-	) {
-		const startDateStartTime = new Date(fromDate);
-		const startDateEndTime = new Date(fromDate);
-		const endDateStartTime = new Date(toDate);
-		const endDateEndTime = new Date(toDate);
-
-		startDateEndTime.setUTCHours(23, 59, 59, 999);
-		endDateStartTime.setUTCHours(0, 0, 0, 0);
-
+	async getAverageAge(storeId: Types.ObjectId, fromDate: Date, toDate: Date) {
+		const startDateStartTime = fromDate;
+		const storeData = await this.clientStoreService.storeById(
+			storeId.toString()
+		);
+		const endDateEndTime = toDate;
 		const aggregationPipeline = [
 			{
 				$match: {
@@ -30,6 +25,17 @@ export class ClientCustomerService {
 					userCreatedAt: {
 						$gte: startDateStartTime,
 						$lte: endDateEndTime,
+					},
+				},
+			},
+			{
+				$addFields: {
+					userCreatedAtLocal: {
+						$dateToString: {
+							format: '%Y-%m-%d',
+							date: '$userCreatedAt',
+							timezone: storeData.timeZone,
+						},
 					},
 				},
 			},
@@ -47,7 +53,18 @@ export class ClientCustomerService {
 					toDateAverageAge: {
 						$avg: {
 							$cond: [
-								{ $gte: ['$userCreatedAt', endDateStartTime] },
+								{
+									$eq: [
+										'$userCreatedAtLocal',
+										{
+											$dateToString: {
+												format: '%Y-%m-%d',
+												date: startDateStartTime,
+												timezone: storeData.timeZone,
+											},
+										},
+									],
+								},
 								{
 									$divide: [
 										{
@@ -66,7 +83,18 @@ export class ClientCustomerService {
 					fromDateAverageAge: {
 						$avg: {
 							$cond: [
-								{ $lte: ['$userCreatedAt', startDateEndTime] },
+								{
+									$eq: [
+										'$userCreatedAtLocal',
+										{
+											$dateToString: {
+												format: '%Y-%m-%d',
+												date: endDateEndTime,
+												timezone: storeData.timeZone,
+											},
+										},
+									],
+								},
 								{
 									$divide: [
 										{
@@ -87,7 +115,7 @@ export class ClientCustomerService {
 			{
 				$project: {
 					_id: 0,
-					averageAge: { $round: ['$averageAge', 2] },
+					averageAge: { $round: ['$averageAge', 0] },
 					averageAgeGrowth: {
 						$round: [
 							{
@@ -114,7 +142,6 @@ export class ClientCustomerService {
 		];
 
 		const result = await this.customerModel.aggregate(aggregationPipeline);
-		console.log(result);
 		const { averageAge, averageAgeGrowth } =
 			result.length > 0
 				? result[0]
