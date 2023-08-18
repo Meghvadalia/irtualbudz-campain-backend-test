@@ -101,6 +101,9 @@ export class ClientDashboardService {
 			formattedFromDate,
 			formattedToDate
 		);
+		const {newCustomersByMonth,totalCustomerForCurrentYear} = await this.getCustomerAnalytics(
+			storeId,
+		)
 		return {
 			overview: {
 				totalSales: {
@@ -143,6 +146,8 @@ export class ClientDashboardService {
 				weekOrders,
 				hourlyData,
 				staffWiseOrderData,
+				newCustomersByMonth,
+				totalCustomerForCurrentYear
 			},
 		};
 	}
@@ -187,7 +192,17 @@ export class ClientDashboardService {
 			);
 		return averageSpendWithLoyalty;
 	}
-
+	async getCustomerAnalytics(storeId:Types.ObjectId){
+		try {
+			const {newCustomersByMonth} = await this.customerService.getNewCustomersByMonth(
+				storeId,
+			)
+			const {totalCustomerForCurrentYear}=await this.customerService.getTotalCurrentYearCustomer(storeId)
+			return {newCustomersByMonth,totalCustomerForCurrentYear}
+		} catch (error) {
+			throw new Error(error)
+		}
+	}
 	async totalSales(storeId: Types.ObjectId, fromDate: Date, toDate: Date) {
 		const {
 			totalOrderAmount,

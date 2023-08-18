@@ -22,3 +22,19 @@ export function getStoreTimezoneDateRange(
 		formattedToDate: new Date(toUtc),
 	};
 }
+
+export function getCurrentYearDateRange(userTimezone:string){
+	const fromUtc = moment()
+        .tz(userTimezone)
+        .startOf('year')
+        .format();
+
+    const toUtc = moment()
+        .tz(userTimezone)
+        .endOf('year')
+        .format();
+	return {
+		formattedFromDate: new Date(fromUtc),
+		formattedToDate: new Date(toUtc),
+	};
+}

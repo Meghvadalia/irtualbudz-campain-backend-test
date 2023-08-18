@@ -1,9 +1,10 @@
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model, Types } from 'mongoose';
+import { Model, PipelineStage, Types } from 'mongoose';
 
 import { Customer } from '../../../microservices/customers/entities/customer.entity';
 import { ClientStoreService } from './client.store.service';
+import { getCurrentYearDateRange } from 'src/utils/time.utils';
 
 @Injectable()
 export class ClientCustomerService {
@@ -149,4 +150,99 @@ export class ClientCustomerService {
 
 		return { averageAge, averageAgeGrowth };
 	}
+
+
+	async getNewCustomersByMonth(
+		storeId: Types.ObjectId,
+		
+		){
+			const storeData = await this.clientStoreService.storeById(
+				storeId.toString()
+			);
+			const {formattedFromDate,formattedToDate}=getCurrentYearDateRange( storeData.timeZone)
+			console.log(formattedFromDate,formattedToDate);
+			
+			try{
+				
+				const pipeline : PipelineStage[] = [
+					{
+					  $match: {
+						storeId:{$in:[new Types.ObjectId(storeId)]},
+						userCreatedAt: {
+							$gte: formattedFromDate,
+							$lte: formattedToDate,
+						}
+					  
+					  }
+					},
+					{
+					  $group: {
+						_id: { $month: "$userCreatedAt" }, // Group by month of creation
+						count: { $sum: 1 }              // Count the number of users in each group
+					  }
+					},
+					{$sort:{_id:1}},
+					{
+					  $project: {
+						_id: 0,
+						month: {
+						  $let: {
+							vars: {
+							  monthsInString: [
+								"January", "February", "March", "April", "May", "June",
+								"July", "August", "September", "October", "November", "December"
+							  ]
+							},
+							in: {
+							  $arrayElemAt: ["$$monthsInString", { $subtract: ["$_id", 1] }]
+							}
+						  }
+						},
+						count: 1
+					  }
+					}
+				  ];
+	
+				const result = await this.customerModel.aggregate(pipeline);
+				const newCustomersByMonth =
+				result.length > 0
+					? result
+					: [];
+
+				return  {newCustomersByMonth} ;
+
+			} catch(error){
+				throw error
+			}
+		}
+		async getTotalCurrentYearCustomer(
+			storeId: Types.ObjectId,
+			
+			){
+				const storeData = await this.clientStoreService.storeById(
+					storeId.toString()
+				);
+				const {formattedFromDate,formattedToDate}=getCurrentYearDateRange( storeData.timeZone)
+				try{
+					
+					
+		
+					const result = await this.customerModel.countDocuments({
+						storeId:{$in:[new Types.ObjectId(storeId)]},
+						userCreatedAt: {
+							$gte: formattedFromDate,
+							$lte: formattedToDate,
+						}
+					  
+					  });
+					if(result){
+						return {totalCustomerForCurrentYear:result}
+					}
+					return {totalCustomerForCurrentYear:0}
+	
+				} catch(error){
+					throw error
+				}
+			}
+
 }

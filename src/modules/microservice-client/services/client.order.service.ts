@@ -4,14 +4,12 @@ import { Model, PipelineStage, Types } from 'mongoose';
 
 import { Order } from '../../../microservices/order/entities/order.entity';
 import { ClientStoreService } from './client.store.service';
-import { from } from 'rxjs';
-import * as moment from 'moment-timezone';
 
 @Injectable()
 export class ClientOrderService {
 	constructor(
 		@InjectModel(Order.name) private orderModel: Model<Order>,
-		private clientStoreService: ClientStoreService
+		private clientStoreService: ClientStoreService,
 	) {}
 
 	async getOrderForEachDate(
