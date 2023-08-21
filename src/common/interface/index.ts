@@ -1,5 +1,6 @@
 export interface BaseInterface {
 	_id?: string;
+	id?: string;
 }
 export interface IAddress {
 	streetAddress1: string;

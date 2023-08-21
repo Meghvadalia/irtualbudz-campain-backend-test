@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { InjectModel } from '@nestjs/mongoose';
+import { InjectModel, Schema } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import axios, { AxiosRequestConfig } from 'axios';
 
@@ -14,8 +14,10 @@ import { POS } from 'src/model/pos/entities/pos.entity';
 import { Store } from 'src/model/store/entities/store.entity';
 import { IOrder } from '../interfaces/order.interface';
 import { IStore } from 'src/model/store/interface/store.inteface';
-import { ItemsCart } from '../interfaces/cart.interface';
-import { Customer } from 'src/microservices/customers';
+import { ItemDiscounts, ItemsCart, Tax } from '../interfaces/cart.interface';
+import { Customer, CustomerService } from 'src/microservices/customers';
+import { Product } from 'src/microservices/inventory';
+import { CUSTOMER_TYPE } from '../constant/order.constant';
 
 @Injectable()
 export class OrderService {
@@ -26,7 +28,9 @@ export class OrderService {
 		@InjectModel(Company.name) private companyModel: Model<Company>,
 		@InjectModel(POS.name) private posModel: Model<POS>,
 		@InjectModel(Store.name) private storeModel: Model<Store>,
-		@InjectModel(Customer.name) private customerModel: Model<Customer>
+		@InjectModel(Customer.name) private customerModel: Model<Customer>,
+		@InjectModel(Product.name) private productModel: Model<Product>,
+		private readonly customerService: CustomerService
 	) {}
 
 	async scheduleCronJob(posName: string) {
@@ -424,96 +428,250 @@ export class OrderService {
 		}
 	}
 
-	// async seedDutchieOrders(posName: string) {
-	// 	const posData: IPOS = await this.posModel.findOne<IPOS>({
-	// 		name: posName,
-	// 	});
+	async seedDutchieOrders(posName: string) {
+		try {
+			const posData: IPOS = await this.posModel.findOne<IPOS>({
+				name: posName,
+			});
 
-	// 	const companyData = await this.companyModel.find<ICompany>({
-	// 		posId: posData._id,
-	// 		isActive: true,
-	// 	});
+			const companyData = await this.companyModel.find<ICompany>({
+				posId: posData._id,
+				isActive: true,
+			});
 
-	// 	let currentDate: Date = new Date(),
-	// 		fromDate: Date,
-	// 		toDate = new Date(currentDate.getFullYear(), currentDate.getMonth(), currentDate.getDate(), 0, 0, 0);
+			let currentDate: Date = new Date(),
+				fromDate: Date,
+				toDate = new Date(
+					currentDate.getFullYear(),
+					currentDate.getMonth(),
+					currentDate.getDate(),
+					0,
+					0,
+					0
+				);
+			let storeData: IStore;
+			for (const company of companyData) {
+				storeData = await this.storeModel.findOne({
+					companyId: company._id,
+				});
+				const tokenOptions = {
+					method: 'get',
+					url: `${posData.liveUrl}/util/AuthorizationHeader/${company.dataObject.key}`,
+					headers: {
+						Accept: 'application/json',
+					},
+				};
 
-	// 	for (const company of companyData) {
-	// 		const tokenOptions = {
-	// 			method: 'get',
-	// 			url: `${posData.liveUrl}/util/AuthorizationHeader/${company.dataObject.key}`,
-	// 			headers: {
-	// 				Accept: 'application/json',
-	// 			},
-	// 		};
+				const { data: token } = await axios.request(tokenOptions);
+				const orderData: IOrder = await this.orderModel.findOne({
+					companyId: company._id,
+				});
 
-	// 		const { data: token } = await axios.request(tokenOptions);
-	// 		const orderData: IOrder = await this.orderModel.findOne({
-	// 			companyId: company._id,
-	// 		});
+				let orderOptions: AxiosRequestConfig;
 
-	// 		let orderOptions: AxiosRequestConfig;
+				if (!orderData) {
+					fromDate = new Date(
+						currentDate.getFullYear(),
+						currentDate.getMonth(),
+						currentDate.getDate() - company.lastSyncDataDuration,
+						0,
+						0,
+						0
+					);
 
-	// 		if (!orderData) {
-	// 			fromDate = new Date(
-	// 				currentDate.getFullYear(),
-	// 				currentDate.getMonth(),
-	// 				currentDate.getDate() - company.lastSyncDataDuration,
-	// 				0,
-	// 				0,
-	// 				0
-	// 			);
+					orderOptions = {
+						url: `${
+							posData.liveUrl
+						}/reporting/transactions?FromLastModifiedDateUTC=${fromDate.toISOString()}&ToLastModifiedDateUTC=${toDate.toISOString()}&IncludeDetail=true&IncludeTaxes=true&IncludeOrderIds=true`,
+						headers: {
+							Accept: 'application/json',
+							Authorization: token,
+						},
+					};
+				} else {
+					fromDate = new Date(
+						currentDate.getFullYear(),
+						currentDate.getMonth(),
+						currentDate.getDate() - 1,
+						0,
+						0,
+						0
+					);
+					orderOptions = {
+						url: `${
+							posData.liveUrl
+						}/reporting/transactions?FromLastModifiedDateUTC=${fromDate.toISOString()}&ToLastModifiedDateUTC=${toDate.toISOString()}&IncludeDetail=true&IncludeTaxes=true&IncludeOrderIds=true&IncludeFeesAndDonations=true`,
+						headers: {
+							Accept: 'application/json',
+							Authorization: token,
+						},
+					};
+				}
 
-	// 			orderOptions = {
-	// 				url: `${posData.liveUrl}/reporting/transactions?FromLastModifiedDateUTC=${fromDate}&ToLastModifiedDateUTC=${toDate}&IncludeDetail=true&IncludeTaxes=true&IncludeOrderIds=true`,
-	// 				headers: {
-	// 					Accept: 'application/json',
-	// 					Authorization: token,
-	// 				},
-	// 			};
-	// 		} else {
-	// 			fromDate = new Date(currentDate.getFullYear(), currentDate.getMonth(), currentDate.getDate() - 1, 0, 0, 0);
-	// 			orderOptions = {
-	// 				url: `${posData.liveUrl}/reporting/transactions?FromLastModifiedDateUTC=${fromDate}&ToLastModifiedDateUTC=${toDate}&IncludeDetail=true&IncludeTaxes=true&IncludeOrderIds=true&IncludeFeesAndDonations=true`,
-	// 				headers: {
-	// 					Accept: 'application/json',
-	// 					Authorization: token,
-	// 				},
-	// 			};
-	// 		}
+				const { data } = await axios.request(orderOptions);
 
-	// 		const { data } = await axios.request(orderOptions);
+				let cartArray: ItemsCart[] = [];
+				let ordersArray: IOrder[] = [];
+				let paymentType: string;
 
-	// 		let ordersArray: IOrder[] = [];
+				for (const d of data) {
+					if (d.transactionType === 'Retail') {
+						let staff = await this.staffModel.findOne({
+							posIdCode: d.employeeId,
+						});
+						if (!staff) {
+							const staffObject: IStaff = {
+								staffName: d.employeeId,
+								storeId: storeData._id,
+								posIdCode: d.employeeId,
+							};
+							staff = await this.staffModel.create(staffObject);
+						}
+						const customer = await this.customerModel.findOne({
+							posCustomerId: d.customerId,
+						});
 
-	// 		for (const d of data) {
-	// 			ordersArray.push({
-	// 				companyId: company._id,
-	// 				posId: posData._id,
-	// 				posOrderId: d.transactionId,
-	// 				customerId: d.customerId,
-	// 				fullName: d.completedByUser,
-	// 				customerType: d.customerTypeId === 2 ? CustomerType.recCustomer : CustomerType.medCustomer,
-	// 				orderType: d.orderType,
-	// 				voided: d.isVoid,
-	// 				storeId: company._id,
-	// 				orderStatus: 'sold',
-	// 				totals: {
-	// 					finalTotal: d.total,
-	// 					subTotal: d.subtotal,
-	// 					totalDiscounts: d.totalDiscount,
-	// 					totalTaxes: d.tax,
-	// 					totalFees: 0,
-	// 				},
-	// 				posCreatedAt: d.transactionDate,
-	// 				payments: {},
-	// 				currentPoints: d.loyaltyEarned,
-	// 				name: '',
+						if (d.cashPaid !== null || d.creditPaid !== null) {
+							paymentType = 'cash';
+						} else if (d.giftPaid !== null) {
+							paymentType = 'gift card';
+						} else if (d.loyaltySpent !== null) {
+							paymentType = 'loyalty points';
+						} else {
+							paymentType = 'debit';
+						}
+						for (const d of data) {
+							for (const c of d.items) {
+								const product = await this.productModel.findOne(
+									{ posProductId: c.productId }
+								);
+								if (!product) {
+									console.log(
+										'===================================='
+									);
+									console.log('Shahid', c.productId);
+									console.log(
+										'===================================='
+									);
+									continue;
+								}
+								let itemDiscounts: ItemDiscounts[] = [];
+								if (c.discounts) {
+									for (const discount of c.discounts) {
+										itemDiscounts.push({
+											_id: discount.discountId,
+											name: discount.discountName,
+											discountAmount: discount.amount,
+										});
+									}
+								}
+								let taxArray: Tax[] = [];
+								if (c.taxes) {
+									for (const tax of c.taxes) {
+										taxArray.push({
+											name: tax.name,
+											percentage: tax.rate,
+											thisTaxInPennies: tax.amount,
+										});
+									}
+								}
 
-	// 			});
-	// 		}
-	// 	}
-	// }
+								await this.cartModel.create({
+									category: product.category,
+									storeId: storeData._id,
+									itemDiscounts: itemDiscounts,
+									posCartId: d.transactionId,
+									productName: product.productName,
+									quantity: c.quantity,
+									sku: product.sku,
+									strainName: product.strain,
+									tax: taxArray,
+									totalCost: c.quantity * c.unitCost,
+									totalPrice: c.totalPrice,
+									unitCost: c.unitCost,
+									unitOfWeight: c.unitWeightUnit,
+									unitPrice: c.unitPrice,
+									title1: product.productName,
+									title2: c.vendor,
+								});
+							}
+							const orderObject: IOrder = {
+								companyId: company._id,
+								posId: posData._id,
+								posOrderId: d.transactionId,
+								customerId: customer
+									? (customer._id as unknown as string)
+									: '',
+								fullName: d.completedByUser,
+								customerType:
+									d.customerTypeId === 2
+										? CUSTOMER_TYPE.recCustomer
+										: CUSTOMER_TYPE.medCustomer,
+								orderType: d.orderType,
+								voided: d.isVoid,
+								storeId: storeData._id,
+								orderStatus: 'sold',
+								totals: {
+									finalTotal: d.total,
+									subTotal: d.subtotal,
+									totalDiscounts: d.totalDiscount,
+									totalTaxes: d.tax,
+									totalFees: 0,
+								},
+								posCreatedAt: d.transactionDate,
+								payments: {
+									amount: d.total,
+									_id: d.transactionId,
+									cardId: null,
+									debitProvider: '',
+									paymentType,
+									loyaltyPoints: d.loyaltySpent,
+									balanceAfterPayment: null,
+								},
+								currentPoints: d.loyaltyEarned,
+								name: '',
+								staffId: staff?._id as unknown as string,
+								itemsInCart: [],
+							};
+							const findCartData = (
+								await this.cartModel.find({
+									posCartId: orderObject.posOrderId,
+								})
+							).flatMap((cart) => cart._id);
+
+							if (findCartData) {
+								orderObject.itemsInCart =
+									findCartData as unknown as string[];
+							}
+							this.orderModel.updateOne(
+								{ posOrderId: orderObject.posOrderId },
+								orderObject,
+								{ upsert: true }
+							);
+						}
+					}
+				}
+
+				// const cartData = await this.cartModel.insertMany(cartArray);
+				// await Promise.all(cartData);
+
+				// for (const order of ordersArray) {
+				// 	const findCartData = (
+				// 		await this.cartModel.find({
+				// 			posCartId: order.posOrderId,
+				// 		})
+				// 	).flatMap((cart) => cart._id);
+
+				// 	if (findCartData) {
+				// 		order.itemsInCart = findCartData as unknown as string[];
+				// 	}
+				// }
+				// await this.orderModel.insertMany(ordersArray);
+			}
+		} catch (error) {
+			console.trace(error);
+		}
+	}
 
 	async seedDutchieStaff(posName: string) {
 		try {

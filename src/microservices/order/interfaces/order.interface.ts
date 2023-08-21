@@ -1,3 +1,5 @@
+import { CUSTOMER_TYPE } from '../constant/order.constant';
+
 export interface IOrder {
 	posOrderId: string;
 	customerId: string;
@@ -7,7 +9,7 @@ export interface IOrder {
 	orderType: string;
 	totals: Totals;
 	itemsInCart: Array<string>;
-	customerType: CustomerType;
+	customerType: CUSTOMER_TYPE;
 	storeId: string;
 	voided: boolean;
 	fullName: string;
@@ -15,19 +17,6 @@ export interface IOrder {
 	payments: Payments;
 	[property: string]: any;
 	posCreatedAt: Date;
-}
-
-export interface Tax {
-	_id: string;
-	name: string;
-	percentage: number;
-	calculateBeforeDiscounts: string;
-	supplierSpecificTax: boolean;
-	excludeCustomerGroups: string[];
-	enableCostMarkup: boolean;
-	markupPercentage: number;
-	thisTaxInPennies: number;
-	appliesTo: AppliesTo;
 }
 
 export interface Totals {
@@ -38,23 +27,6 @@ export interface Totals {
 	totalTaxes: number;
 }
 
-export interface ItemDiscounts {
-	name: string;
-	type: string;
-	discountAmount: number;
-	discountType: string;
-	discountId: string;
-	ItemDiscounts: string;
-	dollarsOff: number;
-	penniesOff: number;
-	percentOff: number;
-	discounterName: number;
-	discounterId: string;
-	isCartDiscount: string;
-	couponCode: string;
-	quantity: number;
-}
-
 export interface Payments {
 	_id: string;
 	paymentType: string;
@@ -63,20 +35,6 @@ export interface Payments {
 	loyaltyPoints: number;
 	debitProvider: string;
 	balanceAfterPayment: number;
-}
-
-export enum AppliesTo {
-	all = 'all',
-	nonCannabis = 'nonCannabis',
-	rec = 'rec',
-	med = 'med',
-	both = 'both',
-	delivery = 'delivery',
-}
-
-export enum CustomerType {
-	recCustomer = 'recCustomer',
-	medCustomer = 'medCustomer',
 }
 
 // export enum OrderType {

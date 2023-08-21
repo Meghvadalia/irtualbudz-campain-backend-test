@@ -8,8 +8,15 @@ export class Staff extends Model<IStaff> {
 	@Prop()
 	staffName: String;
 
-	@Prop({ required: true, type: Types.ObjectId, ref: DATABASE_COLLECTION.STORES })
+	@Prop({
+		required: true,
+		type: Types.ObjectId,
+		ref: DATABASE_COLLECTION.STORES,
+	})
 	storeId: String;
+
+	@Prop()
+	posIdCode: String;
 }
 
 export const StaffSchema = SchemaFactory.createForClass(Staff);

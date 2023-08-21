@@ -24,26 +24,27 @@ export class ClientStoreService {
 		private readonly redisService: RedisService
 	) {}
 
-	async seedStoreData() {
+	async seedStoreData(posName: string) {
 		try {
-			const companiesDataList: ICompany[] =
+			const posData: IPOS = await this.posModel.findOne<IPOS>({
+				name: posName,
+			});
+
+			const CompaniesList: ICompany[] =
 				await this.companyModel.find<ICompany>({
 					isActive: true,
+					posId: posData._id,
 				});
 
-			for (let i = 0; i < companiesDataList.length; i++) {
-				const monarcCompanyData = companiesDataList[i];
-
-				const posData: IPOS = await this.posModel.findOne<IPOS>({
-					_id: monarcCompanyData.posId,
-				});
+			for (let i = 0; i < CompaniesList.length; i++) {
+				const companyData = CompaniesList[i];
 
 				const options = {
 					method: 'get',
 					url: `${posData.liveUrl}/v0/clientsLocations`,
 					headers: {
-						key: monarcCompanyData.dataObject.key,
-						ClientId: monarcCompanyData.dataObject.clientId,
+						key: companyData.dataObject.key,
+						ClientId: companyData.dataObject.clientId,
 						Accept: 'application/json',
 					},
 				};
@@ -55,7 +56,7 @@ export class ClientStoreService {
 
 					const existingStore = await this.storeModel.findOne({
 						'location.importId': element.importId,
-						companyId: monarcCompanyData._id,
+						companyId: companyData._id,
 					});
 
 					if (existingStore) {
@@ -66,7 +67,7 @@ export class ClientStoreService {
 							locationId: element.locationId,
 							importId: element.importId,
 						},
-						companyId: monarcCompanyData._id,
+						companyId: companyData._id,
 						hoursOfOperation: element.hoursOfOperation,
 						phonenumber: element.phoneNumber,
 						email: element.email ? element.email : '',

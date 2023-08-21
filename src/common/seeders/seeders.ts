@@ -161,7 +161,7 @@ export class SeederService {
 		try {
 			await this.seedPOS();
 			await this.seedCompany();
-			await this.storeService.seedStoreData();
+			await this.storeService.seedStoreData('flowhub');
 			await this.seedUser();
 			console.log('Seeding completed successfully');
 		} catch (error) {

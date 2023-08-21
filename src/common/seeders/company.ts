@@ -21,6 +21,28 @@ export const companyData = [
 		lastSyncDataDuration: 100,
 		isActive: true,
 	},
+	// {
+	// 	name: 'Boulder',
+	// 	posId: '',
+	// 	totalStore: 0,
+	// 	dataObject: {
+	// 		key: 'b55ddad6747f4d8dbbf8ad544ecc527a',
+	// 	},
+	// 	posName: 'dutchie',
+	// 	lastSyncDataDuration: 100,
+	// 	isActive: true,
+	// },
+	// {
+	// 	name: 'Denver',
+	// 	posId: '',
+	// 	totalStore: 0,
+	// 	dataObject: {
+	// 		key: 'abe81b4a0b2047ba9549ec1422d884f5',
+	// 	},
+	// 	posName: 'dutchie',
+	// 	lastSyncDataDuration: 100,
+	// 	isActive: true,
+	// },
 	{
 		name: 'Zen Barn Farms',
 		posId: '',

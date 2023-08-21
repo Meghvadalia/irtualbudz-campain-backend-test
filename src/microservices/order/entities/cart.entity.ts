@@ -68,7 +68,7 @@ export class Cart extends Model<ItemsCart> {
 			},
 		])
 	)
-	itemDiscounts: ItemDiscounts;
+	itemDiscounts: ItemDiscounts[];
 
 	@Prop(
 		raw([
@@ -86,7 +86,7 @@ export class Cart extends Model<ItemsCart> {
 			},
 		])
 	)
-	tax: Tax;
+	tax: Tax[];
 }
 
 export const CartSchema = SchemaFactory.createForClass(Cart);

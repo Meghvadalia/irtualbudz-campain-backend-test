@@ -1,10 +1,9 @@
 import { Schema } from 'mongoose';
+import { BaseInterface } from 'src/common/interface';
 
-export interface ItemsCart {
-	_id?: string;
+export interface ItemsCart extends BaseInterface {
 	posCartId: string;
-	locationId: Schema.Types.ObjectId;
-	productId: Schema.Types.ObjectId;
+	storeId: Schema.Types.ObjectId;
 	sku: string;
 	category: string;
 	title1: string;
@@ -17,27 +16,25 @@ export interface ItemsCart {
 	totalPrice: number;
 	unitCost: number;
 	totalCost: number;
-	itemDiscounts: ItemDiscounts;
-	tax: Tax;
-	id?: string;
-	[property: string]: any;
+	itemDiscounts: ItemDiscounts[];
+	tax: Tax[];
 }
 
 export interface Tax {
-	_id: string;
-	name: string;
-	percentage: number;
-	calculateBeforeDiscounts: string;
-	supplierSpecificTax: boolean;
-	excludeCustomerGroups: string[];
-	enableCostMarkup: boolean;
-	markupPercentage: number;
-	thisTaxInPennies: number;
-	appliesTo: AppliesTo;
+	_id?: string;
+	name?: string;
+	percentage?: number;
+	calculateBeforeDiscounts?: string;
+	supplierSpecificTax?: boolean;
+	excludeCustomerGroups?: string[];
+	enableCostMarkup?: boolean;
+	markupPercentage?: number;
+	thisTaxInPennies?: number;
+	appliesTo?: AppliesTo;
 }
 
 export interface ItemDiscounts {
-	_id: string;
+	_id?: string;
 	name?: string;
 	type?: string;
 	discountAmount?: number;

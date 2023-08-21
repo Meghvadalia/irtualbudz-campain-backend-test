@@ -1,20 +1,29 @@
 import { Model, Types } from 'mongoose';
 import { Prop, Schema, SchemaFactory, raw } from '@nestjs/mongoose';
-import { CustomerType, IOrder, Payments, Totals } from '../interfaces/order.interface';
+import { IOrder, Payments, Totals } from '../interfaces/order.interface';
 import { DATABASE_COLLECTION } from 'src/common/constants';
+import { CUSTOMER_TYPE } from '../constant/order.constant';
 
 @Schema({ collection: DATABASE_COLLECTION.ORDER, timestamps: true })
 export class Order extends Model<IOrder> {
-	@Prop({ required: true, type: Types.ObjectId, ref: DATABASE_COLLECTION.COMPANIES })
+	@Prop({
+		required: true,
+		type: Types.ObjectId,
+		ref: DATABASE_COLLECTION.COMPANIES,
+	})
 	companyId: string;
 
-	@Prop({ required: true, type: Types.ObjectId, ref: DATABASE_COLLECTION.POS })
+	@Prop({
+		required: true,
+		type: Types.ObjectId,
+		ref: DATABASE_COLLECTION.POS,
+	})
 	posId: string;
 
 	@Prop({ required: true, unique: true })
 	posOrderId: string;
 
-	@Prop({ required: true })
+	@Prop({ trim: true })
 	clientId: string;
 
 	@Prop({ type: Types.ObjectId, ref: DATABASE_COLLECTION.CUSTOMER })
@@ -46,10 +55,15 @@ export class Order extends Model<IOrder> {
 	@Prop()
 	itemsInCart: string[];
 
-	@Prop({ enum: CustomerType })
-	customerType: CustomerType;
+	@Prop({ enum: CUSTOMER_TYPE })
+	customerType: string;
 
-	@Prop({ required: true, type: Types.ObjectId, ref: DATABASE_COLLECTION.STORES, index: true })
+	@Prop({
+		required: true,
+		type: Types.ObjectId,
+		ref: DATABASE_COLLECTION.STORES,
+		index: true,
+	})
 	storeId: string;
 
 	@Prop()

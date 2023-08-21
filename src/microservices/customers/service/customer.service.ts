@@ -135,24 +135,8 @@ export class CustomerService {
 
 				const { data: token } = await axios.request(tokenOptions);
 
-				const date = new Date();
-				const customer = await this.customerModel.findOne({ companyId: company._id });
-
-				let fromDate: Date, toDate: Date;
-
-				if (customer) {
-					fromDate = new Date(date.getFullYear(), date.getMonth(), date.getDate() - 1, 0, 0, 0);
-					toDate = new Date(date.getFullYear(), date.getMonth(), date.getDate(), 0, 0, 0);
-					console.log('seeding data for previous day');
-				} else {
-					fromDate = new Date(date.getFullYear(), date.getMonth(), date.getDate() - 100, 0, 0, 0);
-					toDate = new Date(date.getFullYear(), date.getMonth(), date.getDate(), 0, 0, 0);
-					console.log('seeding data for last 100 day');
-				}
 				const customerOptions: AxiosRequestConfig = {
-					url: `${
-						posData.liveUrl
-					}/customer/customers?fromLastModifiedDateUTC=${fromDate.toISOString()}&toLastModifiedDateUTC=${toDate.toISOString()}&includeAnonymous=true`,
+					url: `${posData.liveUrl}/customer/customers?&includeAnonymous=true`,
 					headers: {
 						Accept: 'application/json',
 						Authorization: token,

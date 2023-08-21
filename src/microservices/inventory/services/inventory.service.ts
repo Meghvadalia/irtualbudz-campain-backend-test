@@ -157,7 +157,7 @@ export class InventoryService {
 				};
 
 				const productOptions: AxiosRequestConfig = {
-					url: `${posData.liveUrl}/products`,
+					url: `${posData.liveUrl}/reporting/products`,
 					headers: {
 						Accept: 'application/json',
 						Authorization: token,
