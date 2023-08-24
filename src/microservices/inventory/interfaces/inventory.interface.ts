@@ -4,7 +4,7 @@ export interface IInventory {
 	productId: string;
 	posProductId: string;
 	quantity: number;
-	locationId: string;
+	storeId: string;
 	locationName: string;
 	expirationDate: Date;
 	productUpdatedAt: Date;

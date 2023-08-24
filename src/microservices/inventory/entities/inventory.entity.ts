@@ -29,7 +29,7 @@ export class Inventory extends Model<IInventory> {
 	posProductId: string;
 
 	@Prop({ type: Types.ObjectId, ref: DATABASE_COLLECTION.STORES })
-	locationId: string;
+	storeId: string;
 
 	@Prop()
 	locationName: string;

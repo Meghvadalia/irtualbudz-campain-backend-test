@@ -26,12 +26,10 @@ export class InventoryService {
 	async seedInventory(posName: string): Promise<void> {
 		try {
 			const posData = await this.posModel.findOne({ name: posName });
-			const flowhubCompaniesList = await this.companyModel.find<ICompany>(
-				{
-					isActive: true,
-					posId: posData._id,
-				}
-			);
+			const flowhubCompaniesList = await this.companyModel.find<ICompany>({
+				isActive: true,
+				posId: posData._id,
+			});
 
 			for (const company of flowhubCompaniesList) {
 				const locations = await this.storeModel.find({
@@ -51,43 +49,19 @@ export class InventoryService {
 					return { options, locationMongoId: location._id };
 				});
 
-				const inventoryResponses = await Promise.all(
-					inventoryOptions.map(({ options }) =>
-						axios.request(options)
-					)
-				);
-				const inventoryDataArray = inventoryResponses.flatMap(
-					({ data }) => data.data
-				);
+				const inventoryResponses = await Promise.all(inventoryOptions.map(({ options }) => axios.request(options)));
+				const inventoryDataArray = inventoryResponses.flatMap(({ data }) => data.data);
 
-				const productMap = new Map(); // To store productId -> productData mapping
-				const productDataArray = inventoryDataArray.map(
-					(productData) => {
-						const transformedProductData =
-							this.transformProductData(
-								productData,
-								company._id,
-								posData._id
-							);
-						productMap.set(
-							productData.productId,
-							transformedProductData
-						);
-						return transformedProductData;
-					}
-				);
+				const productMap = new Map();
 
-				await this.updateOrCreateProducts(productDataArray);
+				for (const productData of inventoryDataArray) {
+					const transformedProductData = this.transformProductData(productData, company._id, posData._id);
+					const savedProduct = await this.productModel.create(transformedProductData);
+					productMap.set(productData.productId, savedProduct._id);
+				}
 
-				const inventoryDataToSaveArray = inventoryDataArray.map(
-					(inventoryData, index) =>
-						this.transformInventoryData(
-							inventoryData,
-							productMap.get(inventoryData.productId),
-							company._id,
-							posData._id,
-							locations
-						)
+				const inventoryDataToSaveArray = inventoryDataArray.map((inventoryData) =>
+					this.transformInventoryData(inventoryData, productMap.get(inventoryData.productId), company._id, posData._id, locations)
 				);
 
 				await this.updateOrCreateInventory(inventoryDataToSaveArray);
@@ -97,6 +71,7 @@ export class InventoryService {
 			throw error;
 		}
 	}
+
 	async updateOrCreateProducts(products) {
 		const bulkWriteOps = products.map((product) => ({
 			updateOne: {
@@ -126,6 +101,7 @@ export class InventoryService {
 
 		await this.inventoryModel.bulkWrite(bulkWriteOps);
 	}
+
 	async seedDutchieInventory(posName: string) {
 		try {
 			const posData: IPOS = await this.posModel.findOne<IPOS>({
@@ -164,14 +140,10 @@ export class InventoryService {
 					},
 				};
 
-				const { data: productsData } = await axios.request(
-					productOptions
-				);
-				const storeData: IStore = await this.storeModel.findOne<IStore>(
-					{
-						companyId: company._id,
-					}
-				);
+				const { data: productsData } = await axios.request(productOptions);
+				const storeData: IStore = await this.storeModel.findOne<IStore>({
+					companyId: company._id,
+				});
 
 				const productArray: IProduct[] = [];
 
@@ -211,13 +183,9 @@ export class InventoryService {
 						},
 					});
 				}
-				const insertedProducts = await this.productModel.insertMany(
-					productArray
-				);
+				const insertedProducts = await this.productModel.insertMany(productArray);
 
-				const { data: inventoryData } = await axios.request(
-					inventoryOptions
-				);
+				const { data: inventoryData } = await axios.request(inventoryOptions);
 
 				const inventoryArray: IInventory[] = [];
 
@@ -233,11 +201,9 @@ export class InventoryService {
 						posId: posData._id,
 						posProductId: d.productId,
 						productUpdatedAt: d.lastModifiedDateUtc,
-						locationId: storeData._id,
+						storeId: storeData._id,
 						locationName: storeData.location.locationName,
-						productId: matchingProduct
-							? (matchingProduct._id as string)
-							: '',
+						productId: matchingProduct ? (matchingProduct._id as string) : '',
 						extraDetails: {
 							inventoryUnitOfMeasure: d.unitWeightUnit,
 							inventoryUnitOfMeasureToGramsMultiplier: 1,
@@ -281,41 +247,65 @@ export class InventoryService {
 				weightTierInformation: productData.weightTierInformation,
 				cannabinoidInformation: productData.cannabinoidInformation,
 				productUnitOfMeasure: productData.productUnitOfMeasure,
-				productUnitOfMeasureToGramsMultiplier:
-					productData.productUnitOfMeasureToGramsMultiplier,
+				productUnitOfMeasureToGramsMultiplier: productData.productUnitOfMeasureToGramsMultiplier,
 			},
 		};
 	}
 
-	transformInventoryData(
-		inventoryData,
-		productId,
-		companyId,
-		posId,
-		locations
-	) {
-		const location = locations.find(
-			({ location }) => location.locationId === inventoryData.locationId
-		);
+	transformInventoryData(inventoryData, product, companyId, posId, locations) {
+		const location = locations.find(({ location }) => location.locationId === inventoryData.locationId);
 		return {
-			productId,
+			productId: product._id,
 			companyId,
 			posProductId: inventoryData.productId,
 			posId,
 			quantity: inventoryData.quantity,
-			locationId: location ? location._id : undefined,
+			storeId: location ? location._id : undefined,
 			locationName: inventoryData.locationName,
 			expirationDate: inventoryData.expirationDate,
 			productUpdatedAt: inventoryData.productUpdatedAt,
 			extraDetails: {
 				inventoryUnitOfMeasure: inventoryData.inventoryUnitOfMeasure,
-				inventoryUnitOfMeasureToGramsMultiplier:
-					inventoryData.inventoryUnitOfMeasureToGramsMultiplier,
+				inventoryUnitOfMeasureToGramsMultiplier: inventoryData.inventoryUnitOfMeasureToGramsMultiplier,
 				currencyCode: inventoryData.currencyCode,
 			},
 			costInMinorUnits: inventoryData.costInMinorUnits,
 			priceInMinorUnits: inventoryData.priceInMinorUnits,
 			forSale: inventoryData.forSale,
 		};
+	}
+
+	async migrateData() {
+		const products = await this.productModel.find();
+
+		for (const product of products) {
+			const inventoryItem = await this.inventoryModel.findOne({
+				posProductId: product.posProductId,
+			});
+
+			if (inventoryItem) {
+				await this.inventoryModel.findByIdAndUpdate(inventoryItem._id, { productId: product._id }).exec();
+			}
+		}
+
+		const duplicateInventoryItems = await this.inventoryModel.aggregate([
+			{
+				$group: {
+					_id: '$posProductId',
+					count: { $sum: 1 },
+					ids: { $push: '$_id' },
+				},
+			},
+			{
+				$match: {
+					count: { $gt: 1 },
+				},
+			},
+		]);
+
+		for (const duplicate of duplicateInventoryItems) {
+			const [keepId, ...deleteIds] = duplicate.ids;
+			await this.inventoryModel.deleteMany({ _id: { $in: deleteIds } }).exec();
+		}
 	}
 }
