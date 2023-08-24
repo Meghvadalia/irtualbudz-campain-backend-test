@@ -40,6 +40,9 @@ export class Inventory extends Model<IInventory> {
 	@Prop()
 	productUpdatedAt: Date;
 
+	@Prop()
+	sku: string;
+
 	@Prop(
 		raw({
 			currencyCode: { type: String },

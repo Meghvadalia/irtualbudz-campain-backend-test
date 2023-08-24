@@ -11,6 +11,7 @@ export interface IInventory {
 	costInMinorUnits: number;
 	priceInMinorUnits: number;
 	forSale: boolean;
+	sku: string;
 	extraDetails: {
 		currencyCode: string;
 		inventoryUnitOfMeasure: string;
