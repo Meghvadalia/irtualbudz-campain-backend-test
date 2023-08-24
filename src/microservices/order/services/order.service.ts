@@ -18,6 +18,13 @@ import { ItemDiscounts, ItemsCart, Tax } from '../interfaces/cart.interface';
 import { Customer, CustomerService } from 'src/microservices/customers';
 import { Product } from 'src/microservices/inventory';
 import { CUSTOMER_TYPE } from '../constant/order.constant';
+import * as _ from 'lodash';
+import {
+	ICartItemFlowhub,
+	IOrderFlowHubInterface,
+	ITaxFlowhub,
+	IDutchieOrderInterface,
+} from 'src/common/interface';
 
 @Injectable()
 export class OrderService {
@@ -313,7 +320,7 @@ export class OrderService {
 		}
 	}
 	async processOrderBatch(
-		orders: IOrder,
+		orders: any,
 		page: number,
 		posId: string,
 		companyId: string,
@@ -334,6 +341,7 @@ export class OrderService {
 				temp.map((t) => t.customerId)
 			);
 			console.log('Cutomer Id size => ', customerIds.size);
+			console.log('orders size => ', orders.length);
 
 			const customerIdsArray = Array.from(customerIds);
 			const customers = await this.customerModel.find({
@@ -510,163 +518,167 @@ export class OrderService {
 
 				const { data } = await axios.request(orderOptions);
 
-				let cartArray: ItemsCart[] = [];
-				let ordersArray: IOrder[] = [];
 				let paymentType: string;
+				const isRetail = (iDutchieOrder: IDutchieOrderInterface) =>
+					iDutchieOrder.transactionType === 'Retail';
 
-				for (const d of data) {
-					if (d.transactionType === 'Retail') {
-						let staff = await this.staffModel.findOne({
-							posIdCode: d.employeeId,
-						});
-						if (!staff) {
-							const staffObject: IStaff = {
-								staffName: d.employeeId,
-								storeId: storeData._id,
-								posIdCode: d.employeeId,
-							};
-							staff = await this.staffModel.create(staffObject);
-						}
-						const customer = await this.customerModel.findOne({
-							posCustomerId: d.customerId,
-						});
-
-						if (d.cashPaid !== null || d.creditPaid !== null) {
-							paymentType = 'cash';
-						} else if (d.giftPaid !== null) {
-							paymentType = 'gift card';
-						} else if (d.loyaltySpent !== null) {
-							paymentType = 'loyalty points';
-						} else {
-							paymentType = 'debit';
-						}
-						for (const d of data) {
-							for (const c of d.items) {
+				const processChunk = async (
+					chunk: IDutchieOrderInterface[],
+					page
+				) => {
+					try {
+						console.log('====================================');
+						console.log('Chunk Length', chunk.length);
+						console.log('====================================');
+						let ordersArray: IOrderFlowHubInterface[] = [];
+						const retailOrders: IDutchieOrderInterface[] =
+							chunk.filter(isRetail);
+						console.log('====================================');
+						console.log('retailOrders Length', retailOrders.length);
+						console.log('====================================');
+						for (
+							let index = 0;
+							index < retailOrders.length;
+							index++
+						) {
+							const element = retailOrders[index];
+							if (
+								element.cashPaid !== null ||
+								element.creditPaid !== null
+							) {
+								paymentType = 'cash';
+							} else if (element.giftPaid !== null) {
+								paymentType = 'gift card';
+							} else if (element.loyaltySpent !== null) {
+								paymentType = 'loyalty points';
+							} else {
+								paymentType = 'debit';
+							}
+							let itemDiscounts: ItemDiscounts[] = [];
+							let taxArray: ITaxFlowhub[] = [];
+							let cartItemsArray: ICartItemFlowhub[] = [];
+							for (const cartItem of element.items) {
 								const product = await this.productModel.findOne(
-									{ posProductId: c.productId }
+									{
+										posProductId: cartItem.productId,
+									}
 								);
 								if (!product) {
-									console.log(
-										'===================================='
-									);
-									console.log('Shahid', c.productId);
-									console.log(
-										'===================================='
-									);
 									continue;
 								}
-								let itemDiscounts: ItemDiscounts[] = [];
-								if (c.discounts) {
-									for (const discount of c.discounts) {
+								if (cartItem.discounts) {
+									for (const discount of cartItem.discounts) {
 										itemDiscounts.push({
-											_id: discount.discountId,
+											_id: discount.discountId.toString(),
 											name: discount.discountName,
 											discountAmount: discount.amount,
 										});
 									}
 								}
-								let taxArray: Tax[] = [];
-								if (c.taxes) {
-									for (const tax of c.taxes) {
+
+								if (cartItem.taxes) {
+									for (const tax of cartItem.taxes) {
 										taxArray.push({
-											name: tax.name,
+											_id: '',
+											name: tax.rateName,
 											percentage: tax.rate,
+											appliesTo: 'all',
+											supplierSpecificTax: false,
+											excludeCustomerGroups: [],
 											thisTaxInPennies: tax.amount,
 										});
 									}
 								}
 
-								await this.cartModel.create({
+								cartItemsArray.push({
 									category: product.category,
-									storeId: storeData._id,
 									itemDiscounts: itemDiscounts,
-									posCartId: d.transactionId,
+									id: element.transactionId.toString(),
 									productName: product.productName,
-									quantity: c.quantity,
+									quantity: cartItem.quantity,
 									sku: product.sku,
 									strainName: product.strain,
 									tax: taxArray,
-									totalCost: c.quantity * c.unitCost,
-									totalPrice: c.totalPrice,
-									unitCost: c.unitCost,
-									unitOfWeight: c.unitWeightUnit,
-									unitPrice: c.unitPrice,
+									totalCost:
+										cartItem.quantity * cartItem.unitCost,
+									totalPrice: cartItem.totalPrice,
+									unitCost: cartItem.unitCost,
+									unitOfWeight: cartItem.unitWeightUnit,
+									unitPrice: cartItem.unitPrice,
 									title1: product.productName,
-									title2: c.vendor,
+									title2: cartItem.vendor,
+									brand: product.brand,
 								});
 							}
-							const orderObject: IOrder = {
-								companyId: company._id,
-								posId: posData._id,
-								posOrderId: d.transactionId,
-								customerId: customer
-									? (customer._id as unknown as string)
-									: '',
-								fullName: d.completedByUser,
+
+							const orderObject: IOrderFlowHubInterface = {
+								_id: element.transactionId.toString(),
+								clientId: '',
+								createdAt: new Date(
+									element.checkInDate
+								).toISOString(),
+								customerId: element.customerId.toString(),
+								currentPoints: element.loyaltyEarned,
 								customerType:
-									d.customerTypeId === 2
+									element.customerTypeId === 2
 										? CUSTOMER_TYPE.recCustomer
 										: CUSTOMER_TYPE.medCustomer,
-								orderType: d.orderType,
-								voided: d.isVoid,
-								storeId: storeData._id,
-								orderStatus: 'sold',
+								name: element.completedByUser,
+								locationId: storeData.location.locationId,
+								locationName: storeData.locationName,
+								itemsInCart: cartItemsArray,
+								voided: false,
+								fullName: element.completedByUser,
+								orderType: element.orderType,
+								payments: [
+									{
+										amount: element.total,
+										_id: element.transactionId.toString(),
+										cardId: null,
+										debitProvider: '',
+										paymentType,
+										loyaltyPoints: element.loyaltySpent,
+										balanceAfterPayment: null,
+									},
+								],
 								totals: {
-									finalTotal: d.total,
-									subTotal: d.subtotal,
-									totalDiscounts: d.totalDiscount,
-									totalTaxes: d.tax,
+									finalTotal: element.total,
+									subTotal: element.subtotal,
+									totalDiscounts: element.totalDiscount,
+									totalTaxes: element.tax,
 									totalFees: 0,
 								},
-								posCreatedAt: d.transactionDate,
-								payments: {
-									amount: d.total,
-									_id: d.transactionId,
-									cardId: null,
-									debitProvider: '',
-									paymentType,
-									loyaltyPoints: d.loyaltySpent,
-									balanceAfterPayment: null,
-								},
-								currentPoints: d.loyaltyEarned,
-								name: '',
-								staffId: staff?._id as unknown as string,
-								itemsInCart: [],
+								completedOn: new Date(
+									element.estDeliveryDateLocal
+								).toISOString(),
+								orderStatus: 'sold',
+								budtender: element.employeeId.toString(),
 							};
-							const findCartData = (
-								await this.cartModel.find({
-									posCartId: orderObject.posOrderId,
-								})
-							).flatMap((cart) => cart._id);
-
-							if (findCartData) {
-								orderObject.itemsInCart =
-									findCartData as unknown as string[];
-							}
-							this.orderModel.updateOne(
-								{ posOrderId: orderObject.posOrderId },
-								orderObject,
-								{ upsert: true }
-							);
+							ordersArray.push(orderObject);
 						}
+						setTimeout(() => {
+							this.processOrderBatch(
+								ordersArray,
+								page,
+								posData._id,
+								company._id,
+								storeData._id
+							);
+						}, 2 * 1000);
+					} catch (error) {
+						console.log('====================================');
+						console.log('Error In the chunk', error);
+						console.log('====================================');
 					}
-				}
+				};
 
-				// const cartData = await this.cartModel.insertMany(cartArray);
-				// await Promise.all(cartData);
+				const chunkSize = 5000; // Set an appropriate chunk size based on your memory constraints
 
-				// for (const order of ordersArray) {
-				// 	const findCartData = (
-				// 		await this.cartModel.find({
-				// 			posCartId: order.posOrderId,
-				// 		})
-				// 	).flatMap((cart) => cart._id);
+				const arrayOfChunks = _.chunk(data, chunkSize);
 
-				// 	if (findCartData) {
-				// 		order.itemsInCart = findCartData as unknown as string[];
-				// 	}
-				// }
-				// await this.orderModel.insertMany(ordersArray);
+				arrayOfChunks.map((chunk: any, index: number) =>
+					processChunk(chunk, index)
+				);
 			}
 		} catch (error) {
 			console.trace(error);

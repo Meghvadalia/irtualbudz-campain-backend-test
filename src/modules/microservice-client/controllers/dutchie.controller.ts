@@ -19,33 +19,33 @@ export class DutchieController {
 	async seedData() {
 		const seedValue = 'dutchie';
 
-		try {
-			await this.storeService.seedDutchieStores(seedValue);
-			console.log('Dutchie stores seeded successfully');
-		} catch (error) {
-			console.error('Error seeding Dutchie stores:', error);
-		}
+		// try {
+		// 	await this.storeService.seedDutchieStores(seedValue);
+		// 	console.log('Dutchie stores seeded successfully');
+		// } catch (error) {
+		// 	console.error('Error seeding Dutchie stores:', error);
+		// }
 
-		try {
-			await this.orderService.seedDutchieStaff(seedValue);
-			console.log('Dutchie staff seeded successfully');
-		} catch (error) {
-			console.error('Error seeding Dutchie staff:', error);
-		}
+		// try {
+		// 	await this.orderService.seedDutchieStaff(seedValue);
+		// 	console.log('Dutchie staff seeded successfully');
+		// } catch (error) {
+		// 	console.error('Error seeding Dutchie staff:', error);
+		// }
 
-		try {
-			await this.inventoryService.seedDutchieInventory(seedValue);
-			console.log('Dutchie inventory seeded successfully');
-		} catch (error) {
-			console.error('Error seeding Dutchie inventory:', error);
-		}
+		// try {
+		// 	await this.inventoryService.seedDutchieInventory(seedValue);
+		// 	console.log('Dutchie inventory seeded successfully');
+		// } catch (error) {
+		// 	console.error('Error seeding Dutchie inventory:', error);
+		// }
 
-		try {
-			await this.customerService.seedDutchieCustomers(seedValue);
-			console.log('Dutchie customers seeded successfully');
-		} catch (error) {
-			console.error('Error seeding Dutchie customers:', error);
-		}
+		// try {
+		// 	await this.customerService.seedDutchieCustomers(seedValue);
+		// 	console.log('Dutchie customers seeded successfully');
+		// } catch (error) {
+		// 	console.error('Error seeding Dutchie customers:', error);
+		// }
 
 		try {
 			await this.orderService.seedDutchieOrders(seedValue);

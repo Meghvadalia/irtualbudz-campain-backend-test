@@ -68,9 +68,15 @@ export class InventoryService {
 						company._id,
 						posData._id
 					);
-					const savedProduct = await this.productModel.create(
-						transformedProductData
-					);
+					const savedProduct =
+						await this.productModel.findOneAndUpdate(
+							{
+								posProductId: productData.productId,
+								companyId: company._id,
+							},
+							transformedProductData,
+							{ upsert: true, new: true }
+						);
 					productMap.set(productData.productId, savedProduct._id);
 				}
 
