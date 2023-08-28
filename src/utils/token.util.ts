@@ -29,6 +29,12 @@ export class JwtService {
 		}
 	};
 
+	/**
+	 * Verifies the authenticity and validity of an access token.
+	 * @param token The access token to be verified.
+	 * @returns The decoded token payload if the token is valid.
+	 * @throws Error if the token has expired or if there was an error verifying the access token.
+	 */
 	verifyAccessToken = (token: string): string | jwt.JwtPayload | any => {
 		try {
 			const isTokenValid = jwt.verify(token, this.accessTokenSecret);
@@ -42,7 +48,17 @@ export class JwtService {
 		}
 	};
 
+	/**
+	 * Verify the authenticity and validity of a refresh token.
+	 * @param token - The refresh token to be verified.
+	 * @returns The decoded token payload if the refresh token is valid.
+	 * @throws An error if the refresh token is invalid or has expired.
+	 */
 	verifyRefreshToken = (token: string): string | jwt.JwtPayload | any => {
-		return jwt.verify(token, this.refreshTokenSecret);
+		try {
+			return jwt.verify(token, this.refreshTokenSecret);
+		} catch (error) {
+			throw new Error(error);
+		}
 	};
 }

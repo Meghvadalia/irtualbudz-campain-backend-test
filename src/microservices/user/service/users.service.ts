@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 
 import { User } from '../entities/user.entity';
@@ -26,12 +26,17 @@ export class UsersService {
 		if (emailExists) throw new RpcException('Email is already taken.');
 
 		if (payload.companyId) {
-			const company = await this.clientCompanyService.company(payload.companyId);
+			const company = await this.clientCompanyService.company(
+				payload.companyId
+			);
 			if (!company) throw new RpcException('Company Can not be found');
 			payload.companyId = company._id;
 		} else {
-			const store = await this.clientStoreService.storeById(payload.storeId);
-			if (!store) throw new RpcException('Store Can not be found with this ID');
+			const store = await this.clientStoreService.storeById(
+				payload.storeId
+			);
+			if (!store)
+				throw new RpcException('Store Can not be found with this ID');
 			payload.storeId = store._id;
 			payload.companyId = store.companyId;
 		}
@@ -50,12 +55,16 @@ export class UsersService {
 		try {
 			const user = (await this.findByEmail(email)) as User;
 			if (!user) return 'Email not found!!';
-			const comparePassword = await passwordService.comparePasswords(password, user.password);
+			const comparePassword = await passwordService.comparePasswords(
+				password,
+				user.password
+			);
 			if (user && comparePassword) {
-				const { token, refreshToken } = await this.sessionService.createSession(user._id, {
-					userId: user._id,
-					type: user.type,
-				});
+				const { token, refreshToken } =
+					await this.sessionService.createSession(user._id, {
+						userId: user._id,
+						type: user.type,
+					});
 				return { user, token, refreshToken };
 			}
 
@@ -71,22 +80,28 @@ export class UsersService {
 	}
 
 	async generateNewAccessToken(refreshToken: string) {
-		const decodedToken = this.jwtService.verifyRefreshToken(refreshToken);
+		try {
+			const decodedToken =
+				this.jwtService.verifyRefreshToken(refreshToken);
 
-		// @ts-ignore
-		const user = await this.findById(decodedToken.userId);
-		const session = await this.sessionService.findSession(user._id);
+			const user = await this.findById(decodedToken.userId);
+			const session = await this.sessionService.findSession(user?.id);
 
-		if (user) {
-			const payload = {
-				userId: user._id,
-				type: user.type,
-				sessionId: session._id,
-			};
-			const newToken = this.jwtService.generateAccessToken(payload);
-			return newToken;
+			if (user && session) {
+				const payload = {
+					userId: user._id,
+					type: user.type,
+					sessionId: session._id,
+				};
+				const newToken = this.jwtService.generateAccessToken(payload);
+				return newToken;
+			}
+		} catch (error) {
+			if (error.name === 'TokenExpiredError') {
+				throw new UnauthorizedException('Refresh token has expired.');
+			}
+			throw new RpcException(error);
 		}
-		return 'User not found.';
 	}
 
 	async logout(userId: string, sessionId: string) {

@@ -25,6 +25,7 @@ import {
 	userTypeValues,
 } from 'src/microservices/user/constants/user.constant';
 import { CreateUserGuard } from 'src/common/guards/user.guard';
+import { throwUnauthorizedException } from 'src/utils/error.utils';
 
 interface IUserService {
 	Signup(data: any): Observable<any>;
@@ -128,7 +129,10 @@ export class ClientUserController implements OnModuleInit {
 			);
 			return res.json(token);
 		} catch (error) {
-			throw new Error('Error refreshing access token.');
+			if (error.message.includes('jwt expired')) {
+				return throwUnauthorizedException(error.message);
+			}
+			throw new Error(error);
 		}
 	}
 
