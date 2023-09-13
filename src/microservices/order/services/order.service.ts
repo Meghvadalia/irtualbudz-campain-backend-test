@@ -245,7 +245,7 @@ export class OrderService {
 				});
 			}
 		} catch (error) {
-			console.log('Error While syncing Data for Specific Date,', error);
+			console.error('Error While syncing Data for Specific Date,', error);
 		}
 	}
 	async addSingleData(cart: ItemsCart, storeId: string) {
@@ -667,7 +667,7 @@ export class OrderService {
 						}, 2 * 1000);
 					} catch (error) {
 						console.log('====================================');
-						console.log('Error In the chunk', error);
+						console.error('Error In the chunk', error);
 						console.log('====================================');
 					}
 				};
@@ -681,7 +681,7 @@ export class OrderService {
 				);
 			}
 		} catch (error) {
-			console.trace(error);
+			console.error(error);
 		}
 	}
 

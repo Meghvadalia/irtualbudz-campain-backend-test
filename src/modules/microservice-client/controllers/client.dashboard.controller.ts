@@ -44,7 +44,7 @@ export class ClientDashboardController {
 
 			return sendSuccess({ overview, customer, sales, operations });
 		} catch (error) {
-			console.log(error);
+			console.error(error);
 			throw new Error(error);
 		}
 	}

@@ -13,7 +13,7 @@ export class CreateUserGuard implements CanActivate {
 
 			return ability.can(PERMISSIONS_FOR_DATABASE.CREATE, request.body.type);
 		} catch (error) {
-			console.log(error);
+			console.error(error);
 			throw new Error(error);
 		}
 	}

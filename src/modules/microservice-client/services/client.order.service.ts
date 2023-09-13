@@ -74,7 +74,7 @@ export class ClientOrderService {
 
 			return dateWiseOrderData;
 		} catch (error) {
-			console.trace(error);
+			console.error(error);
 		}
 	}
 
@@ -287,7 +287,7 @@ export class ClientOrderService {
 
 			return staffWiseOrderData;
 		} catch (error) {
-			console.trace(error);
+			console.error(error);
 		}
 	}
 
@@ -534,7 +534,7 @@ export class ClientOrderService {
 
 			return averageSpendWithLoyalty;
 		} catch (error) {
-			console.log(error);
+			console.error(error);
 			return {
 				averageSpend: 0,
 				loyaltyPointsConverted: 0,
@@ -606,7 +606,7 @@ export class ClientOrderService {
 					: { totalAmount: 0, topCategory: '' };
 			return topCategory;
 		} catch (error) {
-			console.trace(error);
+			console.error(error);
 		}
 	}
 
@@ -696,7 +696,7 @@ export class ClientOrderService {
 					: { returningCustomer: 0, newCustomer: 0 };
 			return { returningCustomer: returningCustomer, newCustomer };
 		} catch (error) {
-			console.log('Error While Calculating the percentage', error);
+			console.error('Error While Calculating the percentage', error);
 		}
 	}
 
@@ -1000,7 +1000,7 @@ export class ClientOrderService {
 				orderCountGrowth,
 			};
 		} catch (error) {
-			console.trace('Error While Fetching Overview Section', error);
+			console.error('Error While Fetching Overview Section', error);
 		}
 	}
 
@@ -1094,7 +1094,7 @@ export class ClientOrderService {
 			let hourlyData = result.length > 0 ? result : [];
 			return hourlyData;
 		} catch (error) {
-			console.trace(error);
+			console.error(error);
 		}
 	}
 
@@ -1172,7 +1172,7 @@ export class ClientOrderService {
 			let weekData = result.length > 0 ? result : [];
 			return weekData;
 		} catch (error) {
-			console.trace(error);
+			console.error(error);
 		}
 	}
 
@@ -1280,7 +1280,7 @@ export class ClientOrderService {
 			const result = await this.orderModel.aggregate(pipeline);
 			return result;
 		} catch (error) {
-			console.trace(error);
+			console.error(error);
 			throw error;
 		}
 	}
@@ -1390,7 +1390,7 @@ export class ClientOrderService {
 			const result = await this.orderModel.aggregate(pipeline);
 			return result;
 		} catch (error) {
-			console.trace(error);
+			console.error(error);
 			throw error;
 		}
 	}

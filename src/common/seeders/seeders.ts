@@ -152,7 +152,7 @@ export class SeederService {
 				}
 			}
 		} catch (error) {
-			console.trace(error);
+			console.error(error);
 			throw error;
 		}
 	}

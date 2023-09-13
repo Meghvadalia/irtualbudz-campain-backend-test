@@ -40,7 +40,7 @@ export class FlowhubController {
 			);
 			return sendSuccess({ message: 'Data Synced' });
 		} catch (error) {
-			console.log(error);
+			console.error(error);
 			throw new Error(error);
 		}
 	}

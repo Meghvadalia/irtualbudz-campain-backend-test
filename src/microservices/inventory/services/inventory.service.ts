@@ -94,7 +94,7 @@ export class InventoryService {
 				await this.updateOrCreateInventory(inventoryDataToSaveArray);
 			}
 		} catch (error) {
-			console.log('GRPC METHOD', error);
+			console.error('GRPC METHOD', error);
 			throw error;
 		}
 	}

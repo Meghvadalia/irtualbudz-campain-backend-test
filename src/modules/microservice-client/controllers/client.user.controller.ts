@@ -90,7 +90,7 @@ export class ClientUserController implements OnModuleInit {
 
 			return sendSuccess(user, 'Log-in successful.');
 		} catch (error) {
-			console.log({ error });
+			console.error({ error });
 			throw new Error(error);
 		}
 	}

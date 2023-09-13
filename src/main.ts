@@ -6,12 +6,13 @@ import { join } from 'path';
 import { UsersModule } from './microservices/user/users.module';
 import { InventoryModule } from './microservices/inventory';
 import { CustomerModule } from './microservices/customers/customer.module';
-import * as mongoose from 'mongoose';
 import { AllExceptionsFilter } from './utils/request-response.utils';
 import helmet from 'helmet';
+import { customErrorLogger, customLogger } from './common/middlwares/logging.middleware';
 
+console.log = customLogger;
+console.error = customErrorLogger;
 async function bootstrap() {
-	// mongoose.set('debug', true);
 	const app = await NestFactory.create(AppModule);
 	app.useGlobalFilters(new AllExceptionsFilter());
 	app.use(helmet());
@@ -19,12 +20,12 @@ async function bootstrap() {
 	app.enableCors({
 		origin: function (origin, callback) {
 			if (!origin) {
-				console.log('allower Cors from unknown', origin);
+				console.log('allowed CORS from unknown', origin);
 				callback(null, true);
 				return true;
 			}
 			if (whitelist.indexOf(origin) !== -1) {
-				console.log('allowed cors for:', origin);
+				console.log('allowed CORS for:', origin);
 				callback(null, true);
 			} else {
 				console.log('blocked cors for:', origin);
@@ -34,15 +35,14 @@ async function bootstrap() {
 		credentials: true,
 		methods: ['GET', 'PUT', 'POST', 'OPTIONS', 'PATCH'],
 	});
-
-	await app.listen(8000);
+	await app.listen(Number(process.env.PORT));
 
 	const orderApp = await NestFactory.createMicroservice<MicroserviceOptions>(OrderModule, {
 		transport: Transport.GRPC,
 		options: {
 			package: 'order',
 			protoPath: join(__dirname, './proto/order.proto'),
-			url: 'localhost:8003',
+			url: process.env.ORDER_MICRO_SERVICES + ":" +process.env.ORDER_PORT ,
 		},
 	});
 	await orderApp.listen().then(() => {
@@ -54,7 +54,7 @@ async function bootstrap() {
 		options: {
 			package: 'user',
 			protoPath: join(__dirname, './proto/user.proto'),
-			url: 'localhost:8002',
+			url: process.env.USER_MICRO_SERVICES + ":" +process.env.USER_PORT ,
 		},
 	});
 	await userApp.listen().then(() => {
@@ -66,7 +66,7 @@ async function bootstrap() {
 		options: {
 			package: 'customer',
 			protoPath: join(__dirname, './proto/customer.proto'),
-			url: 'localhost:8004',
+			url: process.env.CUSTOMER_MICRO_SERVICES + ":" +process.env.CUSTOMER_PORT ,
 		},
 	});
 	await customerApp.listen().then(() => {
@@ -78,7 +78,7 @@ async function bootstrap() {
 		options: {
 			package: 'Inventory',
 			protoPath: join(__dirname, './proto/inventory.proto'),
-			url: 'localhost:8005',
+			url: process.env.INVENTORY_MICRO_SERVICES + ":" +process.env.INVENTORY_PORT ,
 		},
 	});
 	await InventoryApp.listen().then(() => {

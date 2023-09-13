@@ -83,7 +83,7 @@ export class ClientStoreService {
 				}
 			}
 		} catch (error) {
-			console.log('Error While Seeding the Data For Store', error);
+			console.error('Error While Seeding the Data For Store', error);
 			return error;
 		}
 	}

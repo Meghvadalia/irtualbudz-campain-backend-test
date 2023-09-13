@@ -1,4 +1,4 @@
-import { MiddlewareConsumer, Module, NestModule } from '@nestjs/common';
+import { MiddlewareConsumer, Module, NestModule, RequestMethod } from '@nestjs/common';
 import { KafkaModule } from './modules/kafka';
 import { MicroserviceClientModule } from './modules/microservice-client';
 import { OrderModule } from './microservices/order';
@@ -32,6 +32,9 @@ import { CustomerModule } from './microservices/customers/customer.module';
 })
 export class AppModule implements NestModule {
 	configure(consumer: MiddlewareConsumer) {
-		consumer.apply(LoggingMiddleware).forRoutes('*');
+		consumer
+			.apply(LoggingMiddleware)
+			.exclude({ path: 'user/login', method: RequestMethod.POST }, { path: 'user/register', method: RequestMethod.POST })
+			.forRoutes('*');
 	}
 }

@@ -13,7 +13,7 @@ export class InventoryController {
 			console.log('get Method Called', data);
 			return { surname: 78 };
 		} catch (error) {
-			console.log('GRPC METHOD', error);
+			console.error('GRPC METHOD', error);
 		}
 	}
 
