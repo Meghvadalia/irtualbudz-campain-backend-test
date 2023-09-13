@@ -18,6 +18,11 @@ exports.config = {
   transaction_tracer: {
     enabled: true,
   },
+  application_logging: {
+    forwarding: {
+      enabled: false
+    }
+  },
   browser_monitoring: {
     enable: true,
   },
