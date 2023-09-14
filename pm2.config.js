@@ -2,7 +2,7 @@ module.exports = {
 	apps: [
 		{
 			name: 'monarc-backend',
-			script: 'dist/main.js',
+			script: 'node --experimental-loader newrelic/esm-loader.mjs -r newrelic dist/main.js',
 			instances: 'max',
 			exec_mode: 'cluster',
 			autorestart: true,
@@ -11,7 +11,6 @@ module.exports = {
 			env: {
 				NODE_ENV: 'production',
 			},
-			node_args: ['-r', 'newrelic'],
 		},
 	],
 };
