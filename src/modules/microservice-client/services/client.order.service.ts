@@ -166,11 +166,11 @@ export class ClientOrderService {
 			let audienceDBData;
 			let ids
 
-			const cachedStoreData: any = JSON.parse(await this.redisService.getValue(redisUniqueId));
-			if (cachedStoreData) {				
-				console.log("Graph data come from cachedStoreData")
-				return cachedStoreData;
-			} else {
+			// const cachedStoreData: any = JSON.parse(await this.redisService.getValue(redisUniqueId));
+			// if (cachedStoreData) {				
+			// 	console.log("Graph data come from cachedStoreData")
+			// 	return cachedStoreData;
+			// } else {
 				console.log("Create query for graph data")
 				if (campaignData && campaignData != null) {
 					if (campaignData?.audienceId) {
@@ -271,7 +271,7 @@ export class ClientOrderService {
 					// Error("Campaign data not available")
 					console.log("Campaign data not available, default graph")
 				}
-			}
+			// }
 
 			// console.log("redisUniqueId Value ====>", redisUniqueId)
 
@@ -307,7 +307,7 @@ export class ClientOrderService {
 				audianceData: audienceDBData
 			}
 
-			await this.redisService.setValue(redisUniqueId, responseData);
+			// await this.redisService.setValue(redisUniqueId, responseData);
 
 			return responseData;
 		} catch (error) {
