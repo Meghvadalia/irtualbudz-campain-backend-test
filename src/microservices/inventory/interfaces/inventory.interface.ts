@@ -5,13 +5,13 @@ export interface IInventory {
 	posProductId: string;
 	quantity: number;
 	storeId: string;
+	sku: string;
 	locationName: string;
 	expirationDate: Date;
 	productUpdatedAt: Date;
 	costInMinorUnits: number;
 	priceInMinorUnits: number;
 	forSale: boolean;
-	sku: string;
 	extraDetails: {
 		currencyCode: string;
 		inventoryUnitOfMeasure: string;

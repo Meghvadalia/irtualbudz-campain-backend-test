@@ -10,5 +10,6 @@ export interface IStore {
 	email: string;
 	licenseType: string[];
 	imageUrl: string;
+	locationName: string;
 	[property: string]: any;
 }

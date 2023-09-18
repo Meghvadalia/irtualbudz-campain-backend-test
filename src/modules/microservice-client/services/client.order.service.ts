@@ -3,27 +3,50 @@ import { InjectModel } from '@nestjs/mongoose';
 import { Model, PipelineStage, Types } from 'mongoose';
 
 import { Order } from '../../../microservices/order/entities/order.entity';
+import { ClientGoalService } from './client.goal.service';
+import { ClientGraphService } from './client.graph.service';
+import { ClientActionService } from './client.action.service';
+import { ClientCampaignService } from './client.campaign.service';
 import { ClientStoreService } from './client.store.service';
+import { from } from 'rxjs';
+import * as moment from 'moment-timezone';
+import { updatePipeline } from 'src/utils/pipelineUpdator';
+import { sortBy } from '../interfaces/campaign.interface';
+import { Campaign } from '../entities/campaign.entity';
+import { Action } from 'src/model/actions/entities/actions.entity';
+import { ACTIONS } from 'src/common/seeders/actions';
+import { AudienceCustomer } from '../entities/audienceCustomers.entity';
+import { AudienceDetail } from '../entities/audienceDetails.entity';
+import { RedisService } from 'src/config/cache/config.service';
+import { IReplacements } from 'src/common/interface';
+import { DAYS_OF_WEEK } from 'src/common/constants';
+import { dynamicCatchException } from 'src/utils/error.utils';
+
 
 @Injectable()
 export class ClientOrderService {
 	constructor(
 		@InjectModel(Order.name) private orderModel: Model<Order>,
-		private clientStoreService: ClientStoreService,
-	) {}
+		public clientGoalService: ClientGoalService,
+		public clientGraphService: ClientGraphService,
+		public clientActionService: ClientActionService,
+		public clientCampaignService: ClientCampaignService,
+		public clientStoreService: ClientStoreService,
+		private readonly redisService: RedisService,
+		@InjectModel(AudienceDetail.name) private audienceDetailsModel: Model<AudienceDetail>,
+		@InjectModel(AudienceCustomer.name) private audienceCustomerModel: Model<AudienceCustomer>,
+	) { }
 
-	async getOrderForEachDate(
-		storeId: Types.ObjectId,
-		fromDate: Date,
-		toDate: Date
-	) {
+	async getOrderForEachDate(storeId: Types.ObjectId, fromDate: Date, toDate: Date, goalFlag?: any, campaignId?: any, audienceTracking?: any) {
 		try {
-			let storeData = await this.clientStoreService.storeById(
+			const fromStartDate = new Date(fromDate);
+			const fromEndDate = new Date(toDate);
+			// let goalId;
+			// let actionId ;
+			var storeData = await this.clientStoreService.storeById(
 				storeId.toString()
 			);
-			const fromStartDate = fromDate;
-			const fromEndDate = toDate;
-			const pipeline: PipelineStage[] = [
+			let goalPipeline: PipelineStage[] = [
 				{
 					$match: {
 						storeId,
@@ -37,110 +60,331 @@ export class ClientOrderService {
 					$group: {
 						_id: {
 							$dateToString: {
-								format: '%Y-%m-%d',
-								date: '$posCreatedAt',
-								timezone: storeData.timeZone,
-							},
+								format: "%Y-%m-%d",
+								date: "$posCreatedAt",
+								timezone: storeData.timeZone
+							}
 						},
 						date: {
 							$first: {
 								$dateToString: {
-									format: '%Y-%m-%d',
-									date: '$posCreatedAt',
-									timezone: storeData.timeZone,
+									format: "%Y-%m-%d",
+									date: "$posCreatedAt",
+									timezone: storeData.timeZone
 								},
-							},
+							}
 						},
-						count: { $sum: 1 },
-						totalAmount: { $sum: '$totals.finalTotal' },
-					},
+						count: {
+							$sum: 1
+						},
+						totalAmount: {
+							$sum: "$totals.finalTotal"
+						}
+					}
 				},
 				{
 					$sort: {
-						date: 1,
-					},
+						date: 1
+					}
 				},
 				{
 					$project: {
 						_id: 0,
 						date: 1,
 						count: 1,
-						totalAmount: { $round: ['$totalAmount', 2] },
+						totalAmount: {
+							$round: ["$totalAmount", 2]
+						}
+					}
+				},
+				{
+					$group: {
+						_id: null,  // Group all documents into a single group
+						TotalOrderCount: { $sum: '$count' },  // Calculate the total count
+						TotalCount: { $sum: '$totalAmount' },  // Calculate the total amount
+						FirstDayCount: { $first: '$count' },  // Get the count of the first day
+						LastDayCount: { $last: '$count' },  // Get the count of the last day
+						FirstDayAmount: { $first: '$totalAmount' },  // Get the amount of the first day
+						LastDayAmount: { $last: '$totalAmount' },  // Get the amount of the last day
+						chartData: { $push: { date: '$date', count: '$count', totalAmount: '$totalAmount' } },  // Store daily counts and amounts with dates in an array
+					},
+				},
+				{
+					$project: {
+						_id: 0,
+						chartData: 1,
+						TotalOrderCount: 1,
+						TotalCount: 1,
+						PercentageChangeCount: {
+							$multiply: [
+								{ $divide: [{ $subtract: ['$LastDayCount', '$FirstDayCount'] }, '$FirstDayCount'] },
+								100
+							]
+						},
+						PercentageChange: {
+							$multiply: [
+								{ $divide: [{ $subtract: ['$LastDayAmount', '$FirstDayAmount'] }, '$FirstDayAmount'] },
+								100
+							]
+						},
 					},
 				},
 			];
+			let campaignData
+			let redisUniqueId = "";
+			goalFlag = goalFlag == 'true' ? true : false
+			audienceTracking = audienceTracking == 'true' ? true : false
+			if (campaignId) {
+				campaignData = await this.clientCampaignService.getCampaign(campaignId)
+				redisUniqueId = campaignId
 
-			let dateWiseOrderData = await this.orderModel.aggregate(pipeline);
+				var campaingFilterItem = campaignData?.sortItem
+				var sortType = campaignData?.sortBy
+				
+				if (campaignData.goals) {
+					redisUniqueId = (redisUniqueId + "-" + campaignData.goals).toString();
+				}
 
-			return dateWiseOrderData;
+				if (campaignData.actions) {
+					redisUniqueId = (redisUniqueId + "-" + campaignData.actions).toString();
+				}
+
+				if (audienceTracking) {
+					redisUniqueId = (redisUniqueId + "-" + campaignData?.audienceId).toString();
+				}
+			} else {
+				redisUniqueId = (fromStartDate + "-" + fromEndDate).toString();
+			}
+
+			
+
+			let actionPipeline: PipelineStage[]
+			var goalAxes;
+			var actionAxes;
+			let goalDBData;
+			let actionDBData;
+			let audienceDBData;
+			let ids
+
+			const cachedStoreData: any = JSON.parse(await this.redisService.getValue(redisUniqueId));
+			if (cachedStoreData) {				
+				console.log("Graph data come from cachedStoreData")
+				return cachedStoreData;
+			} else {
+				console.log("Create query for graph data")
+				if (campaignData && campaignData != null) {
+					if (campaignData?.audienceId) {
+						let customerIds = await this.audienceCustomerModel.find({
+							audienceId: campaignData?.audienceId,
+							storeId: storeId
+						}, { customerId: true, _id: false })
+
+						ids = customerIds.length > 0 ? customerIds.map(x => x.customerId) : []
+						let audienceName = await this.audienceDetailsModel.findOne({ _id: campaignData?.audienceId })
+						audienceDBData = {
+							name: audienceName?.name,
+							count: ids.length
+						}
+						console.log("audienceDBData =>", audienceDBData)
+					}
+					if (campaignData?.goals != null && campaignData?.goals != undefined && campaignData?.goals != '') {
+						goalDBData = await this.clientGoalService.goalsById(campaignData?.goals)
+						let goalGraphId = goalDBData.graphId
+						let graphData = await this.clientGraphService.graphById(goalGraphId)
+						goalAxes = graphData.axes;
+						goalPipeline = graphData.condition
+
+						if (audienceTracking && campaignData?.audienceId && goalFlag) {
+							goalPipeline[0]['$match'] = { ...goalPipeline[0]['$match'], ...{ customerId: { $in: ids } } }
+						}
+
+						let replacementsGoal = [
+							{ key: 'storeId', 'value': storeId },
+							{ key: '$gte', 'value': fromStartDate },
+							{ key: '$lte', 'value': fromEndDate },
+							{ key: 'timezone', 'value': storeData.timeZone }
+						]
+						for (let i = 0; i < replacementsGoal.length; i++) {
+							const element = replacementsGoal[i];
+							updatePipeline(goalPipeline, element.key, element.value);
+						}
+						let newStages
+						if(campaignData?.schedulesDays.length > 0 ){
+							let weekendDays = [];
+							for (let i = 0; i < campaignData?.schedulesDays.length; i++) {
+								weekendDays.push(DAYS_OF_WEEK[campaignData?.schedulesDays[i]]);
+							}
+							newStages = [
+								{
+								  $addFields: {
+									dayOfWeek: { $dayOfWeek: { date: '$posCreatedAt', timezone: storeData.timeZone } }
+								  }
+								},
+								{
+								  $match: {
+									dayOfWeek: { $in: weekendDays } // Filter for Saturday (6) and Sunday (7)
+								  }
+								}
+							  ];
+							goalPipeline.splice(1, 0, ...newStages);
+						}
+
+						if (campaignData.actions) {
+							actionDBData = await this.clientActionService.getActionById(campaignData.actions)
+							if(actionDBData?.graphId && actionDBData.graphId != null && actionDBData.graphId != ''){
+								
+								let actionGraphId = actionDBData.graphId.toString()
+								let graphActionData = await this.clientGraphService.graphById(actionGraphId)
+								actionAxes = graphActionData.axes;
+
+								actionPipeline = graphActionData.condition
+								if (audienceTracking && campaignData?.audienceId && !goalFlag) {
+									actionPipeline[0]['$match'] = { ...actionPipeline[0]['$match'], ...{ customerId: { $in: ids } } }
+								}
+								let replacements: IReplacements[] = [
+									{ key: 'storeId', 'value': storeId },
+									{ key: '$gte', 'value': fromStartDate },
+									{ key: '$lte', 'value': fromEndDate },
+									{ key: 'timezone', 'value': storeData.timeZone }
+								]
+								if (campaingFilterItem) {
+									if (sortType == sortBy.AllSellable) {
+										replacements = [...replacements, ...[{ key: '$or', 'value': [{ "itemsInCart": { "$in": campaingFilterItem } }] }]]
+									} else if (sortType == sortBy.Brand) {
+										console.log("in brand")
+										replacements = [...replacements, ...[{ key: 'product.brand', 'value': { "$in": campaingFilterItem } }]]
+									}
+								}
+								for (let i = 0; i < replacements.length; i++) {
+									const element = replacements[i];
+									updatePipeline(actionPipeline, element.key, element.value);
+								}
+								if(newStages) actionPipeline.splice(1,0, ...newStages);
+
+							}
+						}
+					} else {
+						console.log("Default Graph")
+					}
+					
+				} else {
+					// Error("Campaign data not available")
+					console.log("Campaign data not available, default graph")
+				}
+			}
+
+			// console.log("redisUniqueId Value ====>", redisUniqueId)
+
+			console.time("<============== query goal pipeline ===============>")
+			let goalData = await this.orderModel.aggregate(goalPipeline);
+			console.timeEnd("<============== query goal pipeline ===============>")
+			// console.log("goalPipeline")
+			// console.log(goalPipeline)
+			let actionData
+			if (actionPipeline) {
+				console.time("<============== query action pipeline ===============>")
+				actionData = await this.orderModel.aggregate(actionPipeline);
+				console.timeEnd("<============== query action pipeline ===============>")
+				// console.log("actionPipeline")
+				// console.log(actionPipeline)
+			}
+
+			let responseData = {
+				goalGraphData: {
+					axes: goalAxes,
+					data: goalData ? goalData[0]?.chartData : [],
+					PercentageChange: goalData ? goalData[0]?.PercentageChange : [],
+					TotalCount: goalData ? goalData[0]?.TotalCount : [],
+					name: goalDBData?.name
+				},
+				actionGraphData: {
+					axes: actionAxes,
+					data: actionData ? actionData[0]?.chartData : [],
+					PercentageChange: actionData ? actionData[0]?.PercentageChange : [],
+					TotalCount: actionData ? actionData[0]?.TotalCount : [],
+					name: actionDBData?.name
+				},
+				audianceData: audienceDBData
+			}
+
+			await this.redisService.setValue(redisUniqueId, responseData);
+
+			return responseData;
 		} catch (error) {
 			console.error(error);
+			dynamicCatchException(error)
 		}
 	}
+
 
 	async getBrandWiseSales(
 		storeId: Types.ObjectId,
 		fromDate: Date,
 		toDate: Date
 	) {
-		const pipeline: PipelineStage[] = [
-			{
-				$match: {
-					storeId,
-					posCreatedAt: {
-						$gte: fromDate,
-						$lte: toDate,
+		try {
+			const pipeline: PipelineStage[] = [
+				{
+					$match: {
+						storeId,
+						posCreatedAt: {
+							$gte: fromDate,
+							$lte: toDate,
+						},
 					},
 				},
-			},
-			{
-				$unwind: {
-					path: '$itemsInCart',
-				},
-			},
-			{
-				$lookup: {
-					from: 'cart',
-					localField: 'itemsInCart',
-					foreignField: '_id',
-					as: 'product',
-				},
-			},
-			{
-				$unwind: {
-					path: '$product',
-				},
-			},
-			{
-				$group: {
-					_id: {
-						brand: '$product.title2',
-					},
-					totalAmount: {
-						$sum: '$totals.finalTotal',
+				{
+					$unwind: {
+						path: '$itemsInCart',
 					},
 				},
-			},
-			{
-				$sort: {
-					totalAmount: -1,
+				{
+					$lookup: {
+						from: 'cart',
+						localField: 'itemsInCart',
+						foreignField: '_id',
+						as: 'product',
+					},
 				},
-			},
-			{
-				$limit: 5,
-			},
-			{
-				$project: {
-					_id: 0,
-					brand: '$_id.brand',
-					totalAmount: 1,
+				{
+					$unwind: {
+						path: '$product',
+					},
 				},
-			},
-		];
-
-		let brandWiseOrderData = await this.orderModel.aggregate(pipeline);
-
-		return brandWiseOrderData;
+				{
+					$group: {
+						_id: {
+							brand: '$product.title2',
+						},
+						totalAmount: {
+							$sum: '$totals.finalTotal',
+						},
+					},
+				},
+				{
+					$sort: {
+						totalAmount: -1,
+					},
+				},
+				{
+					$limit: 5,
+				},
+				{
+					$project: {
+						_id: 0,
+						brand: '$_id.brand',
+						totalAmount: 1,
+					},
+				},
+			];
+	
+			let brandWiseOrderData = await this.orderModel.aggregate(pipeline);
+	
+			return brandWiseOrderData;
+		} catch (error) {
+			dynamicCatchException(error)
+		}
+		
 	}
 
 	async getEmployeeWiseSales(
@@ -198,7 +442,7 @@ export class ClientOrderService {
 													new Date(
 														new Date().setDate(
 															new Date().getDate() -
-																28
+															28
 														)
 													),
 												],
@@ -209,7 +453,7 @@ export class ClientOrderService {
 													new Date(
 														new Date().setDate(
 															new Date().getDate() -
-																14
+															14
 														)
 													),
 												],
@@ -288,6 +532,7 @@ export class ClientOrderService {
 			return staffWiseOrderData;
 		} catch (error) {
 			console.error(error);
+			dynamicCatchException(error)
 		}
 	}
 
@@ -526,11 +771,11 @@ export class ClientOrderService {
 				result.length > 0
 					? result[0]
 					: {
-							averageSpend: 0,
-							loyaltyPointsConverted: 0,
-							averageSpendGrowth: 0,
-							loyaltyPointsConversionGrowth: 0,
-					  };
+						averageSpend: 0,
+						loyaltyPointsConverted: 0,
+						averageSpendGrowth: 0,
+						loyaltyPointsConversionGrowth: 0,
+					};
 
 			return averageSpendWithLoyalty;
 		} catch (error) {
@@ -607,6 +852,7 @@ export class ClientOrderService {
 			return topCategory;
 		} catch (error) {
 			console.error(error);
+			dynamicCatchException(error)
 		}
 	}
 
@@ -696,7 +942,8 @@ export class ClientOrderService {
 					: { returningCustomer: 0, newCustomer: 0 };
 			return { returningCustomer: returningCustomer, newCustomer };
 		} catch (error) {
-			console.error('Error While Calculating the percentage', error);
+			console.error('Error While Calculating the percentage'+ error);
+			dynamicCatchException(error)
 		}
 	}
 
@@ -984,13 +1231,13 @@ export class ClientOrderService {
 				result.length > 0
 					? result[0]
 					: {
-							totalOrderAmount: 0,
-							totalDiscounts: 0,
-							totalOrders: 0,
-							orderAmountGrowth: 0,
-							discountGrowth: 0,
-							orderCountGrowth: 0,
-					  };
+						totalOrderAmount: 0,
+						totalDiscounts: 0,
+						totalOrders: 0,
+						orderAmountGrowth: 0,
+						discountGrowth: 0,
+						orderCountGrowth: 0,
+					};
 			return {
 				totalOrderAmount,
 				totalDiscounts,
@@ -1000,7 +1247,8 @@ export class ClientOrderService {
 				orderCountGrowth,
 			};
 		} catch (error) {
-			console.error('Error While Fetching Overview Section', error);
+			console.error('Error While Fetching Overview Section'+ error);
+			dynamicCatchException(error)
 		}
 	}
 
@@ -1012,7 +1260,6 @@ export class ClientOrderService {
 		let storeData = await this.clientStoreService.storeById(
 			storeId.toString()
 		);
-		console.log('storeData', storeData);
 		try {
 			const fromStartDate = fromDate;
 			const toEndDate = toDate;
@@ -1095,6 +1342,7 @@ export class ClientOrderService {
 			return hourlyData;
 		} catch (error) {
 			console.error(error);
+			dynamicCatchException(error)
 		}
 	}
 
@@ -1173,6 +1421,7 @@ export class ClientOrderService {
 			return weekData;
 		} catch (error) {
 			console.error(error);
+			dynamicCatchException(error)
 		}
 	}
 
@@ -1220,7 +1469,6 @@ export class ClientOrderService {
 							{
 								$unwind: '$carts.itemDiscounts',
 							},
-
 							{
 								$group: {
 									_id: '$carts.itemDiscounts.name',
@@ -1281,7 +1529,7 @@ export class ClientOrderService {
 			return result;
 		} catch (error) {
 			console.error(error);
-			throw error;
+			dynamicCatchException(error)
 		}
 	}
 	// Top Discounted Items
@@ -1302,96 +1550,66 @@ export class ClientOrderService {
 					},
 				},
 				{
-					$facet: {
-						totalOrders: [
-							{
-								$group: {
-									_id: null,
-									count: { $sum: 1 },
-								},
-							},
-						],
-						orders: [
-							{
-								$unwind: '$itemsInCart',
-							},
-							{
-								$lookup: {
-									from: 'cart',
-									localField: 'itemsInCart',
-									foreignField: '_id',
-									as: 'cart',
-								},
-							},
-							{
-								$unwind: '$cart',
-							},
-							{
-								$unwind: '$cart.itemDiscounts',
-							},
-							{
-								$group: {
-									_id: '$cart.productName',
-									totalDiscount: {
-										$sum: '$cart.itemDiscounts.discountAmount',
-									},
-									count: { $sum: 1 },
-								},
-							},
-							{
-								$sort: { totalDiscount: -1 },
-							},
-							{
-								$limit: 3,
-							},
-							{
-								$project: {
-									_id: 0,
-									productName: '$_id',
-									count: 1,
-								},
-							},
-						],
-					},
+					$unwind: "$itemsInCart"
 				},
 				{
-					$unwind: '$orders',
+					$lookup: {
+						from: "cart",
+						localField: "itemsInCart",
+						foreignField: "_id",
+						as: "cartItem"
+					}
+				},
+				{
+					$unwind: "$cartItem"
+				},
+				{
+					$unwind: "$cartItem.itemDiscounts"
+				},
+				{
+					$group: {
+						_id: "$cartItem.sku",
+						productName: { $first: "$cartItem.productName" },
+						totalDiscountAmount: { $sum: { $divide: ["$cartItem.itemDiscounts.penniesOff", 100] } },
+						totalSales: { $sum: 1 },
+						totalProductDiscounts: { $sum: "$totals.totalDiscounts" }
+					}
+				},
+				{
+					$match: {
+						totalDiscountAmount: { $gt: 0 }
+					}
 				},
 				{
 					$project: {
-						productName: '$orders.productName',
-						count: '$orders.count',
-						percentage: {
-							$multiply: [
-								{
-									$divide: [
-										'$orders.count',
-										{
-											$arrayElemAt: [
-												'$totalOrders.count',
-												0,
-											],
-										},
-									],
-								},
-								100,
-							],
-						},
-					},
-				},
-				{
-					$project: {
+						_id: 0,
+						sku: "$_id",
 						productName: 1,
-						percentage: { $round: ['$percentage', 2] },
-					},
+						totalDiscountAmount: 1,
+						totalSales: 1,
+						totalProductDiscounts: 1,
+						percentage: {
+							$round: [{
+								$multiply: [{ $divide: ["$totalDiscountAmount", "$totalProductDiscounts"] }, 100]
+							}, 2]
+						}
+					}
 				},
+				{
+					$limit: 3,
+				},
+				{
+					$sort: {
+						percentage: -1
+					}
+				}
 			];
 
 			const result = await this.orderModel.aggregate(pipeline);
 			return result;
 		} catch (error) {
 			console.error(error);
-			throw error;
+			dynamicCatchException(error)
 		}
 	}
 
@@ -1511,7 +1729,8 @@ export class ClientOrderService {
 					: { averageCartSize: null, cartSizeGrowth: null };
 			return { averageCartSize, cartSizeGrowth };
 		} catch (error) {
-			throw error;
+			console.error(error)
+			dynamicCatchException(error)
 		}
 	}
 }

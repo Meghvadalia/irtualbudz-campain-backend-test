@@ -22,3 +22,6 @@ package-lock.json
 # Ignore miscellaneous files
 *.swp
 .DS_Store
+
+# Ignore public folder
+public/

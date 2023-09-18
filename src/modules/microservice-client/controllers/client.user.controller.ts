@@ -1,4 +1,5 @@
 import {
+	BadGatewayException,
 	BadRequestException,
 	Body,
 	Controller,
@@ -7,6 +8,7 @@ import {
 	Post,
 	Req,
 	Res,
+	UnauthorizedException,
 	UseGuards,
 } from '@nestjs/common';
 import {
@@ -25,7 +27,7 @@ import {
 	userTypeValues,
 } from 'src/microservices/user/constants/user.constant';
 import { CreateUserGuard } from 'src/common/guards/user.guard';
-import { throwUnauthorizedException } from 'src/utils/error.utils';
+import { dynamicCatchException, throwBadRequestException, throwUnauthorizedException } from 'src/utils/error.utils';
 
 interface IUserService {
 	Signup(data: any): Observable<any>;
@@ -61,7 +63,7 @@ export class ClientUserController implements OnModuleInit {
 				userData.type === USER_TYPE.COMPANY_ADMIN &&
 				!userData.companyId
 			) {
-				throw new Error('companyId is required');
+				throwBadRequestException('companyId is required');
 			}
 
 			if (
@@ -69,7 +71,7 @@ export class ClientUserController implements OnModuleInit {
 					userData.type === USER_TYPE.MANAGER) &&
 				!userData.storeId
 			) {
-				throw new Error('storeId is required');
+				throwBadRequestException('storeId is required');
 			}
 
 			const user = await firstValueFrom(
@@ -77,7 +79,8 @@ export class ClientUserController implements OnModuleInit {
 			);
 			return sendSuccess(user);
 		} catch (error) {
-			throw new BadRequestException(error.message);
+			console.log('Error3',JSON.stringify(error))
+			dynamicCatchException(error)
 		}
 	}
 
@@ -90,8 +93,7 @@ export class ClientUserController implements OnModuleInit {
 
 			return sendSuccess(user, 'Log-in successful.');
 		} catch (error) {
-			console.error({ error });
-			throw new Error(error);
+			throw new UnauthorizedException(error.details)
 		}
 	}
 	@UseGuards(RolesGuard)
@@ -113,7 +115,8 @@ export class ClientUserController implements OnModuleInit {
 			);
 			return sendSuccess(null, 'Logged out successfully.');
 		} catch (error) {
-			throw new Error('Error logging out.');
+			console.error('Error logging out.');
+			dynamicCatchException(error)
 		}
 	}
 
@@ -132,7 +135,7 @@ export class ClientUserController implements OnModuleInit {
 			if (error.message.includes('jwt expired')) {
 				return throwUnauthorizedException(error.message);
 			}
-			throw new Error(error);
+			throw new BadGatewayException(error.details);
 		}
 	}
 
@@ -141,7 +144,8 @@ export class ClientUserController implements OnModuleInit {
 		try {
 			return sendSuccess(userTypeValues);
 		} catch (error) {
-			throw new Error('Error fetching user types');
+			console.error('Error fetching user types');
+			dynamicCatchException(error)
 		}
 	}
 }

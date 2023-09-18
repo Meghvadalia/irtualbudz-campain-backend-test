@@ -9,6 +9,7 @@ import { Company } from 'src/model/company/entities/company.entity';
 import { POS } from 'src/model/pos/entities/pos.entity';
 import { IPOS } from 'src/model/pos/interface/pos.interface';
 import { CustomerType, ICustomer } from '../interfaces/customer.interface';
+import { dynamicCatchException } from 'src/utils/error.utils';
 
 @Injectable()
 export class CustomerService {
@@ -34,7 +35,6 @@ export class CustomerService {
 			for (const company of companiesList) {
 				let page = 1;
 				let shouldContinue = true;
-				let customerData;
 
 				const customer = await this.customerModel.findOne({ companyId: company._id });
 
@@ -66,11 +66,8 @@ export class CustomerService {
 
 				while (shouldContinue) {
 					const { data } = await axios.request(options);
-					if (company.name === 'Monarc') {
-						customerData = data.customers;
-					} else {
-						customerData = data.data;
-					}
+					const customerData = data.customers ? data.customers : data.data;
+
 					for (const d of customerData) {
 						customerDataArray.push({
 							posCustomerId: d.id ?? d.id,
@@ -109,9 +106,24 @@ export class CustomerService {
 
 			return Promise.all(await this.customerModel.insertMany(customerDataArray));
 		} catch (error) {
-			console.error('Error while seeding customers:', error.message);
+			console.error('Error while seeding customers:', error);
+			dynamicCatchException(error)
 		}
 	}
+
+	// async calculateAge(birthDate: Date) {
+	// 	const today = new Date();
+	// 	const birthDateObj = new Date(birthDate);
+
+	// 	let age = today.getFullYear() - birthDateObj.getFullYear();
+	// 	const monthDiff = today.getMonth() - birthDateObj.getMonth();
+
+	// 	if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDateObj.getDate())) {
+	// 		age--;
+	// 	}
+
+	// 	return age;
+	// }
 
 	async seedDutchieCustomers(posName: string) {
 		try {
@@ -173,6 +185,7 @@ export class CustomerService {
 			}
 		} catch (error) {
 			console.error('Failed to seed customers:', error.message);
+			dynamicCatchException(error)
 		}
 	}
 }

@@ -52,13 +52,11 @@ export class UsersService {
 	}
 
 	async login(email: string, password: string): Promise<any> {
-		try {
 			const user = (await this.findByEmail(email)) as User;
-			if (!user) return 'Email not found!!';
-			const comparePassword = await passwordService.comparePasswords(
-				password,
-				user.password
-			);
+			if (!user)  {
+				throw new RpcException("Email not found.");
+			} else {
+			const comparePassword = await passwordService.comparePasswords(password, user.password);
 			if (user && comparePassword) {
 				const { token, refreshToken } =
 					await this.sessionService.createSession(user._id, {
@@ -66,11 +64,9 @@ export class UsersService {
 						type: user.type,
 					});
 				return { user, token, refreshToken };
+			} else{
+				throw new RpcException('Invalid password.');
 			}
-
-			return 'User not found';
-		} catch (error) {
-			throw new Error(error);
 		}
 	}
 

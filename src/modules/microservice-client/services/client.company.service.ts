@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import { RpcException } from '@nestjs/microservices';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { USER_TYPE } from 'src/microservices/user/constants/user.constant';
@@ -7,6 +8,7 @@ import { IUser } from 'src/microservices/user/interfaces/user.interface';
 import { UsersService } from 'src/microservices/user/service/users.service';
 import { Company } from 'src/model/company/entities/company.entity';
 import { ICompany } from 'src/model/company/interface/company.interface';
+import { dynamicCatchException, throwNotFoundException } from 'src/utils/error.utils';
 
 @Injectable()
 export class ClientCompanyService {
@@ -26,17 +28,17 @@ export class ClientCompanyService {
 				return company;
 			}
 		} catch (error) {
-			throw error;
+			dynamicCatchException(error)
 		}
 	}
 
 	async company(id: string): Promise<ICompany | null> {
 		try {
 			const company = await this.companyModel.findById(id).select(['-updatedAt', '-createdAt', '-__v']);
-			if (!company) throw Error('Company not found.');
+			if (!company) throwNotFoundException('Company not found.');
 			return company;
 		} catch (error) {
-			throw error;
+			dynamicCatchException(error)
 		}
 	}
 }

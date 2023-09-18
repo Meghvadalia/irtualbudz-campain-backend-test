@@ -13,8 +13,16 @@ import {
 import { POS, POSSchema } from 'src/model/pos/entities/pos.entity';
 import { Store, StoreSchema } from 'src/model/store/entities/store.entity';
 import { Customer, CustomerModule, CustomerSchema } from '../customers';
-import { CustomerService } from '../customers/service/customer.service';
-import { Product, ProductSchema } from '../inventory';
+import {
+	AudienceCustomer,
+	AudienceCustomerSchema,
+} from 'src/modules/microservice-client/entities/audienceCustomers.entity';
+import {
+	AudienceDetail,
+	AudienceDetailSchema,
+} from 'src/modules/microservice-client/entities/audienceDetails.entity';
+import { AudienceDetailsService } from 'src/modules/microservice-client/services/client.audienceDetail.service';
+import { Product, ProductSchema } from '../inventory/entities/product.entity';
 
 @Module({
 	imports: [
@@ -31,12 +39,21 @@ import { Product, ProductSchema } from '../inventory';
 			{ name: Customer.name, schema: CustomerSchema },
 		]),
 		MongooseModule.forFeature([
+			{ name: AudienceCustomer.name, schema: AudienceCustomerSchema },
+		]),
+		MongooseModule.forFeature([
+			{ name: AudienceDetail.name, schema: AudienceDetailSchema },
+		]),
+		MongooseModule.forFeature([
+			{ name: Customer.name, schema: CustomerSchema },
+		]),
+		MongooseModule.forFeature([
 			{ name: Product.name, schema: ProductSchema },
 		]),
 		CustomerModule,
 	],
 	controllers: [OrderController],
-	providers: [OrderService],
+	providers: [OrderService, AudienceDetailsService],
 	exports: [OrderService],
 })
 export class OrderModule {}

@@ -12,6 +12,7 @@ import axios, { AxiosRequestConfig } from 'axios';
 import { IInventory } from '../interfaces/inventory.interface';
 import { IProduct } from '../interfaces/product.interface';
 import { IStore } from 'src/model/store/interface/store.inteface';
+import { dynamicCatchException } from 'src/utils/error.utils';
 
 @Injectable()
 export class InventoryService {
@@ -95,7 +96,7 @@ export class InventoryService {
 			}
 		} catch (error) {
 			console.error('GRPC METHOD', error);
-			throw error;
+			dynamicCatchException(error)
 		}
 	}
 
@@ -235,9 +236,9 @@ export class InventoryService {
 						companyId: company._id,
 						posId: posData._id,
 						posProductId: d.productId,
+						sku: d.sku,
 						productUpdatedAt: d.lastModifiedDateUtc,
 						storeId: storeData._id,
-						sku: d.sku,
 						locationName: storeData.location.locationName,
 						productId: matchingProduct
 							? (matchingProduct._id as string)
@@ -259,7 +260,7 @@ export class InventoryService {
 			}
 		} catch (error) {
 			console.error('Failed to seed inventory data:', error.message);
-			throw error;
+			dynamicCatchException(error)
 		}
 	}
 

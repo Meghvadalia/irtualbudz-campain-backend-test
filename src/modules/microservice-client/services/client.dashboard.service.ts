@@ -5,6 +5,8 @@ import * as dayjs from 'dayjs';
 import { Types } from 'mongoose';
 import { ClientStoreService } from './client.store.service';
 import { getStoreTimezoneDateRange } from 'src/utils/time.utils';
+import { RpcException } from '@nestjs/microservices';
+import { dynamicCatchException } from 'src/utils/error.utils';
 
 @Injectable()
 export class ClientDashboardService {
@@ -15,264 +17,189 @@ export class ClientDashboardService {
 	) {}
 
 	async getCalculatedData(
-		req,
 		storeId: Types.ObjectId,
-		query: { fromDate: string; toDate: string }
+		query: { fromDate: string; toDate: string; goalFlag?: string },
+		campaignId?: Types.ObjectId,
+		audienceTracking?: boolean
 	) {
-		let storeData = await this.storeService.storeById(storeId.toString());
+			let storeData = await this.storeService.storeById(storeId.toString());
+			if(!storeData){
+				throw new RpcException('Store not found')
+			}
 
-		const { formattedFromDate, formattedToDate } =
-			getStoreTimezoneDateRange(
-				query.fromDate,
-				query.toDate,
-				storeData.timeZone
-			);
-		const averageAge = await this.calculateAverageAge(
-			storeId,
-			formattedFromDate,
-			formattedToDate
-		);
+			const { formattedFromDate, formattedToDate } = getStoreTimezoneDateRange(query.fromDate, query.toDate, storeData.timeZone);
+			const averageAge = await this.calculateAverageAge(storeId, formattedFromDate, formattedToDate);
 
-		const {
-			averageSpend,
-			loyaltyPointsConverted,
-			averageSpendGrowth,
-			loyaltyPointsConversionGrowth,
-		} = await this.calculateAverageSpendAndLoyaltyPoints(
-			storeId,
-			formattedFromDate,
-			formattedToDate
-		);
+			const { averageSpend, loyaltyPointsConverted, averageSpendGrowth, loyaltyPointsConversionGrowth } =
+				await this.calculateAverageSpendAndLoyaltyPoints(storeId, formattedFromDate, formattedToDate);
 
-		const {
-			totalOrderAmount,
-			percentageOrderGrowth,
-			totalOrders,
-			dateWiseOrderData,
-			totalDiscounts,
-			discountGrowth,
-			orderCountGrowth,
-		} = await this.totalSales(storeId, formattedFromDate, formattedToDate);
+			const {
+				totalOrderAmount,
+				percentageOrderGrowth,
+				totalOrders,
+				graphAndSummaryData,
+				totalDiscounts,
+				discountGrowth,
+				orderCountGrowth,
+				// actionData,
+			} = await this.totalSales(storeId, formattedFromDate, formattedToDate, query.goalFlag, campaignId, audienceTracking);
 
-		const topCategory = await this.topSellingCategory(
-			storeId,
-			formattedFromDate,
-			formattedToDate
-		);
-		const { returningCustomer: returningCustomer, newCustomer } =
-			await this.recVsMedCustomer(
+			const topCategory = await this.topSellingCategory(storeId, formattedFromDate, formattedToDate);
+			const { returningCustomer: returningCustomer, newCustomer } = await this.recVsMedCustomer(
 				storeId,
 				formattedFromDate,
 				formattedToDate
 			);
-		const weekOrders = await this.getOrderCountsByDayOfWeek(
-			storeId,
-			formattedFromDate,
-			formattedToDate
-		);
-		const hourlyData = await this.getOrderCountsByHour(
-			storeId,
-			formattedFromDate,
-			formattedToDate
-		);
+			const weekOrders = await this.getOrderCountsByDayOfWeek(storeId, formattedFromDate, formattedToDate);
+			const hourlyData = await this.getOrderCountsByHour(storeId, formattedFromDate, formattedToDate);
 
-		const brandWiseOrderData = await this.orderService.getBrandWiseSales(
-			storeId,
-			formattedFromDate,
-			formattedToDate
-		);
-		const staffWiseOrderData = await this.orderService.getEmployeeWiseSales(
-			storeId,
-			formattedFromDate,
-			formattedToDate
-		);
-		const averageCartSize = await this.orderService.averageCartSize(
-			storeId,
-			formattedFromDate,
-			formattedToDate
-		);
-		const topDiscountedProduct = await this.orderService.topDiscountedItem(
-			storeId,
-			formattedFromDate,
-			formattedToDate
-		);
-		const topUsedCoupon = await this.orderService.topDiscountedCoupon(
-			storeId,
-			formattedFromDate,
-			formattedToDate
-		);
-		const {newCustomersByMonth,totalCustomerForCurrentYear} = await this.getCustomerAnalytics(
-			storeId,
-		)
-		return {
-			overview: {
-				totalSales: {
-					totalOrderAmount,
-					percentageOrderGrowth,
+			const brandWiseOrderData = await this.orderService.getBrandWiseSales(storeId, formattedFromDate, formattedToDate);
+			const staffWiseOrderData = await this.orderService.getEmployeeWiseSales(storeId, formattedFromDate, formattedToDate);
+			const averageCartSize = await this.orderService.averageCartSize(storeId, formattedFromDate, formattedToDate);
+			const topDiscountedProduct = await this.orderService.topDiscountedItem(storeId, formattedFromDate, formattedToDate);
+			const topUsedCoupon = await this.orderService.topDiscountedCoupon(storeId, formattedFromDate, formattedToDate);
+			const { newCustomersByMonth, totalCustomerForCurrentYear } = await this.getCustomerAnalytics(storeId);
+			return {
+				overview: {
+					totalSales: {
+						totalOrderAmount,
+						percentageOrderGrowth,
+					},
+					order: {
+						totalOrders,
+						orderCountGrowth,
+					},
+					discount: {
+						totalDiscounts,
+						discountGrowth,
+					},
+					// summary: actionData,
 				},
-				order: {
-					totalOrders,
-					orderCountGrowth,
+				graphAndSummaryData,
+
+				customer: {
+					age: averageAge,
+					averageSpend: {
+						averageSpend,
+						averageSpendGrowth,
+					},
+					cart: averageCartSize,
+					loyaltyPoints: {
+						loyaltyPointsConverted,
+						loyaltyPointsConversionGrowth,
+					},
+					topCategory,
+					recOrMedCustomer: {
+						newCustomer: newCustomer,
+						returningCustomer: returningCustomer,
+					},
 				},
-				discount: {
-					totalDiscounts,
-					discountGrowth,
+				sales: {
+					brandWiseSalesData: brandWiseOrderData,
+					topDiscountedProduct,
+					topUsedCoupon,
 				},
-				dateWiseOrderData,
-			},
-			customer: {
-				age: averageAge,
-				averageSpend: {
-					averageSpend,
-					averageSpendGrowth,
+				operations: {
+					weekOrders,
+					hourlyData,
+					staffWiseOrderData,
+					newCustomersByMonth,
+					totalCustomerForCurrentYear,
 				},
-				cart: averageCartSize,
-				loyaltyPoints: {
-					loyaltyPointsConverted,
-					loyaltyPointsConversionGrowth,
-				},
-				topCategory,
-				recOrMedCustomer: {
-					newCustomer: newCustomer,
-					returningCustomer: returningCustomer,
-				},
-			},
-			sales: {
-				brandWiseSalesData: brandWiseOrderData,
-				topDiscountedProduct,
-				topUsedCoupon,
-			},
-			operations: {
-				weekOrders,
-				hourlyData,
-				staffWiseOrderData,
-				newCustomersByMonth,
-				totalCustomerForCurrentYear
-			},
-		};
+			};
+		
+		
 	}
 
-	async calculateAverageAge(
-		storeId: Types.ObjectId,
-		fromDate: Date,
-		toDate: Date
-	) {
-		const averageAge = await this.customerService.getAverageAge(
-			storeId,
-			fromDate,
-			toDate
-		);
-		return averageAge;
+	async calculateAverageAge(storeId: Types.ObjectId, fromDate: Date, toDate: Date) {
+			const averageAge = await this.customerService.getAverageAge(storeId, fromDate, toDate);
+			return averageAge;		
 	}
 
-	async recVsMedCustomer(
-		storeId: Types.ObjectId,
-		fromDate: Date,
-		toDate: Date
-	) {
-		const customerPercentage =
-			this.orderService.getRecurringAndNewCustomerPercentage(
+	async recVsMedCustomer(storeId: Types.ObjectId, fromDate: Date, toDate: Date) {
+			const customerPercentage = this.orderService.getRecurringAndNewCustomerPercentage(storeId, fromDate, toDate);
+			return customerPercentage;
+		
+		
+	}
+
+	async calculateAverageSpendAndLoyaltyPoints(storeId: Types.ObjectId, fromDate: Date, toDate: Date) {
+			const averageSpendWithLoyalty = await this.orderService.getAverageSpendAndLoyaltyPointsForAllCustomer(
 				storeId,
 				fromDate,
 				toDate
 			);
-		return customerPercentage;
+			return averageSpendWithLoyalty;
+		
+		
 	}
+	async getCustomerAnalytics(storeId: Types.ObjectId) {
+			const { newCustomersByMonth } = await this.customerService.getNewCustomersByMonth(storeId);
+			const { totalCustomerForCurrentYear } = await this.customerService.getTotalCurrentYearCustomer(storeId);
+			return { newCustomersByMonth, totalCustomerForCurrentYear };
 
-	async calculateAverageSpendAndLoyaltyPoints(
+	}
+	async totalSales(
 		storeId: Types.ObjectId,
 		fromDate: Date,
-		toDate: Date
+		toDate: Date,
+		goalFlag?: string,
+		campaignId?: Types.ObjectId,
+		audienceTracking?: boolean
 	) {
-		const averageSpendWithLoyalty =
-			await this.orderService.getAverageSpendAndLoyaltyPointsForAllCustomer(
-				storeId,
-				fromDate,
-				toDate
-			);
-		return averageSpendWithLoyalty;
-	}
-	async getCustomerAnalytics(storeId:Types.ObjectId){
 		try {
-			const {newCustomersByMonth} = await this.customerService.getNewCustomersByMonth(
+			const { totalOrderAmount, totalDiscounts, totalOrders, orderAmountGrowth, discountGrowth, orderCountGrowth } =
+			await this.orderService.totalOverViewCountForOrdersBetweenDate(storeId, fromDate, toDate);
+
+			const graphAndSummaryData = await this.orderService.getOrderForEachDate(
 				storeId,
-			)
-			const {totalCustomerForCurrentYear}=await this.customerService.getTotalCurrentYearCustomer(storeId)
-			return {newCustomersByMonth,totalCustomerForCurrentYear}
+				fromDate,
+				toDate,
+				goalFlag,
+				campaignId,
+				audienceTracking
+			);
+
+			// const actionData = await this.orderService.getActionData(campaignId, fromDate, toDate, storeId);
+			return {
+				totalOrderAmount,
+				percentageOrderGrowth: orderAmountGrowth,
+				totalOrders,
+				totalDiscounts,
+				discountGrowth,
+				orderCountGrowth,
+				// actionData,
+				graphAndSummaryData
+			};
 		} catch (error) {
-			throw new Error(error)
+			dynamicCatchException(error)
 		}
 	}
-	async totalSales(storeId: Types.ObjectId, fromDate: Date, toDate: Date) {
-		const {
-			totalOrderAmount,
-			totalDiscounts,
-			totalOrders,
-			orderAmountGrowth,
-			discountGrowth,
-			orderCountGrowth,
-		} = await this.orderService.totalOverViewCountForOrdersBetweenDate(
-			storeId,
-			fromDate,
-			toDate
-		);
 
-		const dateWiseOrderData = await this.orderService.getOrderForEachDate(
-			storeId,
-			fromDate,
-			toDate
-		);
-
-		return {
-			totalOrderAmount,
-			percentageOrderGrowth: orderAmountGrowth,
-			totalOrders,
-			dateWiseOrderData,
-			totalDiscounts,
-			discountGrowth,
-			orderCountGrowth,
-		};
+	async getOrderCountsByDayOfWeek(storeId: Types.ObjectId, fromDate: Date, toDate: Date) {
+		try {
+			const orderCountsByDayOfWeek = await this.orderService.getWeeklyBusiestDataForSpecificRange(storeId, fromDate, toDate);
+			return orderCountsByDayOfWeek;
+		} catch (error) {
+			dynamicCatchException(error)
+		}
 	}
 
-	async getOrderCountsByDayOfWeek(
-		storeId: Types.ObjectId,
-		fromDate: Date,
-		toDate: Date
-	) {
-		const orderCountsByDayOfWeek =
-			await this.orderService.getWeeklyBusiestDataForSpecificRange(
-				storeId,
-				fromDate,
-				toDate
-			);
-		return orderCountsByDayOfWeek;
+	async getOrderCountsByHour(storeId: Types.ObjectId, fromDate: Date, toDate: Date) {
+		try {
+			const orderCountsByHour = await this.orderService.getHourWiseDateForSpecificDateRange(storeId, fromDate, toDate);
+			return orderCountsByHour;	
+		} catch (error) {
+			dynamicCatchException(error)
+		}
 	}
 
-	async getOrderCountsByHour(
-		storeId: Types.ObjectId,
-		fromDate: Date,
-		toDate: Date
-	) {
-		const orderCountsByHour =
-			await this.orderService.getHourWiseDateForSpecificDateRange(
-				storeId,
-				fromDate,
-				toDate
-			);
-
-		return orderCountsByHour;
-	}
-
-	async topSellingCategory(
-		storeId: Types.ObjectId,
-		fromDate: Date,
-		toDate: Date
-	) {
-		const topCategory = await this.orderService.getTopCategory(
-			storeId,
-			fromDate,
-			toDate
-		);
-		return topCategory;
+	async topSellingCategory(storeId: Types.ObjectId, fromDate: Date, toDate: Date) {
+		try {
+			const topCategory = await this.orderService.getTopCategory(storeId, fromDate, toDate);
+			return topCategory;	
+		} catch (error) {
+			dynamicCatchException(error)
+		}
 	}
 }

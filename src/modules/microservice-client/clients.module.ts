@@ -1,4 +1,4 @@
-import { Module, forwardRef } from '@nestjs/common';
+import { Module } from '@nestjs/common';
 import { ClientOrderController } from './controllers/client.order.controller';
 import { ClientOrderService } from './services/client.order.service';
 import { SeederService } from 'src/common/seeders/seeders';
@@ -29,7 +29,38 @@ import { Staff, StaffSchema } from 'src/microservices/order/entities/staff.entit
 import { FlowhubController } from './controllers/flowhub.controller';
 import { ClientCompanyController } from './controllers/client.company.controller';
 import { ClientCompanyService } from './services/client.company.service';
-import { UsersService } from 'src/microservices/user/service/users.service';
+import { AudienceDetail, AudienceDetailSchema } from './entities/audienceDetails.entity';
+import { AudienceDetailsService } from './services/client.audienceDetail.service';
+import { AudienceCustomer, AudienceCustomerSchema } from './entities/audienceCustomers.entity';
+import { AudienceDetailsController } from './controllers/client.audienceDetails.controller';
+import { ClientAudienceCustomerService } from './services/client.audienceCustomer.service';
+import { AudienceCustomerController } from './controllers/client.audienceCustomer.controller';
+import { ClientGraphService } from './services/client.graph.service';
+import { ClientGoalService } from './services/client.goal.service';
+import { ClientChannelController } from './controllers/client.channels.controller';
+import { ClientChannelService } from './services/client.channels.service';
+import { Goals, GoalsSchema } from 'src/model/goals/entities/goals.entity';
+import { Channel, ChannelSchema } from 'src/model/channels/entities/channel.entity';
+import { ClientGoalsController } from './controllers/client.goals.controller';
+import { ClientGoalsService } from './services/client.goals.service';
+import { ClientCampaignTypeService } from './services/client.campaignTypes.service';
+import { CampaignTypes, CampaignTypesSchema } from 'src/model/campaignTypes/entities/campaignTypes.entity';
+import { ClientCampaignTypeController } from './controllers/client.campaignTypes.controller';
+import { Action, ActionSchema } from 'src/model/actions/entities/actions.entity';
+import { ClientActionController } from './controllers/client.action.controller';
+import { ClientActionService } from './services/client.action.service';
+import { Suggestions, SuggestionsSchema } from 'src/model/suggestions/entities/suggestions.entity';
+import { ClientCampaignController } from './controllers/client.campaign.controller';
+import { ClientCampaignService } from './services/client.campaign.service';
+import { Campaign, CampaignSchema } from './entities/campaign.entity';
+import { ClientSuggestionService } from './services/client.suggestion.service';
+import { Graph, GraphSchema } from 'src/model/graph/entities/graph.entity';
+import { ClientSuggestionController } from './controllers/client.suggestion.controller';
+import { ClientGraphController } from './controllers/client.graph.controller';
+import { CampaignAsset, CampaignAssetsSchema } from 'src/model/campaignAssets/entities/campaignAsset.entity';
+import { ClientNotificationController } from './controllers/client.notification.controller';
+import { ClientNotificationService } from './services/client.notification.service';
+import { NotificationSchema,Notification } from 'src/model/notification/entities/notification.entity';
 
 @Module({
 	imports: [
@@ -44,6 +75,19 @@ import { UsersService } from 'src/microservices/user/service/users.service';
 			{ name: User.name, schema: UserSchema },
 			{ name: Inventory.name, schema: InventorySchema },
 			{ name: Staff.name, schema: StaffSchema },
+			{ name: Graph.name, schema: GraphSchema },
+			{ name: Goals.name, schema: GoalsSchema },
+			{ name: AudienceDetail.name, schema: AudienceDetailSchema },
+			{ name: AudienceCustomer.name, schema: AudienceCustomerSchema },
+			{ name: Channel.name, schema: ChannelSchema },
+			{ name: Goals.name, schema: GoalsSchema },
+			{ name: CampaignTypes.name, schema: CampaignTypesSchema },
+			{ name: Action.name, schema: ActionSchema },
+			{ name: Suggestions.name, schema: SuggestionsSchema },
+			{ name: Graph.name, schema: GraphSchema },
+			{ name: Campaign.name, schema: CampaignSchema },
+			{ name: CampaignAsset.name, schema: CampaignAssetsSchema },
+			{ name: Notification.name, schema: NotificationSchema },
 		]),
 		CustomerModule,
 		OrderModule,
@@ -59,6 +103,16 @@ import { UsersService } from 'src/microservices/user/service/users.service';
 		DutchieController,
 		FlowhubController,
 		ClientCompanyController,
+		AudienceDetailsController,
+		AudienceCustomerController,
+		ClientChannelController,
+		ClientGoalsController,
+		ClientCampaignTypeController,
+		ClientActionController,
+		ClientCampaignController,
+		ClientSuggestionController,
+		ClientGraphController,
+		ClientNotificationController
 	],
 	providers: [
 		ClientOrderService,
@@ -70,6 +124,18 @@ import { UsersService } from 'src/microservices/user/service/users.service';
 		RedisService,
 		InventoryService,
 		ClientCompanyService,
+		AudienceDetailsService,
+		ClientAudienceCustomerService,
+		ClientChannelService,
+		ClientGoalsService,
+		ClientCampaignTypeService,
+		ClientActionService,
+		ClientCampaignService,
+		ClientSuggestionService,
+		ClientGoalService,
+		ClientGraphService,
+		ClientNotificationService
 	],
+	exports: [AudienceDetailsService],
 })
 export class MicroserviceClientModule {}

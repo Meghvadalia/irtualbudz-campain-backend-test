@@ -14,6 +14,9 @@ import { POS } from 'src/model/pos/entities/pos.entity';
 import { Store } from 'src/model/store/entities/store.entity';
 import { IOrder } from '../interfaces/order.interface';
 import { IStore } from 'src/model/store/interface/store.inteface';
+import { AudienceName } from 'src/common/constants';
+import { AudienceCustomer } from 'src/modules/microservice-client/entities/audienceCustomers.entity';
+import { AudienceDetailsService } from 'src/modules/microservice-client/services/client.audienceDetail.service';
 import { ItemDiscounts, ItemsCart, Tax } from '../interfaces/cart.interface';
 import { Customer, CustomerService } from 'src/microservices/customers';
 import { Product } from 'src/microservices/inventory';
@@ -36,6 +39,9 @@ export class OrderService {
 		@InjectModel(POS.name) private posModel: Model<POS>,
 		@InjectModel(Store.name) private storeModel: Model<Store>,
 		@InjectModel(Customer.name) private customerModel: Model<Customer>,
+		@InjectModel(AudienceCustomer.name)
+		private audienceCustomerModel: Model<AudienceCustomer>,
+		private readonly audienceDetailsService: AudienceDetailsService,
 		@InjectModel(Product.name) private productModel: Model<Product>,
 		private readonly customerService: CustomerService
 	) {}
@@ -98,6 +104,7 @@ export class OrderService {
 
 			await processStoresParallel();
 		} catch (error) {
+			console.trace(error.message);
 			console.error('Error while scheduling cron job:', error.message);
 		}
 	}
@@ -179,7 +186,7 @@ export class OrderService {
 				storeData._id as unknown as string
 			);
 		} catch (error) {
-			console.error('Error while seeding orders: ', error.message);
+			console.trace('Error while seeding orders: ', error.message);
 			throw error;
 		}
 	}
@@ -192,7 +199,7 @@ export class OrderService {
 			const data = await Promise.all(tempArr);
 			return { id, data };
 		} catch (error) {
-			console.error('Error while adding item to cart:', error.message);
+			console.trace('Error while adding item to cart:', error.message);
 			throw error;
 		}
 	}
@@ -213,7 +220,7 @@ export class OrderService {
 
 			return existingStaff;
 		} catch (error) {
-			console.error('Error while adding staff:', error.message);
+			console.trace('Error while adding staff:', error.message);
 			throw error;
 		}
 	}
@@ -315,7 +322,7 @@ export class OrderService {
 				}
 			}
 		} catch (error) {
-			console.error('Error while processing orders:', error.message);
+			console.trace('Error while processing orders:', error.message);
 			throw error;
 		}
 	}
@@ -395,11 +402,13 @@ export class OrderService {
 				const customer = customers.find(
 					(c) => c.posCustomerId === order.customerId
 				);
+				order.customerId = customer ? customer._id : order.customerId;
+
 				let objectIdStoreId = new Types.ObjectId(storeId);
 				if (customer && !customer.storeId.includes(objectIdStoreId)) {
 					customer.storeId.push(objectIdStoreId);
 					this.customerModel.updateOne(
-						{ _id: customer._id },
+						{ _id: customer ? customer._id : order.customerId },
 						{ $set: { storeId: customer.storeId } }
 					);
 				}
@@ -415,6 +424,7 @@ export class OrderService {
 					storeId: new Types.ObjectId(storeId),
 				};
 				delete processOrder.createdAt;
+				this.customerAudience(customer, storeId);
 				return {
 					updateOne: {
 						filter: {
@@ -431,8 +441,96 @@ export class OrderService {
 			);
 			return processedOrders;
 		} catch (error) {
-			console.error('Error while processing order batch:', error.message);
+			console.trace('Error while processing order batch:', error.message);
 			throw error;
+		}
+	}
+	async customerAudience(customer, storeId) {
+		if (customer && customer.birthDate) {
+			const birthYear = customer.birthDate.getFullYear();
+			let audienceName = '';
+
+			if (birthYear > 1996) {
+				audienceName = AudienceName.GENERATION_Z;
+			} else if (birthYear >= 1965 && birthYear <= 1980) {
+				audienceName = AudienceName.GENERATION_X;
+			} else if (birthYear >= 1981 && birthYear <= 1996) {
+				audienceName = AudienceName.MILLENNIAL;
+			} else if (birthYear >= 1946 && birthYear <= 1964) {
+				audienceName = AudienceName.BOOMERS;
+			}
+
+			if (audienceName !== '') {
+				const { _id: audienceId } =
+					await this.audienceDetailsService.getAudienceIdByName(
+						audienceName
+					);
+
+				try {
+					this.addCustomerToAudience(
+						audienceId,
+						customer._id as unknown as string,
+						storeId
+					);
+				} catch (error) {
+					if (
+						error.code === 11000 &&
+						error.keyPattern.audienceId === 1 &&
+						error.keyPattern.customerId === 1
+					) {
+						console.error(
+							'Duplicate key violation:',
+							error.message
+						);
+					} else {
+						throw error;
+					}
+				}
+			}
+		}
+	}
+	async addCustomerToAudience(
+		audienceId: string,
+		customerId: string,
+		storeId: string
+	) {
+		try {
+			const existingCustomer =
+				await this.audienceCustomerModel.findOne<AudienceCustomer>({
+					audienceId,
+					customerId,
+				});
+
+			if (!existingCustomer) {
+				const newCustomer = await this.audienceCustomerModel.create<
+					Partial<AudienceCustomer>
+				>({
+					audienceId,
+					customerId,
+					storeId,
+				});
+			} else {
+				if (existingCustomer.storeId !== storeId) {
+					const newCustomer = await this.audienceCustomerModel.create<
+						Partial<AudienceCustomer>
+					>({
+						audienceId,
+						customerId,
+						storeId,
+					});
+				}
+			}
+		} catch (error) {
+			if (
+				error.code === 11000 &&
+				error.keyPattern.audienceId === 1 &&
+				error.keyPattern.customerId === 1 &&
+				error.keyPattern.storeId === 1
+			) {
+				console.error('Duplicate key violation:', error.message);
+			} else {
+				throw error;
+			}
 		}
 	}
 

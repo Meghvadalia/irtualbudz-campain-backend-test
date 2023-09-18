@@ -8,15 +8,25 @@ import { InventoryModule } from './microservices/inventory';
 import { CustomerModule } from './microservices/customers/customer.module';
 import { AllExceptionsFilter } from './utils/request-response.utils';
 import helmet from 'helmet';
+import { ValidationPipe } from '@nestjs/common';
+import * as express from 'express';
 import { customErrorLogger, customLogger } from './common/middlwares/logging.middleware';
 
 console.log = customLogger;
 console.error = customErrorLogger;
 async function bootstrap() {
 	const app = await NestFactory.create(AppModule);
+	app.useGlobalPipes(new ValidationPipe());
 	app.useGlobalFilters(new AllExceptionsFilter());
 	app.use(helmet());
-	const whitelist = ['http://localhost:3000' as string, 'https://monarc.virtualbudz.com' as string];
+	app.use(helmet.crossOriginResourcePolicy({ policy: 'cross-origin' }));
+	app.use('/public', express.static(join(__dirname, '..', 'public')));
+
+	const whitelist = [
+		'http://localhost:3000' as string,
+		'https://monarc.virtualbudz.com' as string,
+		'https://monarch-staging.virtualbudz.com' as string,
+	];
 	app.enableCors({
 		origin: function (origin, callback) {
 			if (!origin) {
@@ -33,7 +43,7 @@ async function bootstrap() {
 			}
 		},
 		credentials: true,
-		methods: ['GET', 'PUT', 'POST', 'OPTIONS', 'PATCH'],
+		methods: ['GET', 'PUT', 'POST', 'OPTIONS', 'PATCH', 'DELETE'],
 	});
 	await app.listen(Number(process.env.PORT));
 
@@ -42,7 +52,7 @@ async function bootstrap() {
 		options: {
 			package: 'order',
 			protoPath: join(__dirname, './proto/order.proto'),
-			url: process.env.ORDER_MICRO_SERVICES + ":" +process.env.ORDER_PORT ,
+			url: process.env.ORDER_MICRO_SERVICES + ':' + process.env.ORDER_PORT,
 		},
 	});
 	await orderApp.listen().then(() => {
@@ -54,7 +64,7 @@ async function bootstrap() {
 		options: {
 			package: 'user',
 			protoPath: join(__dirname, './proto/user.proto'),
-			url: process.env.USER_MICRO_SERVICES + ":" +process.env.USER_PORT ,
+			url: process.env.USER_MICRO_SERVICES + ':' + process.env.USER_PORT,
 		},
 	});
 	await userApp.listen().then(() => {
@@ -66,7 +76,7 @@ async function bootstrap() {
 		options: {
 			package: 'customer',
 			protoPath: join(__dirname, './proto/customer.proto'),
-			url: process.env.CUSTOMER_MICRO_SERVICES + ":" +process.env.CUSTOMER_PORT ,
+			url: process.env.CUSTOMER_MICRO_SERVICES + ':' + process.env.CUSTOMER_PORT,
 		},
 	});
 	await customerApp.listen().then(() => {
@@ -78,7 +88,7 @@ async function bootstrap() {
 		options: {
 			package: 'Inventory',
 			protoPath: join(__dirname, './proto/inventory.proto'),
-			url: process.env.INVENTORY_MICRO_SERVICES + ":" +process.env.INVENTORY_PORT ,
+			url: process.env.INVENTORY_MICRO_SERVICES + ':' + process.env.INVENTORY_PORT,
 		},
 	});
 	await InventoryApp.listen().then(() => {

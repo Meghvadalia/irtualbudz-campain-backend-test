@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
+import mongoose, { Model } from 'mongoose';
 import { Company } from 'src/model/company/entities/company.entity';
 import { ICompany } from 'src/model/company/interface/company.interface';
 import { POS } from 'src/model/pos/entities/pos.entity';
@@ -13,6 +13,7 @@ import { User } from 'src/microservices/user/entities/user.entity';
 import { IUser } from 'src/microservices/user/interfaces/user.interface';
 import { USER_TYPE } from 'src/microservices/user/constants/user.constant';
 import { RedisService } from 'src/config/cache/config.service';
+import { dynamicCatchException } from 'src/utils/error.utils';
 
 @Injectable()
 export class ClientStoreService {
@@ -30,11 +31,10 @@ export class ClientStoreService {
 				name: posName,
 			});
 
-			const CompaniesList: ICompany[] =
-				await this.companyModel.find<ICompany>({
-					isActive: true,
-					posId: posData._id,
-				});
+			const CompaniesList: ICompany[] = await this.companyModel.find<ICompany>({
+				isActive: true,
+				posId: posData._id,
+			});
 
 			for (let i = 0; i < CompaniesList.length; i++) {
 				const companyData = CompaniesList[i];
@@ -75,6 +75,8 @@ export class ClientStoreService {
 						timeZone: element.timeZone,
 						licenseType: element.licenseType,
 						imageUrl: element.locationLogoURL,
+						website: element.website,
+						locationName: element.locationName,
 					});
 				}
 
@@ -83,7 +85,7 @@ export class ClientStoreService {
 				}
 			}
 		} catch (error) {
-			console.error('Error While Seeding the Data For Store', error);
+			console.error('Error While Seeding the Data For Store'+ error);
 			return error;
 		}
 	}
@@ -92,30 +94,26 @@ export class ClientStoreService {
 		try {
 			const { user } = req;
 			const userData = await this.userModel.findById(user.userId);
-			if (
-				user.type === USER_TYPE.SUPER_ADMIN ||
-				user.type === USER_TYPE.ADMIN
-			) {
-				return await this.storeModel.find({});
+			let stores: any;
+
+			if (user.type === USER_TYPE.SUPER_ADMIN || user.type === USER_TYPE.ADMIN) {
+				stores = await this.storeModel.find({}).select(['-createdAt', '-updatedAt', '-__v']);
 			} else if (user.type === USER_TYPE.COMPANY_ADMIN) {
-				const stores = await this.storeListByCompanyId(
-					userData.companyId
-				);
-				return stores;
+				stores = await this.storeListByCompanyId(userData.companyId);
 			} else {
-				const store = await this.storeById(userData.storeId);
-				return store;
+				stores = [await this.storeById(userData.storeId)];
 			}
+
+			return stores;
 		} catch (error) {
-			throw error;
+			console.error(error);
+			dynamicCatchException(error)
 		}
 	}
 
 	async storeById(id: string): Promise<IStore> {
 		try {
-			const cachedStoreData: IStore = JSON.parse(
-				await this.redisService.getValue(id)
-			);
+			const cachedStoreData: IStore = JSON.parse(await this.redisService.getValue(id));
 			if (cachedStoreData) {
 				return cachedStoreData;
 			} else {
@@ -125,17 +123,66 @@ export class ClientStoreService {
 				return store;
 			}
 		} catch (error) {
-			throw error;
+			console.error(error);
+			dynamicCatchException(error)
 		}
 	}
 
 	async storeListByCompanyId(companyId: string): Promise<any> {
 		try {
-			const store = await this.storeModel.find({ companyId });
+			const store = await this.storeModel
+				.find({ companyId, isActive: true, isDeleted: false })
+				.select(['-createdAt', '-updatedAt', '-__v']);
 			if (!store) throw Error('Store not found.');
 			return store;
 		} catch (error) {
-			throw error;
+			console.error(error);
+			dynamicCatchException(error)
+		}
+	}
+
+	async updateStoreData(posName: string) {
+		try {
+			const posData: IPOS = await this.posModel.findOne<IPOS>({
+				name: posName,
+			});
+
+			const CompaniesList: ICompany[] = await this.companyModel.find<ICompany>({
+				isActive: true,
+				posId: posData._id,
+			});
+
+			for (let i = 0; i < CompaniesList.length; i++) {
+				const companyData = CompaniesList[i];
+
+				const options = {
+					method: 'get',
+					url: `${posData.liveUrl}/v0/clientsLocations`,
+					headers: {
+						key: companyData.dataObject.key,
+						ClientId: companyData.dataObject.clientId,
+						Accept: 'application/json',
+					},
+				};
+				const { data } = await axios.request(options);
+				const storeData = data.data;
+				for (let index = 0; index < storeData.length; index++) {
+					const element: IStoreResponseFlowHub = storeData[index];
+					
+					const existingStore = await this.storeModel.findOne({
+						'location.importId': element.importId,
+						companyId: companyData._id,
+					});
+
+					if (existingStore) {
+						await this.storeModel.findByIdAndUpdate({_id:existingStore._id},{locationName:element.locationName})
+						console.log(element.locationName)
+					}
+				}
+			}
+		} catch (error) {
+			console.error('Error While Seeding the Data For Store'+ error);
+			return error;
 		}
 	}
 }

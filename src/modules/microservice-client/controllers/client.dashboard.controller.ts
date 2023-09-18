@@ -1,4 +1,5 @@
 import {
+	BadRequestException,
 	Controller,
 	Get,
 	Param,
@@ -12,8 +13,8 @@ import { Response } from 'express';
 import { Roles, RolesGuard } from 'src/common/guards/auth.guard';
 
 import { USER_TYPE } from 'src/microservices/user/constants/user.constant';
-import mongoose from 'mongoose';
-import { sendSuccess } from 'src/utils/request-response.utils';
+import mongoose, { Types } from 'mongoose';
+import { sendError, sendSuccess } from 'src/utils/request-response.utils';
 
 @Controller('dashboard')
 export class ClientDashboardController {
@@ -29,23 +30,26 @@ export class ClientDashboardController {
 		USER_TYPE.MANAGER
 	)
 	async getCalculatedData(
-		@Req() req,
 		@Param('locationId') locationId: string,
-		@Query() query: { fromDate: string; toDate: string }
+		@Query() query: { fromDate: string; toDate: string; goalFlag?:string; campaignId?:Types.ObjectId | undefined; trackAudience?:boolean }
 	) {
 		try {
 			const objectId = new mongoose.Types.ObjectId(locationId);
-			const { customer, overview, sales, operations } =
+			const campaignId = query.campaignId ? new mongoose.Types.ObjectId(query.campaignId) : query.campaignId
+			const audienceTracking = query.trackAudience;
+			const { customer, overview, sales, operations,graphAndSummaryData } =
 				await this.dashboardService.getCalculatedData(
-					req,
 					objectId,
-					query
+					query,
+					campaignId,
+					audienceTracking
 				);
 
-			return sendSuccess({ overview, customer, sales, operations });
+			return sendSuccess({ overview, customer, sales, operations,graphAndSummaryData });
 		} catch (error) {
-			console.error(error);
-			throw new Error(error);
+			console.log(error);
+			// throw new BadRequestException(error);
+			return sendError(error.message, error.status);
 		}
 	}
 }

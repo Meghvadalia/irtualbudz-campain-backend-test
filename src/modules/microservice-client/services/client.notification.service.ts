@@ -1,0 +1,230 @@
+import { Injectable } from '@nestjs/common';
+import { InjectModel } from '@nestjs/mongoose';
+import mongoose, { Model, PipelineStage, Types } from 'mongoose';
+import { DATABASE_COLLECTION } from 'src/common/constants';
+import { Inventory } from 'src/microservices/inventory/entities/inventory.entity';
+import { Order } from 'src/microservices/order/entities/order.entity';
+import { USER_TYPE } from 'src/microservices/user/constants/user.constant';
+import { User } from 'src/microservices/user/entities/user.entity';
+import { Notification } from 'src/model/notification/entities/notification.entity';
+import { INOTIFICATION } from 'src/model/notification/interface/notification.interface';
+import { Store } from 'src/model/store/entities/store.entity';
+import { dynamicCatchException } from 'src/utils/error.utils';
+import { paginateWithNextHit } from 'src/utils/pagination';
+
+@Injectable()
+export class ClientNotificationService {
+	constructor(
+		@InjectModel(Notification.name) private readonly notificationModel: Model<INOTIFICATION>,
+		@InjectModel(Store.name) private storeModel: Model<Store>,
+		@InjectModel(User.name) private userModel: Model<User>,
+		@InjectModel(Order.name) private orderModel: Model<Order>,
+		@InjectModel(Inventory.name) private readonly inventoryModel: Model<Inventory>
+	) {}
+
+	async listAllNotification(user: { userId: Types.ObjectId; type: string }, page: number, limit: number) {
+		try {
+			let query = {};
+			let storeList = [];
+			let userData = await this.userModel.findById(user.userId);
+			if (user.type != USER_TYPE.COMPANY_ADMIN && user.type != USER_TYPE.SUPER_ADMIN && user.type != USER_TYPE.ADMIN) {
+				query = { storeId: userData.storeId, userId: new mongoose.Types.ObjectId(user.userId) };
+			} else {
+				storeList = await this.storeModel.find({ companyId: userData.companyId }).select({ _id: true });
+				storeList = storeList.map((x: Types.ObjectId) => x._id);
+				query = { storeId: { $in: storeList }, userId: new mongoose.Types.ObjectId(user.userId) };
+			}
+			let pipeline: PipelineStage[] = [
+				{
+					$match: query,
+				},
+				{
+					$lookup: {
+						from: DATABASE_COLLECTION.STORES,
+						let: { storeId: '$storeId' },
+						pipeline: [
+							{
+								$match: {
+									$expr: { $eq: ['$_id', '$$storeId'] },
+								},
+							},
+							{
+								$project: {
+									_id: 0,
+									locationName: 1,
+								},
+							},
+						],
+						as: 'storeData',
+					},
+				},
+				{
+					$unwind: '$storeData',
+				},
+				{
+					$sort: {
+						_id: -1,
+					},
+				},
+			];
+			return await paginateWithNextHit(this.notificationModel, pipeline, limit, page);
+		} catch (error) {
+			dynamicCatchException(error)
+		}
+		
+	}
+
+	async getNotificationArrayList() {
+		try {
+			let storeList = await this.storeModel.find({ isActive: true, isDeleted: false });
+			let arrayFunc = [];
+			for (let i = 0; i < storeList.length; i++) {
+				arrayFunc.push(this.getStoreAndCompanyWiseUsers(storeList[i]));
+			}
+			const data = await Promise.all(arrayFunc);
+
+			let mergedArray = [].concat(...data);
+			return mergedArray;
+		} catch (error) {
+			dynamicCatchException(error)
+		}
+		
+	}
+
+	getStoreAndCompanyWiseUsers(store) {
+		return new Promise(async (resolve, reject) => {
+			try {
+				let expireProductsAggregate = [
+					{
+						$match: {
+							storeId: store._id,
+							expirationDate: {
+								$gte: new Date(), // Filter only future expiration dates
+								$lt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 1 month from now
+							},
+						},
+					},
+					{
+						$count: 'total',
+					},
+				];
+	
+				let slowMovingItemsAggregate = [
+					{
+						$match: {
+							storeId: store._id,
+							orderStatus: 'sold',
+							posCreatedAt: {
+								$gte: new Date(Date.now() - 15 * 24 * 60 * 60 * 1000),
+							},
+						},
+					},
+					{
+						$unwind: {
+							path: '$itemsInCart',
+						},
+					},
+					{
+						$lookup: {
+							from: 'cart',
+							localField: 'itemsInCart',
+							foreignField: '_id',
+							as: 'cartData',
+						},
+					},
+					{
+						$unwind: {
+							path: '$cartData',
+						},
+					},
+					{
+						$group: {
+							_id: '$cartData.sku',
+							count: {
+								$sum: 1,
+							},
+						},
+					},
+					{
+						$match: {
+							count: {
+								$gte: 1,
+								$lte: 5,
+							},
+						},
+					},
+					{
+						$count: 'total',
+					},
+				];
+				const [expireProducts, slowMovingItems] = await Promise.all([
+					this.inventoryModel.aggregate(expireProductsAggregate),
+					this.orderModel.aggregate(slowMovingItemsAggregate),
+				]);
+	
+				const notifications = [];
+	
+				if (expireProducts.length > 0 && expireProducts[0]?.total > 0) {
+					const userList = await this.userModel.find({
+						$or: [
+							{ storeId: new mongoose.Types.ObjectId(store._id) },
+							{
+								storeId: { $in: ['', null] },
+								companyId: new mongoose.Types.ObjectId(store.companyId),
+							},
+						],
+					});
+	
+					notifications.push(
+						...userList.map((x) => ({
+							userId: x._id,
+							storeId: store._id,
+							message: `You have a new message for ${expireProducts[0].total} product(s) expiring in 1 month`,
+							title: 'Expiring products',
+							isDeleted: false,
+							isRead: false,
+						}))
+					);
+				}
+	
+				if (slowMovingItems.length > 0 && slowMovingItems[0]?.total > 0) {
+					const userList = await this.userModel.find({
+						$or: [
+							{ storeId: new mongoose.Types.ObjectId(store._id) },
+							{
+								storeId: { $in: ['', null] },
+								companyId: new mongoose.Types.ObjectId(store.companyId),
+							},
+						],
+					});
+	
+					notifications.push(
+						...userList.map((x) => ({
+							userId: x._id,
+							storeId: store._id,
+							message: `You have a new message for ${slowMovingItems[0].total} items that are moving slowly`,
+							title: 'Slow Moving Items',
+							isDeleted: false,
+							isRead: false,
+						}))
+					);
+				}
+	
+				resolve(notifications);
+			} catch (error) {
+				dynamicCatchException(error)
+			}
+			
+		});
+	}
+
+	async insertStoreWiseNotification(notificationArray: INOTIFICATION[]) {
+		try {
+			let notification = await this.notificationModel.insertMany(notificationArray);
+			return `${notification.length} notifications added`;	
+		} catch (error) {
+			dynamicCatchException(error)
+		}
+		
+	}
+}

@@ -225,3 +225,8 @@ export interface IDutchieOrderInterface {
 	estTimeArrivalLocal: string | null;
 	estDeliveryDateLocal: string;
 }
+
+export interface IReplacements {
+	key: string,
+	value: any
+}

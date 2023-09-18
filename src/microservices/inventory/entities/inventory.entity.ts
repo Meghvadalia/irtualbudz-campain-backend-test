@@ -35,13 +35,13 @@ export class Inventory extends Model<IInventory> {
 	locationName: string;
 
 	@Prop()
+	sku: string;
+
+	@Prop()
 	expirationDate: Date;
 
 	@Prop()
 	productUpdatedAt: Date;
-
-	@Prop()
-	sku: string;
 
 	@Prop(
 		raw({
@@ -60,3 +60,4 @@ export class Inventory extends Model<IInventory> {
 }
 
 export const InventorySchema = SchemaFactory.createForClass(Inventory);
+InventorySchema.index({ posProductId: 1, storeId: 1 }, { unique: true });

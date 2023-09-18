@@ -2,13 +2,16 @@ import { IStore } from './../interface/store.inteface';
 import { IAddress, IhoursOfOperation } from 'src/common/interface';
 import { ILocation } from './../../../common/interface/index';
 import { Schema, Prop, SchemaFactory } from '@nestjs/mongoose';
-import { Model, Types } from 'mongoose';
+import mongoose, { Model, Types } from 'mongoose';
 import { DATABASE_COLLECTION } from 'src/common/constants';
 
 @Schema({ collection: DATABASE_COLLECTION.STORES, timestamps: true })
 export class Store extends Model<IStore> {
 	@Prop({ required: true, type: Object })
 	location: ILocation;
+
+	@Prop()
+	locationName: string;
 
 	@Prop({
 		type: Types.ObjectId,
@@ -31,12 +34,19 @@ export class Store extends Model<IStore> {
 	@Prop()
 	timeZone: string;
 
+	@Prop({ type: mongoose.Schema.Types.Array })
 	address: IAddress;
 
+	@Prop()
 	phonenumber: string;
 
+	@Prop()
+	website: string;
+
+	@Prop()
 	email: string;
 
+	@Prop()
 	licenseType: string[];
 
 	@Prop({ default: false })
