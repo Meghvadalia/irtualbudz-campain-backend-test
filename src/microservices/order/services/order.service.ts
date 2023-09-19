@@ -170,7 +170,7 @@ export class OrderService {
 				params: {
 					created_after: startDate.toISOString().split('T')[0],
 					created_before: endDate.toISOString().split('T')[0],
-					page_size: 10000,
+					page_size: 1000,
 				},
 				headers: {
 					key,
@@ -353,8 +353,14 @@ export class OrderService {
 			const customerIdsArray = Array.from(customerIds);
 			const customers = await this.customerModel.find({
 				posCustomerId: { $in: customerIdsArray },
+				companyId: companyId,
 			});
-
+			console.log('====================================');
+			console.log(
+				'found customer for comapy ID ' + companyId,
+				customers.length
+			);
+			console.log('====================================');
 			const distinctStaff = temp.reduce((accumulator, current) => {
 				const existingStaff = accumulator.find(
 					(staff) =>

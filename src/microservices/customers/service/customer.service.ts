@@ -21,11 +21,14 @@ export class CustomerService {
 
 	async seedCustomers(posName: string) {
 		try {
-			const posData: IPOS = await this.posModel.findOne({ name: posName });
-			const companiesList: ICompany[] = await this.companyModel.find<ICompany>({
-				isActive: true,
-				posId: posData._id,
+			const posData: IPOS = await this.posModel.findOne({
+				name: posName,
 			});
+			const companiesList: ICompany[] =
+				await this.companyModel.find<ICompany>({
+					isActive: true,
+					posId: posData._id,
+				});
 
 			const date = new Date();
 			let fromDate, toDate;
@@ -36,11 +39,31 @@ export class CustomerService {
 				let page = 1;
 				let shouldContinue = true;
 
-				const customer = await this.customerModel.findOne({ companyId: company._id });
+				const customer = await this.customerModel.findOne({
+					companyId: company._id,
+				});
 
 				if (customer) {
-					fromDate = new Date(date.getFullYear(), date.getMonth(), date.getDate() - 1, 0, 0, 0).toISOString().split('T')[0];
-					toDate = new Date(date.getFullYear(), date.getMonth(), date.getDate(), 0, 0, 0).toISOString().split('T')[0];
+					fromDate = new Date(
+						date.getFullYear(),
+						date.getMonth(),
+						date.getDate() - 1,
+						0,
+						0,
+						0
+					)
+						.toISOString()
+						.split('T')[0];
+					toDate = new Date(
+						date.getFullYear(),
+						date.getMonth(),
+						date.getDate(),
+						0,
+						0,
+						0
+					)
+						.toISOString()
+						.split('T')[0];
 					console.log('Seeding data for the previous day');
 					options = {
 						method: 'get',
@@ -66,30 +89,68 @@ export class CustomerService {
 
 				while (shouldContinue) {
 					const { data } = await axios.request(options);
-					const customerData = data.customers ? data.customers : data.data;
+					const customerData = data.customers
+						? data.customers
+						: data.data;
+					console.log('====================================');
+					console.log(
+						'Data syncing for customer for company ' + company.name,
+						customerData.length
+					);
+					console.log('====================================');
+					// for (const customer of customerData) {
+					// 	customerDataArray.push({
+					// 		posCustomerId: customer.id ?? customer.id,
+					// 		companyId: company._id,
+					// 		POSId: posData._id,
+					// 		name: customer.name,
+					// 		email: customer.email,
+					// 		phone: customer.phone,
+					// 		city: customer.city,
+					// 		state: customer.state,
+					// 		country: customer.country,
+					// 		birthDate: customer.birthDate,
+					// 		isLoyal: customer.isLoyal,
+					// 		loyaltyPoints: customer.loyaltyPoints,
+					// 		streetAddress1: customer.streetAddress1,
+					// 		streetAddress2: customer.streetAddress2,
+					// 		type: customer.type,
+					// 		zip: customer.zip,
+					// 		userCreatedAt: customer.createdAt,
+					// 	});
+					// }
 
-					for (const d of customerData) {
-						customerDataArray.push({
-							posCustomerId: d.id ?? d.id,
-							companyId: company._id,
-							POSId: posData._id,
-							name: d.name,
-							email: d.email,
-							phone: d.phone,
-							city: d.city,
-							state: d.state,
-							country: d.country,
-							birthDate: d.birthDate,
-							isLoyal: d.isLoyal,
-							loyaltyPoints: d.loyaltyPoints,
-							streetAddress1: d.streetAddress1,
-							streetAddress2: d.streetAddress2,
-							type: d.type,
-							zip: d.zip,
-							userCreatedAt: d.createdAt,
-						});
-					}
-
+					const bulkOps = customerData.map((customer) => ({
+						updateOne: {
+							filter: {
+								posCustomerId: customer.id ?? customer.id,
+								companyId: company._id,
+							},
+							update: {
+								$set: {
+									posCustomerId: customer.id ?? customer.id,
+									companyId: company._id,
+									POSId: posData._id,
+									name: customer.name,
+									email: customer.email,
+									phone: customer.phone,
+									city: customer.city,
+									state: customer.state,
+									country: customer.country,
+									birthDate: customer.birthDate,
+									isLoyal: customer.isLoyal,
+									loyaltyPoints: customer.loyaltyPoints,
+									streetAddress1: customer.streetAddress1,
+									streetAddress2: customer.streetAddress2,
+									type: customer.type,
+									zip: customer.zip,
+									userCreatedAt: customer.createdAt,
+								},
+							},
+							upsert: true,
+						},
+					}));
+					this.customerModel.bulkWrite(bulkOps);
 					if (customerData.length > 0) {
 						page++;
 						if (customer) {
@@ -104,10 +165,12 @@ export class CustomerService {
 				}
 			}
 
-			return Promise.all(await this.customerModel.insertMany(customerDataArray));
+			// return Promise.all(
+			// 	await this.customerModel.bulkWrite(customerDataArray)
+			// );
 		} catch (error) {
 			console.error('Error while seeding customers:', error);
-			dynamicCatchException(error)
+			dynamicCatchException(error);
 		}
 	}
 
@@ -159,25 +222,28 @@ export class CustomerService {
 
 				const customersArray: ICustomer[] = [];
 
-				for (let d of data)
+				for (let customer of data)
 					customersArray.push({
-						birthDate: d.dateOfBirth,
-						city: d.city,
-						email: d.emailAddress,
-						posCustomerId: d.customerId,
-						name: d.name,
-						phone: d.phone,
-						isLoyal: d.isLoyaltyMember,
-						state: d.state,
-						streetAddress1: d.address1,
-						streetAddress2: d.address2,
-						zip: d.postalCode,
-						type: d.customerType === 'Recreational' ? CustomerType.recCustomer : CustomerType.medCustomer,
+						birthDate: customer.dateOfBirth,
+						city: customer.city,
+						email: customer.emailAddress,
+						posCustomerId: customer.customerId,
+						name: customer.name,
+						phone: customer.phone,
+						isLoyal: customer.isLoyaltyMember,
+						state: customer.state,
+						streetAddress1: customer.address1,
+						streetAddress2: customer.address2,
+						zip: customer.postalCode,
+						type:
+							customer.customerType === 'Recreational'
+								? CustomerType.recCustomer
+								: CustomerType.medCustomer,
 						POSId: posData._id,
 						companyId: company._id,
 						loyaltyPoints: 0,
 						country: '',
-						userCreatedAt: d.creationDate,
+						userCreatedAt: customer.creationDate,
 					});
 
 				await this.customerModel.insertMany(customersArray);
@@ -185,7 +251,7 @@ export class CustomerService {
 			}
 		} catch (error) {
 			console.error('Failed to seed customers:', error.message);
-			dynamicCatchException(error)
+			dynamicCatchException(error);
 		}
 	}
 }

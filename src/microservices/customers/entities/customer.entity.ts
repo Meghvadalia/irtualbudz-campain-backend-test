@@ -10,7 +10,7 @@ import { DATABASE_COLLECTION } from 'src/common/constants';
 })
 @ObjectType()
 export class Customer extends Model<ICustomer> {
-	@Prop({ unique: true })
+	@Prop({ trim: true })
 	posCustomerId: string;
 
 	@Prop({
@@ -20,7 +20,11 @@ export class Customer extends Model<ICustomer> {
 	})
 	companyId: string;
 
-	@Prop({ required: true, type: Types.ObjectId, ref: DATABASE_COLLECTION.POS })
+	@Prop({
+		required: true,
+		type: Types.ObjectId,
+		ref: DATABASE_COLLECTION.POS,
+	})
 	POSId: string;
 
 	@Prop({ type: [{ type: Types.ObjectId, ref: DATABASE_COLLECTION.STORES }] })
@@ -76,3 +80,4 @@ export class Customer extends Model<ICustomer> {
 }
 
 export const CustomerSchema = SchemaFactory.createForClass(Customer);
+CustomerSchema.index({ posCustomerId: 1, companyId: 1 }, { unique: true });
