@@ -44,4 +44,15 @@ export class FlowhubController {
 			throw new Error(error);
 		}
 	}
+
+	@Get('seed-customer')
+	async seedCustomerData() {
+		try {
+			await this.customerService.seedCustomers('flowhub');
+			return sendSuccess({ message: 'Data Synced' });
+		} catch (error) {
+			console.error(error);
+			throw new Error(error);
+		}
+	}
 }
