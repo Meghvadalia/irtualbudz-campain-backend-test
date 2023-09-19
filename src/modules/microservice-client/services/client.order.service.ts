@@ -274,19 +274,19 @@ export class ClientOrderService {
 			// }
 
 			// console.log("redisUniqueId Value ====>", redisUniqueId)
-
+			console.log("goalPipeline")
+			console.log(JSON.stringify(goalPipeline))
 			console.time("<============== query goal pipeline ===============>")
 			let goalData = await this.orderModel.aggregate(goalPipeline);
 			console.timeEnd("<============== query goal pipeline ===============>")
-			// console.log("goalPipeline")
-			// console.log(goalPipeline)
+			
 			let actionData
 			if (actionPipeline) {
+				console.log("actionPipeline")
+				console.log(JSON.stringify(actionPipeline))
 				console.time("<============== query action pipeline ===============>")
 				actionData = await this.orderModel.aggregate(actionPipeline);
 				console.timeEnd("<============== query action pipeline ===============>")
-				// console.log("actionPipeline")
-				// console.log(actionPipeline)
 			}
 
 			let responseData = {
