@@ -21,6 +21,7 @@ import { RedisService } from 'src/config/cache/config.service';
 import { IReplacements } from 'src/common/interface';
 import { DAYS_OF_WEEK } from 'src/common/constants';
 import { dynamicCatchException } from 'src/utils/error.utils';
+import { Cart } from 'src/microservices/order/entities/cart.entity';
 
 
 @Injectable()
@@ -35,6 +36,7 @@ export class ClientOrderService {
 		private readonly redisService: RedisService,
 		@InjectModel(AudienceDetail.name) private audienceDetailsModel: Model<AudienceDetail>,
 		@InjectModel(AudienceCustomer.name) private audienceCustomerModel: Model<AudienceCustomer>,
+		@InjectModel(Cart.name) private cartModel: Model<Cart>,
 	) { }
 
 	async getOrderForEachDate(storeId: Types.ObjectId, fromDate: Date, toDate: Date, goalFlag?: any, campaignId?: any, audienceTracking?: any) {
@@ -251,8 +253,20 @@ export class ClientOrderService {
 									if (sortType == sortBy.AllSellable) {
 										replacements = [...replacements, ...[{ key: '$or', 'value': [{ "itemsInCart": { "$in": campaingFilterItem } }] }]]
 									} else if (sortType == sortBy.Brand) {
-										console.log("in brand")
-										replacements = [...replacements, ...[{ key: 'product.brand', 'value': { "$in": campaingFilterItem } }]]
+										if(actionDBData.name == ACTIONS.REDUCE_INVENTORY){
+											let ids = await this.cartModel.find({title2:{$in:campaingFilterItem}}).select({_id:1})											
+											let productIds = ids.map((x=>x._id))
+											replacements = [...replacements, ...[{ key: '$or', 'value': [{ "itemsInCart": { "$in": productIds } }] }]]
+										}else{
+											console.log("in brand")
+											replacements = [...replacements, ...[{ key: 'product.brand', 'value': { "$in": campaingFilterItem } }]]
+										}
+									} else if(sortType == sortBy.Category){
+										if(actionDBData.name == ACTIONS.REDUCE_INVENTORY){
+											let ids = await this.cartModel.find({category:{$in:campaingFilterItem}}).select({_id:1})
+											let productIds = ids.map((x=>x._id))
+											replacements = [...replacements, ...[{ key: '$or', 'value': [{ "itemsInCart": { "$in": productIds } }] }]]
+										}
 									}
 								}
 								for (let i = 0; i < replacements.length; i++) {
