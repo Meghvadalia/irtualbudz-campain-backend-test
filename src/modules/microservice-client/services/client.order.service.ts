@@ -19,7 +19,7 @@ import { AudienceCustomer } from '../entities/audienceCustomers.entity';
 import { AudienceDetail } from '../entities/audienceDetails.entity';
 import { RedisService } from 'src/config/cache/config.service';
 import { IReplacements } from 'src/common/interface';
-import { DAYS_OF_WEEK } from 'src/common/constants';
+import { AudienceName, DAYS_OF_WEEK } from 'src/common/constants';
 import { dynamicCatchException } from 'src/utils/error.utils';
 import { Cart } from 'src/microservices/order/entities/cart.entity';
 
@@ -176,13 +176,23 @@ export class ClientOrderService {
 				console.log("Create query for graph data")
 				if (campaignData && campaignData != null) {
 					if (campaignData?.audienceId) {
-						let customerIds = await this.audienceCustomerModel.find({
-							audienceId: campaignData?.audienceId,
-							storeId: storeId
-						}, { customerId: true, _id: false })
+
+						let audienceName = await this.audienceDetailsModel.findOne({ _id: campaignData?.audienceId })
+						let customerIds
+						if(audienceName?.name == AudienceName.ALL){
+							customerIds = await this.audienceCustomerModel.find({
+								storeId: storeId
+							}, { customerId: true, _id: false })
+						}else{
+							customerIds = await this.audienceCustomerModel.find({
+								audienceId: campaignData?.audienceId,
+								storeId: storeId
+							}, { customerId: true, _id: false })
+						}
+						
 
 						ids = customerIds.length > 0 ? customerIds.map(x => x.customerId) : []
-						let audienceName = await this.audienceDetailsModel.findOne({ _id: campaignData?.audienceId })
+						
 						audienceDBData = {
 							name: audienceName?.name,
 							count: ids.length
@@ -254,8 +264,8 @@ export class ClientOrderService {
 										replacements = [...replacements, ...[{ key: '$or', 'value': [{ "itemsInCart": { "$in": campaingFilterItem } }] }]]
 									} else if (sortType == sortBy.Brand) {
 										if(actionDBData.name == ACTIONS.REDUCE_INVENTORY){
-											let ids = await this.cartModel.find({title2:{$in:campaingFilterItem}}).select({_id:1})											
-											let productIds = ids.map((x=>x._id))
+											let tempIds = await this.cartModel.find({title2:{$in:campaingFilterItem}}).select({_id:1})											
+											let productIds = tempIds.map((x=>x._id))
 											replacements = [...replacements, ...[{ key: '$or', 'value': [{ "itemsInCart": { "$in": productIds } }] }]]
 										}else{
 											console.log("in brand")
@@ -263,8 +273,8 @@ export class ClientOrderService {
 										}
 									} else if(sortType == sortBy.Category){
 										if(actionDBData.name == ACTIONS.REDUCE_INVENTORY){
-											let ids = await this.cartModel.find({category:{$in:campaingFilterItem}}).select({_id:1})
-											let productIds = ids.map((x=>x._id))
+											let tempIds = await this.cartModel.find({category:{$in:campaingFilterItem}}).select({_id:1})
+											let productIds = tempIds.map((x=>x._id))
 											replacements = [...replacements, ...[{ key: '$or', 'value': [{ "itemsInCart": { "$in": productIds } }] }]]
 										}
 									}
