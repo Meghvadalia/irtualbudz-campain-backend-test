@@ -1613,9 +1613,15 @@ export class ClientOrderService {
 						totalSales: 1,
 						totalProductDiscounts: 1,
 						percentage: {
-							$round: [{
-								$multiply: [{ $divide: ["$totalDiscountAmount", "$totalProductDiscounts"] }, 100]
-							}, 2]
+							'$cond': {
+								if: { '$eq': ['$totalProductDiscounts', 0] }, // Check if firstDaySubTotal is zero
+								then: 0, // Handle division by zero by setting cartSizeGrowth to 0
+								else: {
+									$round: [{
+										$multiply: [{ $divide: ["$totalDiscountAmount", "$totalProductDiscounts"] }, 100]
+									}, 2]
+								}
+							}
 						}
 					}
 				},
