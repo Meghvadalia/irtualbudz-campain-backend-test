@@ -1721,25 +1721,31 @@ export class ClientOrderService {
 					$project: {
 						_id: 0,
 						cartSizeGrowth: {
-							$round: [
-								{
-									$multiply: [
+							'$cond': {
+								if: { '$eq': ['$firstDaySubTotal', 0] }, // Check if firstDaySubTotal is zero
+								then: 0, // Handle division by zero by setting cartSizeGrowth to 0
+								else: {
+									$round: [
 										{
-											$divide: [
+											$multiply: [
 												{
-													$subtract: [
-														'$lastDaySubTotal',
-														'$firstDaySubTotal',
+													$divide: [
+														{
+															$subtract: [
+																'$lastDaySubTotal',
+																'$firstDaySubTotal',
+															],
+														},
+														{ $abs: '$firstDaySubTotal' },
 													],
 												},
-												{ $abs: '$firstDaySubTotal' },
+												100,
 											],
 										},
-										100,
+										2,
 									],
-								},
-								2,
-							],
+								}
+							}
 						},
 						averageCartSize: { $round: ['$averageCartSize', 2] },
 					},
