@@ -109,22 +109,28 @@ export class ClientCustomerService {
 						_id: 0,
 						averageAge: { $round: ['$averageAge', 0] },
 						averageAgeGrowth: {
-							$round: [
-								{
-									$multiply: [
+								'$cond': {
+									if: { '$eq': ['$toDateAverageAge', 0] }, 
+									then: 0, 
+									else: {
+									$round: [
 										{
-											$divide: [
+											$multiply: [
 												{
-													$subtract: ['$toDateAverageAge', '$fromDateAverageAge'],
+													$divide: [
+														{
+															$subtract: ['$toDateAverageAge', '$fromDateAverageAge'],
+														},
+														'$fromDateAverageAge',
+													],
 												},
-												'$fromDateAverageAge',
+												100,
 											],
 										},
-										100,
+										2,
 									],
-								},
-								2,
-							],
+								}
+							}
 						},
 					},
 				},

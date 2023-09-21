@@ -118,16 +118,28 @@ export class ClientOrderService {
 						TotalOrderCount: 1,
 						TotalCount: 1,
 						PercentageChangeCount: {
-							$multiply: [
-								{ $divide: [{ $subtract: ['$LastDayCount', '$FirstDayCount'] }, '$FirstDayCount'] },
-								100
-							]
+							'$cond': {
+								if: { '$eq': ['$LastDayCount', 0] }, 
+								then: 0, 
+								else: {
+									$multiply: [
+										{ $divide: [{ $subtract: ['$LastDayCount', '$FirstDayCount'] }, '$FirstDayCount'] },
+										100
+									]
+								}
+							}
 						},
 						PercentageChange: {
-							$multiply: [
-								{ $divide: [{ $subtract: ['$LastDayAmount', '$FirstDayAmount'] }, '$FirstDayAmount'] },
-								100
-							]
+							'$cond': {
+								if: { '$eq': ['$LastDayAmount', 0] }, 
+								then: 0, 
+								else: {
+									$multiply: [
+										{ $divide: [{ $subtract: ['$LastDayAmount', '$FirstDayAmount'] }, '$FirstDayAmount'] },
+										100
+									]
+								}
+							}
 						},
 					},
 				},
@@ -926,15 +938,21 @@ export class ClientOrderService {
 						returningCustomer: {
 							$round: [
 								{
-									$multiply: [
-										{
-											$divide: [
-												'$recurringCustomers',
-												'$totalCustomers',
+									'$cond': {
+										if: { '$eq': ['$recurringCustomers', 0] }, 
+										then: 0, 
+										else: {
+											$multiply: [
+												{
+													$divide: [
+														'$recurringCustomers',
+														'$totalCustomers',
+													],
+												},
+												100,
 											],
-										},
-										100,
-									],
+										}
+									}
 								},
 								2,
 							],
@@ -942,15 +960,21 @@ export class ClientOrderService {
 						newCustomer: {
 							$round: [
 								{
-									$multiply: [
-										{
-											$divide: [
-												'$newCustomers',
-												'$totalCustomers',
+									'$cond': {
+										if: { '$eq': ['$newCustomers', 0] }, 
+										then: 0, 
+										else: {
+											$multiply: [
+												{
+													$divide: [
+														'$newCustomers',
+														'$totalCustomers',
+													],
+												},
+												100,
 											],
-										},
-										100,
-									],
+										}
+									}
 								},
 								2,
 							],
@@ -1146,31 +1170,37 @@ export class ClientOrderService {
 						orderAmountGrowth: {
 							$round: [
 								{
-									$multiply: [
-										{
-											$divide: [
+									'$cond': {
+										if: { '$eq': ['$toDateTotalAmount', 0] }, 
+										then: 0, 
+										else: {
+											$multiply: [
 												{
-													$subtract: [
-														'$toDateTotalAmount',
-														'$fromDateTotalAmount',
-													],
-												},
-												{
-													$cond: [
+													$divide: [
 														{
-															$eq: [
+															$subtract: [
+																'$toDateTotalAmount',
 																'$fromDateTotalAmount',
-																0,
 															],
 														},
-														1,
-														'$fromDateTotalAmount',
+														{
+															$cond: [
+																{
+																	$eq: [
+																		'$fromDateTotalAmount',
+																		0,
+																	],
+																},
+																1,
+																'$fromDateTotalAmount',
+															],
+														},
 													],
 												},
+												100,
 											],
-										},
-										100,
-									],
+										}
+									}
 								},
 								2,
 							],
@@ -1178,31 +1208,37 @@ export class ClientOrderService {
 						discountGrowth: {
 							$round: [
 								{
-									$multiply: [
-										{
-											$divide: [
+									'$cond': {
+										if: { '$eq': ['$toDateTotalDiscount', 0] }, 
+										then: 0, 
+										else: {
+											$multiply: [
 												{
-													$subtract: [
-														'$toDateTotalDiscount',
-														'$fromDateTotalDiscount',
-													],
-												},
-												{
-													$cond: [
+													$divide: [
 														{
-															$eq: [
+															$subtract: [
+																'$toDateTotalDiscount',
 																'$fromDateTotalDiscount',
-																0,
 															],
 														},
-														1,
-														'$fromDateTotalDiscount',
+														{
+															$cond: [
+																{
+																	$eq: [
+																		'$fromDateTotalDiscount',
+																		0,
+																	],
+																},
+																1,
+																'$fromDateTotalDiscount',
+															],
+														},
 													],
 												},
+												100,
 											],
-										},
-										100,
-									],
+										}
+									}
 								},
 								2,
 							],
@@ -1210,31 +1246,37 @@ export class ClientOrderService {
 						orderCountGrowth: {
 							$round: [
 								{
-									$multiply: [
-										{
-											$divide: [
+									'$cond': {
+										if: { '$eq': ['$toDateOrderCount', 0] }, 
+										then: 0, 
+										else: {
+											$multiply: [
 												{
-													$subtract: [
-														'$toDateOrderCount',
-														'$fromDateOrderCount',
-													],
-												},
-												{
-													$cond: [
+													$divide: [
 														{
-															$eq: [
+															$subtract: [
+																'$toDateOrderCount',
 																'$fromDateOrderCount',
-																0,
 															],
 														},
-														1,
-														'$fromDateOrderCount',
+														{
+															$cond: [
+																{
+																	$eq: [
+																		'$fromDateOrderCount',
+																		0,
+																	],
+																},
+																1,
+																'$fromDateOrderCount',
+															],
+														},
 													],
 												},
+												100,
 											],
-										},
-										100,
-									],
+										}
+									}
 								},
 								2,
 							],
@@ -1524,20 +1566,26 @@ export class ClientOrderService {
 					$project: {
 						promoName: '$promoCodeCounts.promoName',
 						percentage: {
-							$multiply: [
-								{
-									$divide: [
-										'$promoCodeCounts.count',
+							'$cond': {
+								if: { '$eq': ['$promoCodeCounts.count', 0] }, 
+								then: 0, 
+								else: {
+									$multiply: [
 										{
-											$arrayElemAt: [
-												'$totalOrders.count',
-												0,
+											$divide: [
+												'$promoCodeCounts.count',
+												{
+													$arrayElemAt: [
+														'$totalOrders.count',
+														0,
+													],
+												},
 											],
 										},
+										100,
 									],
-								},
-								100,
-							],
+								}
+							}
 						},
 					},
 				},
@@ -1614,8 +1662,8 @@ export class ClientOrderService {
 						totalProductDiscounts: 1,
 						percentage: {
 							'$cond': {
-								if: { '$eq': ['$totalProductDiscounts', 0] }, // Check if firstDaySubTotal is zero
-								then: 0, // Handle division by zero by setting cartSizeGrowth to 0
+								if: { '$eq': ['$totalProductDiscounts', 0] }, 
+								then: 0, 
 								else: {
 									$round: [{
 										$multiply: [{ $divide: ["$totalDiscountAmount", "$totalProductDiscounts"] }, 100]
@@ -1728,8 +1776,8 @@ export class ClientOrderService {
 						_id: 0,
 						cartSizeGrowth: {
 							'$cond': {
-								if: { '$eq': ['$firstDaySubTotal', 0] }, // Check if firstDaySubTotal is zero
-								then: 0, // Handle division by zero by setting cartSizeGrowth to 0
+								if: { '$eq': ['$firstDaySubTotal', 0] }, 
+								then: 0,
 								else: {
 									$round: [
 										{

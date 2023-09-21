@@ -53,7 +53,13 @@ export const graphData = [
 					chartData: 1,
 					TotalCount: 1,
 					PercentageChange: {
-						$multiply: [{ $divide: [{ $subtract: ['$LastDayAverage', '$FirstDayAverage'] }, '$FirstDayAverage'] }, 100],
+						'$cond': {
+							if: { '$eq': ['$LastDayAverage', 0] }, 
+							then: 0, 
+							else: {
+								$multiply: [{ $divide: [{ $subtract: ['$LastDayAverage', '$FirstDayAverage'] }, '$FirstDayAverage'] }, 100],
+							}
+						}
 					},
 				},
 			},
@@ -137,7 +143,13 @@ export const graphData = [
 					chartData: 1,
 					TotalCount: 1,
 					PercentageChange: {
-						$multiply: [{ $divide: [{ $subtract: ['$LastDayCount', '$FirstDayCount'] }, '$FirstDayCount'] }, 100],
+						'$cond': {
+							if: { '$eq': ['$LastDayCount', 0] }, 
+							then: 0, 
+							else: {
+								$multiply: [{ $divide: [{ $subtract: ['$LastDayCount', '$FirstDayCount'] }, '$FirstDayCount'] }, 100],
+							}
+						}
 					},
 				},
 			},
@@ -221,7 +233,13 @@ export const graphData = [
 					chartData: 1,
 					TotalCount: 1,
 					PercentageChange: {
-						$multiply: [{ $divide: [{ $subtract: ['$LastDayCount', '$FirstDayCount'] }, '$FirstDayCount'] }, 100],
+						'$cond': {
+							if: { '$eq': ['$LastDayCount', 0] },
+							then: 0,
+							else: {
+								$multiply: [{ $divide: [{ $subtract: ['$LastDayCount', '$FirstDayCount'] }, '$FirstDayCount'] }, 100],
+							}
+						}
 					},
 				},
 			},
@@ -309,10 +327,16 @@ export const graphData = [
 					chartData: 1,
 					TotalCount: 1,
 					PercentageChange: {
-						$multiply: [
-							{ $divide: [{ $subtract: ['$LastDayGrossProfit', '$FirstDayGrossProfit'] }, '$FirstDayGrossProfit'] },
-							100,
-						],
+						'$cond': {
+							if: { '$eq': ['$LastDayGrossProfit', 0] }, 
+							then: 0,
+							else: {
+								$multiply: [
+									{ $divide: [{ $subtract: ['$LastDayGrossProfit', '$FirstDayGrossProfit'] }, '$FirstDayGrossProfit'] },
+									100,
+								],
+							}
+						}
 					},
 				},
 			},
@@ -392,7 +416,13 @@ export const graphData = [
 					chartData: 1,
 					TotalCount: 1,
 					PercentageChange: {
-						$multiply: [{ $divide: [{ $subtract: ['$LastDayItemCount', '$FirstDayItemCount'] }, '$FirstDayItemCount'] }, 100],
+						'$cond': {
+							if: { '$eq': ['$LastDayItemCount', 0] }, 
+							then: 0,
+							else: {
+								$multiply: [{ $divide: [{ $subtract: ['$LastDayItemCount', '$FirstDayItemCount'] }, '$FirstDayItemCount'] }, 100],
+							}
+						}
 					},
 				},
 			},
@@ -497,7 +527,13 @@ export const graphData = [
 					chartData: 1,
 					TotalCount: 1,
 					PercentageChange: {
-						$multiply: [{ $divide: [{ $subtract: ['$LastDayOrderCount', '$FirstDayOrderCount'] }, '$FirstDayOrderCount'] }, 100],
+						'$cond': {
+							if: { '$eq': ['$LastDayOrderCount', 0] }, 
+							then: 0,
+							else: {
+								$multiply: [{ $divide: [{ $subtract: ['$LastDayOrderCount', '$FirstDayOrderCount'] }, '$FirstDayOrderCount'] }, 100],
+							}
+						}
 					},
 				},
 			},
@@ -570,7 +606,13 @@ export const graphData = [
 					chartData: 1,
 					TotalCount: 1,
 					PercentageChange: {
-						$multiply: [{ $divide: [{ $subtract: ['$LastDayFinalTotal', '$FirstDayFinalTotal'] }, '$FirstDayFinalTotal'] }, 100],
+						'$cond': {
+							if: { '$eq': ['$LastDayFinalTotal', 0] }, 
+							then: 0,
+							else: {
+								$multiply: [{ $divide: [{ $subtract: ['$LastDayFinalTotal', '$FirstDayFinalTotal'] }, '$FirstDayFinalTotal'] }, 100],
+							}
+						}
 					},
 				},
 			},
