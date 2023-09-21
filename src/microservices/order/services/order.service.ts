@@ -20,14 +20,9 @@ import { AudienceDetailsService } from 'src/modules/microservice-client/services
 import { ItemDiscounts, ItemsCart, Tax } from '../interfaces/cart.interface';
 import { Customer, CustomerService } from 'src/microservices/customers';
 import { Product } from 'src/microservices/inventory';
-import { CUSTOMER_TYPE } from '../constant/order.constant';
+import { CUSTOMER_TYPE, orderType } from '../constant/order.constant';
 import * as _ from 'lodash';
-import {
-	ICartItemFlowhub,
-	IOrderFlowHubInterface,
-	ITaxFlowhub,
-	IDutchieOrderInterface,
-} from 'src/common/interface';
+import { ICartItemFlowhub, IOrderFlowHubInterface, ITaxFlowhub, IDutchieOrderInterface } from 'src/common/interface';
 
 @Injectable()
 export class OrderService {
@@ -51,21 +46,18 @@ export class OrderService {
 			const posData: IPOS = await this.posModel.findOne({
 				name: posName,
 			});
-			const flowhubCompaniesList: ICompany[] =
-				await this.companyModel.find<ICompany>({
-					isActive: true,
-					posId: posData._id,
-				});
+			const flowhubCompaniesList: ICompany[] = await this.companyModel.find<ICompany>({
+				isActive: true,
+				posId: posData._id,
+			});
 
 			const currentDate = new Date();
 
-			const storeListsPromises = flowhubCompaniesList.map(
-				async (companyData) => {
-					return this.storeModel.find({
-						companyId: companyData._id,
-					});
-				}
-			);
+			const storeListsPromises = flowhubCompaniesList.map(async (companyData) => {
+				return this.storeModel.find({
+					companyId: companyData._id,
+				});
+			});
 
 			const storeLists = await Promise.all(storeListsPromises);
 
@@ -99,8 +91,7 @@ export class OrderService {
 				await delay(intervalDuration);
 			};
 
-			const delay = (ms) =>
-				new Promise((resolve) => setTimeout(resolve, ms));
+			const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 			await processStoresParallel();
 		} catch (error) {
@@ -116,49 +107,23 @@ export class OrderService {
 		});
 		if (ordersCount === 0) {
 			const fromDate = new Date(currentDate);
-			fromDate.setDate(
-				currentDate.getDate() - storeData.lastSyncDataDuration
-			);
+			fromDate.setDate(currentDate.getDate() - storeData.lastSyncDataDuration);
 			fromDate.setHours(0, 0, 0, 0);
 			const toDate = new Date(currentDate);
 			toDate.setHours(0, 0, 0, 0);
 
-			await this.seedOrders(
-				fromDate,
-				toDate,
-				key,
-				clientId,
-				location.importId,
-				companyId,
-				posData
-			);
+			await this.seedOrders(fromDate, toDate, key, clientId, location.importId, companyId, posData);
 		} else {
 			const fromDate = new Date(currentDate);
 			fromDate.setDate(currentDate.getDate() - 1);
 			fromDate.setHours(0, 0, 0, 0);
 			const toDate = new Date(currentDate);
 			toDate.setHours(0, 0, 0, 0);
-			await this.seedOrders(
-				fromDate,
-				toDate,
-				key,
-				clientId,
-				location.importId,
-				companyId,
-				posData
-			);
+			await this.seedOrders(fromDate, toDate, key, clientId, location.importId, companyId, posData);
 		}
 	}
 
-	async seedOrders(
-		startDate: Date,
-		endDate: Date,
-		key: string,
-		clientId: string,
-		importId: string,
-		companyId: string,
-		posData
-	) {
+	async seedOrders(startDate: Date, endDate: Date, key: string, clientId: string, importId: string, companyId: string, posData) {
 		try {
 			const storeData = await this.storeModel.findOne({
 				'location.importId': importId,
@@ -179,12 +144,7 @@ export class OrderService {
 				},
 			};
 
-			await this.processOrders(
-				options,
-				posData._id,
-				companyId,
-				storeData._id as unknown as string
-			);
+			await this.processOrders(options, posData._id, companyId, storeData._id as unknown as string);
 		} catch (error) {
 			console.trace('Error while seeding orders: ', error.message);
 			throw error;
@@ -193,9 +153,7 @@ export class OrderService {
 
 	async addItemsToCart(carts: ItemsCart[], storeId: string, id: string) {
 		try {
-			const tempArr = carts.map((cart) =>
-				this.addSingleData(cart, storeId)
-			);
+			const tempArr = carts.map((cart) => this.addSingleData(cart, storeId));
 			const data = await Promise.all(tempArr);
 			return { id, data };
 		} catch (error) {
@@ -226,12 +184,10 @@ export class OrderService {
 	}
 	async syncCompanyWiseStoreData(fromDate: Date, toDate: Date, companyId) {
 		try {
-			const company: ICompany = await this.companyModel.findOne<ICompany>(
-				{
-					isActive: true,
-					_id: companyId,
-				}
-			);
+			const company: ICompany = await this.companyModel.findOne<ICompany>({
+				isActive: true,
+				_id: companyId,
+			});
 			if (company) {
 				const storeList: IStore[] = await this.storeModel.find({
 					companyId: company._id,
@@ -272,28 +228,18 @@ export class OrderService {
 				};
 				delete newCartItem._id;
 				delete newCartItem.id;
-				const createdCartItem = await this.cartModel.create(
-					newCartItem
-				);
+				const createdCartItem = await this.cartModel.create(newCartItem);
 				return createdCartItem._id;
 			}
 
 			return existingCartItem._id;
 		} catch (error) {
-			console.error(
-				'Error while adding single data to cart:',
-				error.message
-			);
+			console.error('Error while adding single data to cart:', error.message);
 			throw error;
 		}
 	}
 
-	async processOrders(
-		options,
-		posId: string,
-		companyId: string,
-		storeId: string
-	) {
+	async processOrders(options, posId: string, companyId: string, storeId: string) {
 		try {
 			console.log('====================================');
 			console.log('Processing Order Batch');
@@ -308,13 +254,7 @@ export class OrderService {
 				const orderData = data.orders;
 
 				if (orderData.length > 0) {
-					this.processOrderBatch(
-						orderData,
-						page,
-						posId,
-						companyId,
-						storeId
-					);
+					this.processOrderBatch(orderData, page, posId, companyId, storeId);
 					page++;
 				} else {
 					console.log('All orders fetched');
@@ -326,13 +266,7 @@ export class OrderService {
 			throw error;
 		}
 	}
-	async processOrderBatch(
-		orders: any,
-		page: number,
-		posId: string,
-		companyId: string,
-		storeId: string
-	) {
+	async processOrderBatch(orders: any, page: number, posId: string, companyId: string, storeId: string) {
 		try {
 			console.log('====================================');
 			console.log('Processing Order Batch number', page);
@@ -344,9 +278,7 @@ export class OrderService {
 				customerId: x.customerId,
 			}));
 
-			const customerIds: Set<string> = new Set(
-				temp.map((t) => t.customerId)
-			);
+			const customerIds: Set<string> = new Set(temp.map((t) => t.customerId));
 			console.log('Cutomer Id size => ', customerIds.size);
 			console.log('orders size => ', orders.length);
 
@@ -356,46 +288,28 @@ export class OrderService {
 				companyId: companyId,
 			});
 			console.log('====================================');
-			console.log(
-				'found customer for comapy ID ' + companyId,
-				customers.length
-			);
+			console.log('found customer for comapy ID ' + companyId, customers.length);
 			console.log('====================================');
 			const distinctStaff = temp.reduce((accumulator, current) => {
 				const existingStaff = accumulator.find(
-					(staff) =>
-						staff.staffName === current.staffName &&
-						staff.locationId === current.locationId
+					(staff) => staff.staffName === current.staffName && staff.locationId === current.locationId
 				);
 				if (!existingStaff) accumulator.push(current);
 				return accumulator;
 			}, []);
 
-			const staffData = await Promise.all(
-				distinctStaff.map((staff: IStaff) =>
-					this.addStaff(staff, storeId)
-				)
-			);
+			const staffData = await Promise.all(distinctStaff.map((staff: IStaff) => this.addStaff(staff, storeId)));
 
 			const itemPromises = orders.map((order) =>
-				this.addItemsToCart(
-					order.itemsInCart,
-					storeId,
-					order._id ? order._id.toString() : order.id.toString()
-				)
+				this.addItemsToCart(order.itemsInCart, storeId, order._id ? order._id.toString() : order.id.toString())
 			);
 
 			const cart = await Promise.all(itemPromises);
 
 			const orderPromises = orders.map((order) => {
-				const staffId = staffData.find(
-					(staff) => staff.staffName === order.budtender
-				)._id;
+				const staffId = staffData.find((staff) => staff.staffName === order.budtender)._id;
 				const cartEntry = cart.find((item) => {
-					return (
-						item.id ===
-						(order._id ? order._id.toString() : order.id.toString())
-					);
+					return item.id === (order._id ? order._id.toString() : order.id.toString());
 				});
 
 				const items = cartEntry ? cartEntry.data : [];
@@ -405,9 +319,7 @@ export class OrderService {
 
 				delete order.budtender;
 
-				const customer = customers.find(
-					(c) => c.posCustomerId === order.customerId
-				);
+				const customer = customers.find((c) => c.posCustomerId === order.customerId);
 				order.customerId = customer ? customer._id : order.customerId;
 
 				let objectIdStoreId = new Types.ObjectId(storeId);
@@ -442,9 +354,7 @@ export class OrderService {
 				};
 			});
 
-			const processedOrders = await this.orderModel.bulkWrite(
-				orderPromises
-			);
+			const processedOrders = await this.orderModel.bulkWrite(orderPromises);
 			return processedOrders;
 		} catch (error) {
 			console.trace('Error while processing order batch:', error.message);
@@ -467,27 +377,13 @@ export class OrderService {
 			}
 
 			if (audienceName !== '') {
-				const { _id: audienceId } =
-					await this.audienceDetailsService.getAudienceIdByName(
-						audienceName
-					);
+				const { _id: audienceId } = await this.audienceDetailsService.getAudienceIdByName(audienceName);
 
 				try {
-					this.addCustomerToAudience(
-						audienceId,
-						customer._id as unknown as string,
-						storeId
-					);
+					this.addCustomerToAudience(audienceId, customer._id as unknown as string, storeId);
 				} catch (error) {
-					if (
-						error.code === 11000 &&
-						error.keyPattern.audienceId === 1 &&
-						error.keyPattern.customerId === 1
-					) {
-						console.error(
-							'Duplicate key violation:',
-							error.message
-						);
+					if (error.code === 11000 && error.keyPattern.audienceId === 1 && error.keyPattern.customerId === 1) {
+						console.error('Duplicate key violation:', error.message);
 					} else {
 						throw error;
 					}
@@ -495,31 +391,22 @@ export class OrderService {
 			}
 		}
 	}
-	async addCustomerToAudience(
-		audienceId: string,
-		customerId: string,
-		storeId: string
-	) {
+	async addCustomerToAudience(audienceId: string, customerId: string, storeId: string) {
 		try {
-			const existingCustomer =
-				await this.audienceCustomerModel.findOne<AudienceCustomer>({
-					audienceId,
-					customerId,
-				});
+			const existingCustomer = await this.audienceCustomerModel.findOne<AudienceCustomer>({
+				audienceId,
+				customerId,
+			});
 
 			if (!existingCustomer) {
-				const newCustomer = await this.audienceCustomerModel.create<
-					Partial<AudienceCustomer>
-				>({
+				const newCustomer = await this.audienceCustomerModel.create<Partial<AudienceCustomer>>({
 					audienceId,
 					customerId,
 					storeId,
 				});
 			} else {
 				if (existingCustomer.storeId !== storeId) {
-					const newCustomer = await this.audienceCustomerModel.create<
-						Partial<AudienceCustomer>
-					>({
+					const newCustomer = await this.audienceCustomerModel.create<Partial<AudienceCustomer>>({
 						audienceId,
 						customerId,
 						storeId,
@@ -553,14 +440,7 @@ export class OrderService {
 
 			let currentDate: Date = new Date(),
 				fromDate: Date,
-				toDate = new Date(
-					currentDate.getFullYear(),
-					currentDate.getMonth(),
-					currentDate.getDate(),
-					0,
-					0,
-					0
-				);
+				toDate = new Date(currentDate.getFullYear(), currentDate.getMonth(), currentDate.getDate(), 0, 0, 0);
 			let storeData: IStore;
 			for (const company of companyData) {
 				storeData = await this.storeModel.findOne({
@@ -591,24 +471,18 @@ export class OrderService {
 						0
 					);
 
+					// FromLastModifiedDateUTC=${fromDate.toISOString()}&ToLastModifiedDateUTC=${toDate.toISOString()}
+					// &
 					orderOptions = {
-						url: `${
-							posData.liveUrl
-						}/reporting/transactions?FromLastModifiedDateUTC=${fromDate.toISOString()}&ToLastModifiedDateUTC=${toDate.toISOString()}&IncludeDetail=true&IncludeTaxes=true&IncludeOrderIds=true`,
+						url: `${posData.liveUrl}/reporting/transactions?
+						IncludeDetail=true&IncludeTaxes=true&IncludeOrderIds=true`,
 						headers: {
 							Accept: 'application/json',
 							Authorization: token,
 						},
 					};
 				} else {
-					fromDate = new Date(
-						currentDate.getFullYear(),
-						currentDate.getMonth(),
-						currentDate.getDate() - 1,
-						0,
-						0,
-						0
-					);
+					fromDate = new Date(currentDate.getFullYear(), currentDate.getMonth(), currentDate.getDate() - 1, 0, 0, 0);
 					orderOptions = {
 						url: `${
 							posData.liveUrl
@@ -623,33 +497,21 @@ export class OrderService {
 				const { data } = await axios.request(orderOptions);
 
 				let paymentType: string;
-				const isRetail = (iDutchieOrder: IDutchieOrderInterface) =>
-					iDutchieOrder.transactionType === 'Retail';
+				const isRetail = (iDutchieOrder: IDutchieOrderInterface) => iDutchieOrder.transactionType === 'Retail';
 
-				const processChunk = async (
-					chunk: IDutchieOrderInterface[],
-					page
-				) => {
+				const processChunk = async (chunk: IDutchieOrderInterface[], page) => {
 					try {
 						console.log('====================================');
 						console.log('Chunk Length', chunk.length);
 						console.log('====================================');
 						let ordersArray: IOrderFlowHubInterface[] = [];
-						const retailOrders: IDutchieOrderInterface[] =
-							chunk.filter(isRetail);
+						const retailOrders: IDutchieOrderInterface[] = chunk.filter(isRetail);
 						console.log('====================================');
 						console.log('retailOrders Length', retailOrders.length);
 						console.log('====================================');
-						for (
-							let index = 0;
-							index < retailOrders.length;
-							index++
-						) {
+						for (let index = 0; index < retailOrders.length; index++) {
 							const element = retailOrders[index];
-							if (
-								element.cashPaid !== null ||
-								element.creditPaid !== null
-							) {
+							if (element.cashPaid !== null || element.creditPaid !== null) {
 								paymentType = 'cash';
 							} else if (element.giftPaid !== null) {
 								paymentType = 'gift card';
@@ -662,11 +524,9 @@ export class OrderService {
 							let taxArray: ITaxFlowhub[] = [];
 							let cartItemsArray: ICartItemFlowhub[] = [];
 							for (const cartItem of element.items) {
-								const product = await this.productModel.findOne(
-									{
-										posProductId: cartItem.productId,
-									}
-								);
+								const product = await this.productModel.findOne({
+									posProductId: cartItem.productId,
+								});
 								if (!product) {
 									continue;
 								}
@@ -703,8 +563,7 @@ export class OrderService {
 									sku: product.sku,
 									strainName: product.strain,
 									tax: taxArray,
-									totalCost:
-										cartItem.quantity * cartItem.unitCost,
+									totalCost: cartItem.quantity * cartItem.unitCost,
 									totalPrice: cartItem.totalPrice,
 									unitCost: cartItem.unitCost,
 									unitOfWeight: cartItem.unitWeightUnit,
@@ -718,22 +577,17 @@ export class OrderService {
 							const orderObject: IOrderFlowHubInterface = {
 								_id: element.transactionId.toString(),
 								clientId: '',
-								createdAt: new Date(
-									element.checkInDate
-								).toISOString(),
+								createdAt: new Date(element.checkInDate).toISOString(),
 								customerId: element.customerId.toString(),
 								currentPoints: element.loyaltyEarned,
-								customerType:
-									element.customerTypeId === 2
-										? CUSTOMER_TYPE.recCustomer
-										: CUSTOMER_TYPE.medCustomer,
+								customerType: element.customerTypeId === 2 ? CUSTOMER_TYPE.recCustomer : CUSTOMER_TYPE.medCustomer,
 								name: element.completedByUser,
 								locationId: storeData.location.locationId,
 								locationName: storeData.locationName,
 								itemsInCart: cartItemsArray,
 								voided: false,
 								fullName: element.completedByUser,
-								orderType: element.orderType,
+								orderType: orderType[element.orderType],
 								payments: [
 									{
 										amount: element.total,
@@ -752,22 +606,14 @@ export class OrderService {
 									totalTaxes: element.tax,
 									totalFees: 0,
 								},
-								completedOn: new Date(
-									element.estDeliveryDateLocal
-								).toISOString(),
+								completedOn: new Date(element.estDeliveryDateLocal).toISOString(),
 								orderStatus: 'sold',
 								budtender: element.employeeId.toString(),
 							};
 							ordersArray.push(orderObject);
 						}
 						setTimeout(() => {
-							this.processOrderBatch(
-								ordersArray,
-								page,
-								posData._id,
-								company._id,
-								storeData._id
-							);
+							this.processOrderBatch(ordersArray, page, posData._id, company._id, storeData._id);
 						}, 2 * 1000);
 					} catch (error) {
 						console.log('====================================');
@@ -780,9 +626,7 @@ export class OrderService {
 
 				const arrayOfChunks = _.chunk(data, chunkSize);
 
-				arrayOfChunks.map((chunk: any, index: number) =>
-					processChunk(chunk, index)
-				);
+				arrayOfChunks.map((chunk: any, index: number) => processChunk(chunk, index));
 			}
 		} catch (error) {
 			console.error(error);
@@ -838,14 +682,47 @@ export class OrderService {
 					});
 				}
 
-				const insertEmployee = await this.staffModel.insertMany(
-					staffArray
-				);
+				const insertEmployee = await this.staffModel.insertMany(staffArray);
 				console.log(`Seeded ${insertEmployee.length} employees.`);
 			}
 		} catch (error) {
 			console.error('Failed to seed staff data:', error.message);
 			throw error;
+		}
+	}
+
+	async migrateOrderType() {
+		try {
+			const pos = await this.posModel.findOne({
+				name: 'dutchie',
+			});
+
+			const companies = await this.companyModel.find({
+				posId: pos._id,
+			});
+
+			for (const company of companies) {
+				const orders = await this.orderModel.find({
+					companyId: company._id,
+				});
+
+				const bulkOps = [];
+				for (const order of orders) {
+					if (order.orderType in orderType) {
+						bulkOps.push({
+							updateOne: {
+								filter: { _id: order._id },
+								update: { $set: { orderType: orderType[order.orderType] } },
+							},
+						});
+					}
+				}
+				await this.orderModel.bulkWrite(bulkOps);
+			}
+
+			console.log('Migration complete.');
+		} catch (error) {
+			throw new Error(error);
 		}
 	}
 }

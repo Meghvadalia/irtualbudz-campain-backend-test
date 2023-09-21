@@ -82,8 +82,6 @@ export class SeederService {
 					name: company.posName,
 				});
 
-				if (matchingPOS?.name === 'dutchie') company.isActive = false;
-
 				await this.companyModel.findOneAndUpdate(
 					{
 						name: company.name,
