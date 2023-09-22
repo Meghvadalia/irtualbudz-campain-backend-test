@@ -22,6 +22,7 @@ import { IReplacements } from 'src/common/interface';
 import { AudienceName, DAYS_OF_WEEK } from 'src/common/constants';
 import { dynamicCatchException } from 'src/utils/error.utils';
 import { Cart } from 'src/microservices/order/entities/cart.entity';
+import { Product } from 'src/microservices/inventory/entities/product.entity';
 
 
 @Injectable()
@@ -37,6 +38,7 @@ export class ClientOrderService {
 		@InjectModel(AudienceDetail.name) private audienceDetailsModel: Model<AudienceDetail>,
 		@InjectModel(AudienceCustomer.name) private audienceCustomerModel: Model<AudienceCustomer>,
 		@InjectModel(Cart.name) private cartModel: Model<Cart>,
+		@InjectModel(Product.name) private productModel: Model<Product>,
 	) { }
 
 	async getOrderForEachDate(storeId: Types.ObjectId, fromDate: Date, toDate: Date, goalFlag?: any, campaignId?: any, audienceTracking?: any) {
@@ -273,7 +275,12 @@ export class ClientOrderService {
 								]
 								if (campaingFilterItem) {
 									if (sortType == sortBy.AllSellable) {
-										replacements = [...replacements, ...[{ key: '$or', 'value': [{ "itemsInCart": { "$in": campaingFilterItem } }] }]]
+										if(actionDBData.name == ACTIONS.MARKET_SPECIFIC_BRAND){
+											let brandNames = await this.productModel.distinct("brand", { _id: { $in: campaingFilterItem } });
+											replacements = [...replacements, ...[{ key: 'product.brand', 'value': { "$in": brandNames } }]]
+										}else{
+											replacements = [...replacements, ...[{ key: '$or', 'value': [{ "itemsInCart": { "$in": campaingFilterItem } }] }]]
+										}
 									} else if (sortType == sortBy.Brand) {
 										if(actionDBData.name == ACTIONS.REDUCE_INVENTORY){
 											let tempIds = await this.cartModel.find({title2:{$in:campaingFilterItem}}).select({_id:1})											
@@ -288,6 +295,10 @@ export class ClientOrderService {
 											let tempIds = await this.cartModel.find({category:{$in:campaingFilterItem}}).select({_id:1})
 											let productIds = tempIds.map((x=>x._id))
 											replacements = [...replacements, ...[{ key: '$or', 'value': [{ "itemsInCart": { "$in": productIds } }] }]]
+										}
+										if(actionDBData.name == ACTIONS.MARKET_SPECIFIC_BRAND){
+											let brandNames = await this.productModel.distinct("brand", { category: { $in: campaingFilterItem } });
+											replacements = [...replacements, ...[{ key: 'product.brand', 'value': { "$in": brandNames } }]]
 										}
 									}
 								}
