@@ -1,6 +1,7 @@
-import { Controller, Get } from '@nestjs/common';
+import { Controller, Get, Param } from '@nestjs/common';
 import { ClientAudienceCustomerService } from '../services/client.audienceCustomer.service';
 import { Cron, CronExpression } from '@nestjs/schedule';
+import { sendSuccess } from 'src/utils/request-response.utils';
 
 @Controller('audience_customer')
 export class AudienceCustomerController {
@@ -23,6 +24,16 @@ export class AudienceCustomerController {
 		try {
 			await this.audienceCustomerService.frequentFlyerAudience();
 			return;
+		} catch (error) {
+			console.trace(error);
+		}
+	}
+
+	@Get('count/:campaignId')
+	async audienceCustomerCount(@Param('campaignId') campaignId: string) {
+		try {
+			const count = await this.audienceCustomerService.getAudienceCustomerCount(campaignId);
+			return sendSuccess(count);
 		} catch (error) {
 			console.trace(error);
 		}

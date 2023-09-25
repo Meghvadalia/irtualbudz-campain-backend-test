@@ -5,7 +5,6 @@ import { IAudienceDetails } from '../interfaces/audienceDetails.interface';
 
 @Schema({ collection: DATABASE_COLLECTION.AUDIENCE_DETAIL, timestamps: true })
 export class AudienceDetail extends Model<IAudienceDetails> {
-
 	@Prop({ required: true })
 	name: GenerationGroup;
 

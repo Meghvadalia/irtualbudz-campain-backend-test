@@ -61,9 +61,9 @@ export class Campaign extends Model<ICampaign> {
 
 	@Prop()
 	discount: string;
-	
+
 	@Prop()
-	isDeleted:Boolean
+	isDeleted: Boolean;
 
 	@Prop({ enum: CAMPAIGN_STATUS, default: CAMPAIGN_STATUS.NOT_STARTED })
 	campaignStatus: CAMPAIGN_STATUS;

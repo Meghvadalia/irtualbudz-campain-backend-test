@@ -12,10 +12,9 @@ export class ClientCampaignTypeService {
 		try {
 			return await this.campaignTypesModel
 				.find({ isActive: true, isDeleted: false })
-				.select('-createdAt -updatedAt -__v -isActive -isDeleted -goal');	
+				.select('-createdAt -updatedAt -__v -isActive -isDeleted -goal');
 		} catch (error) {
-			dynamicCatchException(error)
+			dynamicCatchException(error);
 		}
-		
 	}
 }

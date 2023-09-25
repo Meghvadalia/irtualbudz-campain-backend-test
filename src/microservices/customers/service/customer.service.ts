@@ -24,11 +24,10 @@ export class CustomerService {
 			const posData: IPOS = await this.posModel.findOne({
 				name: posName,
 			});
-			const companiesList: ICompany[] =
-				await this.companyModel.find<ICompany>({
-					isActive: true,
-					posId: posData._id,
-				});
+			const companiesList: ICompany[] = await this.companyModel.find<ICompany>({
+				isActive: true,
+				posId: posData._id,
+			});
 
 			const date = new Date();
 			let fromDate, toDate;
@@ -44,26 +43,8 @@ export class CustomerService {
 				});
 
 				if (customer) {
-					fromDate = new Date(
-						date.getFullYear(),
-						date.getMonth(),
-						date.getDate() - 1,
-						0,
-						0,
-						0
-					)
-						.toISOString()
-						.split('T')[0];
-					toDate = new Date(
-						date.getFullYear(),
-						date.getMonth(),
-						date.getDate(),
-						0,
-						0,
-						0
-					)
-						.toISOString()
-						.split('T')[0];
+					fromDate = new Date(date.getFullYear(), date.getMonth(), date.getDate() - 1, 0, 0, 0).toISOString().split('T')[0];
+					toDate = new Date(date.getFullYear(), date.getMonth(), date.getDate(), 0, 0, 0).toISOString().split('T')[0];
 					console.log('Seeding data for the previous day');
 					options = {
 						method: 'get',
@@ -89,36 +70,10 @@ export class CustomerService {
 
 				while (shouldContinue) {
 					const { data } = await axios.request(options);
-					const customerData = data.customers
-						? data.customers
-						: data.data;
+					const customerData = data.customers ? data.customers : data.data;
 					console.log('====================================');
-					console.log(
-						'Data syncing for customer for company ' + company.name,
-						customerData.length
-					);
+					console.log('Data syncing for customer for company ' + company.name, customerData.length);
 					console.log('====================================');
-					// for (const customer of customerData) {
-					// 	customerDataArray.push({
-					// 		posCustomerId: customer.id ?? customer.id,
-					// 		companyId: company._id,
-					// 		POSId: posData._id,
-					// 		name: customer.name,
-					// 		email: customer.email,
-					// 		phone: customer.phone,
-					// 		city: customer.city,
-					// 		state: customer.state,
-					// 		country: customer.country,
-					// 		birthDate: customer.birthDate,
-					// 		isLoyal: customer.isLoyal,
-					// 		loyaltyPoints: customer.loyaltyPoints,
-					// 		streetAddress1: customer.streetAddress1,
-					// 		streetAddress2: customer.streetAddress2,
-					// 		type: customer.type,
-					// 		zip: customer.zip,
-					// 		userCreatedAt: customer.createdAt,
-					// 	});
-					// }
 
 					const bulkOps = customerData.map((customer) => ({
 						updateOne: {
@@ -235,10 +190,7 @@ export class CustomerService {
 						streetAddress1: customer.address1,
 						streetAddress2: customer.address2,
 						zip: customer.postalCode,
-						type:
-							customer.customerType === 'Recreational'
-								? CustomerType.recCustomer
-								: CustomerType.medCustomer,
+						type: customer.customerType === 'Recreational' ? CustomerType.recCustomer : CustomerType.medCustomer,
 						POSId: posData._id,
 						companyId: company._id,
 						loyaltyPoints: 0,

@@ -3,59 +3,48 @@ import { InjectModel } from '@nestjs/mongoose';
 import { AudienceCustomer } from '../entities/audienceCustomers.entity';
 import * as dayjs from 'dayjs';
 import { POS } from 'src/model/pos/entities/pos.entity';
-import { Model, PipelineStage, Types } from 'mongoose';
+import mongoose, { Model, PipelineStage, Types } from 'mongoose';
 import { Company } from 'src/model/company/entities/company.entity';
 import { Store } from 'src/model/store/entities/store.entity';
-import { ClientOrderService } from './client.order.service';
 import { AudienceDetailsService } from './client.audienceDetail.service';
 import { AudienceName } from 'src/common/constants';
 import { Order } from 'src/microservices/order/entities/order.entity';
+import { dynamicCatchException } from 'src/utils/error.utils';
+import { AudienceCustomerType, IAudienceCustomer } from '../interfaces/audienceCustomers.interface';
+import { IAudienceDetails } from '../interfaces/audienceDetails.interface';
 
 @Injectable()
 export class ClientAudienceCustomerService {
 	constructor(
-		@InjectModel(AudienceCustomer.name)
-		private readonly audienceCustomerModel: Model<AudienceCustomer>,
+		@InjectModel(AudienceCustomer.name) private readonly audienceCustomerModel: Model<AudienceCustomer>,
 		@InjectModel(POS.name) private readonly POSModel: Model<POS>,
 		@InjectModel(Order.name) private readonly orderModel: Model<Order>,
-		@InjectModel(Company.name)
-		private readonly companyModel: Model<Company>,
+		@InjectModel(Company.name) private readonly companyModel: Model<Company>,
 		@InjectModel(Store.name) private readonly storeModel: Model<Store>,
-		private readonly clientOrderService: ClientOrderService,
 		private readonly audienceDetailsService: AudienceDetailsService
 	) {}
 
 	async seedAudiceCustomers() {
 		try {
-			const currentDate = dayjs(new Date()).format(
-				'YYYY-MM-DDT00:00:00.000[Z]'
-			);
-			const fromDate = dayjs(currentDate)
-				.subtract(15, 'day')
-				.format('YYYY-MM-DDT00:00:00.000[Z]');
+			const currentDate = new Date(dayjs(new Date()).format('YYYY-MM-DDT00:00:00.000[Z]'));
+			const fromDate = new Date(dayjs(currentDate).subtract(15, 'day').format('YYYY-MM-DDT00:00:00.000[Z]'));
 
-			const posData = await this.POSModel.findOne({ name: 'flowhub' });
+			const posData = await this.POSModel.find({});
 
-			const companyData = await this.companyModel.find({
-				posId: posData._id,
-			});
-
-			for (const company of companyData) {
-				const storeData = await this.storeModel.find({
-					companyId: company._id,
+			for (const pos of posData) {
+				const companyData = await this.companyModel.find({
+					posId: pos._id,
 				});
 
-				for (const store of storeData) {
-					await this.bigSpenderOrValueShopper(
-						store._id as Types.ObjectId,
-						fromDate,
-						currentDate
-					);
-					await this.purchaseCategoryAudience(
-						store._id as Types.ObjectId,
-						fromDate,
-						currentDate
-					);
+				for (const company of companyData) {
+					const storeData = await this.storeModel.find({
+						companyId: company._id,
+					});
+
+					for (const store of storeData) {
+						await this.bigSpenderOrValueShopper(store._id as Types.ObjectId, fromDate, currentDate);
+						await this.purchaseCategoryAudience(store._id as Types.ObjectId, fromDate, currentDate);
+					}
 				}
 			}
 		} catch (error) {
@@ -64,32 +53,89 @@ export class ClientAudienceCustomerService {
 		}
 	}
 
-	async bigSpenderOrValueShopper(storeId, fromDate, toDate) {
-		const formattedFromDate = new Date(fromDate);
-		const formattedToDate = new Date(toDate);
-		const bigSpenderAudience =
-			await this.audienceDetailsService.getAudienceIdByName(
-				AudienceName.BIG_SPENDER
-			);
-		const valueShopperAudience =
-			await this.audienceDetailsService.getAudienceIdByName(
-				AudienceName.VALUE_SHOPPER
-			);
+	async addTargetAudience(audienceId, campaignId: string, storeId: string) {
+		try {
+			const storeObjectId = new mongoose.Types.ObjectId(storeId);
+			audienceId = new mongoose.Types.ObjectId(audienceId);
 
-		const { averageCartSize } =
-			await this.clientOrderService.averageCartSize(
-				storeId,
-				fromDate,
-				toDate
-			);
+			const audienceDetail = await this.audienceDetailsService.getAudienceDetailById(audienceId);
+			let bulkOperations = [];
+
+			if (audienceDetail.name === AudienceName.ALL) {
+				const audienceCustomersList: IAudienceCustomer[] = await this.audienceCustomerModel.find({
+					type: AudienceCustomerType.SYSTEM,
+				});
+
+				for (const customer of audienceCustomersList) {
+					const audienceCustomerData = {
+						audienceId,
+						campaignId,
+						storeId: storeObjectId,
+						customerId: customer.customerId,
+						type: AudienceCustomerType.USER,
+					};
+
+					bulkOperations.push({
+						insertOne: {
+							document: audienceCustomerData,
+						},
+					});
+				}
+			}
+
+			const audienceCustomersList: IAudienceCustomer[] = await this.audienceCustomerModel.find({
+				audienceId,
+				type: AudienceCustomerType.SYSTEM,
+			});
+
+			for (const customer of audienceCustomersList) {
+				const audienceCustomerData = {
+					audienceId,
+					campaignId,
+					storeId: storeObjectId,
+					customerId: customer.customerId,
+					type: AudienceCustomerType.USER,
+				};
+
+				bulkOperations.push({
+					insertOne: {
+						document: audienceCustomerData,
+					},
+				});
+			}
+
+			const audienceCustomer = await this.audienceCustomerModel.bulkWrite(bulkOperations, { ordered: false });
+			return audienceCustomer;
+		} catch (error) {
+			if (error.code === 11000) {
+				console.error('Duplicate key error:', error.message);
+			} else {
+				console.error('Unexpected error occurred:', error.message);
+				throw error;
+			}
+		}
+	}
+
+	async getAudienceCustomerCount(campaignId: string) {
+		const audienceCount = await this.audienceCustomerModel.countDocuments({
+			campaignId: new mongoose.Types.ObjectId(campaignId),
+		});
+		return { count: audienceCount };
+	}
+
+	async bigSpenderOrValueShopper(storeId, fromDate: Date, toDate: Date) {
+		const bigSpenderAudience = await this.audienceDetailsService.getAudienceIdByName(AudienceName.BIG_SPENDER);
+		const valueShopperAudience = await this.audienceDetailsService.getAudienceIdByName(AudienceName.VALUE_SHOPPER);
+
+		const { averageCartSize } = await this.averageCartSize(storeId, fromDate, toDate);
 
 		const pipeline: PipelineStage[] = [
 			{
 				$match: {
 					storeId,
 					posCreatedAt: {
-						$gte: formattedFromDate,
-						$lt: formattedToDate,
+						$gte: fromDate,
+						$lt: toDate,
 					},
 				},
 			},
@@ -157,103 +203,88 @@ export class ClientAudienceCustomerService {
 
 		if (previousCronJobCustomers.length === 0) {
 			try {
-				for (const customerId of bigSpenders) {
-					await this.audienceCustomerModel.create({
-						storeId,
-						customerId,
-						audienceId: bigSpenderAudience._id,
-					});
-				}
+				await Promise.all(
+					bigSpenders.map((customerId) =>
+						this.audienceCustomerModel.create({
+							storeId,
+							customerId,
+							audienceId: bigSpenderAudience._id,
+						})
+					)
+				);
 
-				for (const customerId of valueShoppers) {
-					await this.audienceCustomerModel.create({
-						storeId,
-						customerId,
-						audienceId: valueShopperAudience._id,
-					});
-				}
+				await Promise.all(
+					valueShoppers.map((customerId) =>
+						this.audienceCustomerModel.create({
+							storeId,
+							customerId,
+							audienceId: valueShopperAudience._id,
+						})
+					)
+				);
 			} catch (error) {
 				console.error('Unexpected error occurred:', error.message);
 				throw error;
 			}
 		} else {
-			for (const customerId of previousCronJobCustomers) {
-				try {
-					const isPresentInCurrentRun =
-						bigSpenders.includes(customerId) ||
-						valueShoppers.includes(customerId);
-					const isBigSpenderInCurrentRun =
-						bigSpenders.includes(customerId);
-					const existingRecord =
-						await this.audienceCustomerModel.findOne({
+			await Promise.all(
+				previousCronJobCustomers.map(async (customerId) => {
+					try {
+						const isPresentInCurrentRun = bigSpenders.includes(customerId) || valueShoppers.includes(customerId);
+						const isBigSpenderInCurrentRun = bigSpenders.includes(customerId);
+						const existingRecord = await this.audienceCustomerModel.findOne({
 							storeId,
 							customerId,
 						});
 
-					if (isPresentInCurrentRun) {
-						if (existingRecord) {
-							if (
-								isBigSpenderInCurrentRun &&
-								existingRecord.audienceId !==
-									bigSpenderAudience._id
-							) {
+						if (isPresentInCurrentRun) {
+							if (existingRecord) {
+								if (isBigSpenderInCurrentRun && existingRecord.audienceId !== bigSpenderAudience._id) {
+									await this.audienceCustomerModel.create({
+										storeId,
+										customerId,
+										audienceId: valueShopperAudience._id,
+									});
+									await existingRecord.updateOne({
+										isArchive: true,
+									});
+								} else if (!isBigSpenderInCurrentRun && existingRecord.audienceId !== valueShopperAudience._id) {
+									await this.audienceCustomerModel.create({
+										storeId,
+										customerId,
+										audienceId: bigSpenderAudience._id,
+									});
+									await existingRecord.updateOne({
+										isArchive: true,
+									});
+								}
+							} else {
+								const audienceId = isBigSpenderInCurrentRun ? bigSpenderAudience._id : valueShopperAudience._id;
 								await this.audienceCustomerModel.create({
 									storeId,
 									customerId,
-									audienceId: valueShopperAudience._id,
-								});
-								await existingRecord.updateOne({
-									isArchive: true,
-								});
-							} else if (
-								!isBigSpenderInCurrentRun &&
-								existingRecord.audienceId !==
-									valueShopperAudience._id
-							) {
-								await this.audienceCustomerModel.create({
-									storeId,
-									customerId,
-									audienceId: bigSpenderAudience._id,
-								});
-								await existingRecord.updateOne({
-									isArchive: true,
+									audienceId,
 								});
 							}
 						} else {
-							const audienceId = isBigSpenderInCurrentRun
-								? bigSpenderAudience._id
-								: valueShopperAudience._id;
-							await this.audienceCustomerModel.create({
-								storeId,
-								customerId,
-								audienceId,
-							});
+							if (existingRecord) {
+								await existingRecord.updateOne({ isArchive: true });
+							}
 						}
-					} else {
-						if (existingRecord) {
-							await existingRecord.updateOne({ isArchive: true });
+					} catch (error) {
+						if (error.code === 11000) {
+							console.error('Duplicate key error:', error.message);
+						} else {
+							console.error('Unexpected error occurred:', error.message);
+							throw error;
 						}
 					}
-				} catch (error) {
-					if (error.code === 11000) {
-						console.error('Duplicate key error:', error.message);
-					} else {
-						console.error(
-							'Unexpected error occurred:',
-							error.message
-						);
-						throw error;
-					}
-				}
-			}
+				})
+			);
 		}
 	}
 
-	async purchaseCategoryAudience(
-		storeId: Types.ObjectId,
-		fromDate: string,
-		toDate: string
-	) {
+	async purchaseCategoryAudience(storeId: Types.ObjectId, fromDate: Date, toDate: Date) {
 		const formattedFromDate = new Date(fromDate);
 		const formattedToDate = new Date(toDate);
 
@@ -312,9 +343,7 @@ export class ClientAudienceCustomerService {
 		let name: string = '';
 		const audienceIdMap: { [key: string]: Types.ObjectId } = {};
 
-		const uniqueCategories = [
-			...new Set(result.map((item) => item.purchaseCategory)),
-		];
+		const uniqueCategories = [...new Set(result.map((item) => item.purchaseCategory))];
 		for (const category of uniqueCategories) {
 			if (category === 'Flower') {
 				name = AudienceName.FLOWER_POWER;
@@ -330,20 +359,16 @@ export class ClientAudienceCustomerService {
 			}
 		}
 
-		const previousAudienceCustomers = await this.audienceCustomerModel.find(
-			{
-				storeId,
-				$or: [
-					{ audienceId: audienceIdMap['Flower'] },
-					{ audienceId: audienceIdMap['Edible'] },
-					{ audienceId: audienceIdMap['Concentrate'] },
-				],
-			}
-		);
+		const previousAudienceCustomers = await this.audienceCustomerModel.find({
+			storeId,
+			$or: [
+				{ audienceId: audienceIdMap['Flower'] },
+				{ audienceId: audienceIdMap['Edible'] },
+				{ audienceId: audienceIdMap['Concentrate'] },
+			],
+		});
 
-		const previousCustomerIds = new Set(
-			previousAudienceCustomers.map((item) => item.customerId.toString())
-		);
+		const previousCustomerIds = new Set(previousAudienceCustomers.map((item) => item.customerId.toString()));
 
 		for (const item of result) {
 			const { customerId, purchaseCategory } = item;
@@ -358,48 +383,23 @@ export class ClientAudienceCustomerService {
 			}
 
 			if (name !== '') {
-				const audienceId : any = audienceIdMap[purchaseCategory];
+				const audienceId: any = audienceIdMap[purchaseCategory];
 
 				try {
-					const existingAudienceCustomer =
-						await this.audienceCustomerModel.findOne({
+					await this.audienceCustomerModel.findOneAndUpdate(
+						{
 							customerId,
 							audienceId,
 							storeId,
-						});
-
-					if (!existingAudienceCustomer) {
-						await this.audienceCustomerModel.create({
-							audienceId,
-							customerId,
-							storeId,
-						});
-					} else {
-						if (
-							existingAudienceCustomer.audienceId !==
-							audienceId.toString()
-						) {
-							await this.audienceCustomerModel.create({
-								audienceId,
-								customerId,
-								storeId,
-							});
-						}
-						await this.audienceCustomerModel.updateOne(
-							{
-								_id: existingAudienceCustomer._id,
-							},
-							{ $set: { isArchive: true } }
-						);
-					}
+						},
+						{ $set: { isArchive: true } },
+						{ upsert: true }
+					);
 				} catch (error) {
 					if (error.code === 11000) {
 						console.error('Duplicate key error:', error.message);
 					} else {
-						console.error(
-							'Unexpected error occurred:',
-							error.message
-						);
+						console.error('Unexpected error occurred:', error.message);
 						throw error;
 					}
 				}
@@ -427,114 +427,142 @@ export class ClientAudienceCustomerService {
 	}
 
 	async frequentFlyerAudience() {
-		const currentDate = dayjs(new Date()).format(
-			'YYYY-MM-DDT00:00:00.000[Z]'
-		);
-		const thirtyDaysAgo = dayjs(currentDate)
-			.subtract(30, 'day')
-			.format('YYYY-MM-DDT00:00:00.000[Z]');
+		const currentDate = dayjs(new Date()).format('YYYY-MM-DDT00:00:00.000[Z]');
+		const thirtyDaysAgo = dayjs(currentDate).subtract(30, 'day').format('YYYY-MM-DDT00:00:00.000[Z]');
 		const formattedFromDate = new Date(thirtyDaysAgo);
 		const formattedToDate = new Date(currentDate);
 
-		const posData = await this.POSModel.findOne({ name: 'flowhub' });
+		const posData = await this.POSModel.find({});
+		const { _id: audienceId } = await this.audienceDetailsService.getAudienceIdByName(AudienceName.FREQUENT_FLYER);
+		const existingCustomerIds = await this.audienceCustomerModel.find({ audienceId }, { customerId: 1 }).lean().exec();
 
-		const companyData = await this.companyModel.find({
-			posId: posData._id,
-		});
+		const bulkOperations = [];
 
-		const { _id: audienceId } =
-			await this.audienceDetailsService.getAudienceIdByName(
-				AudienceName.FREQUENT_FLYER
-			);
+		await Promise.all(
+			posData.map(async (pos) => {
+				const companyData = await this.companyModel.find({ posId: pos._id });
 
-		const existingCustomerIds = await this.audienceCustomerModel
-			.find({ audienceId }, { customerId: 1 })
-			.lean()
-			.exec();
+				await Promise.all(
+					companyData.map(async (company) => {
+						const storeData = await this.storeModel.find({ companyId: company._id });
 
-		for (const company of companyData) {
-			const storeData = await this.storeModel.find({
-				companyId: company._id,
-			});
+						await Promise.all(
+							storeData.map(async (store) => {
+								const pipeline: PipelineStage[] = [
+									{
+										$match: {
+											storeId: store._id,
+											posCreatedAt: {
+												$gte: formattedFromDate,
+												$lte: formattedToDate,
+											},
+										},
+									},
+									{
+										$group: {
+											_id: {
+												customerId: '$customerId',
+											},
+											count: { $sum: 1 },
+										},
+									},
+									{
+										$match: {
+											count: { $gte: 2 },
+										},
+									},
+									{
+										$project: {
+											customerId: '$_id.customerId',
+											count: 1,
+											_id: 0,
+										},
+									},
+								];
 
-			for (const store of storeData) {
-				const pipeline: PipelineStage[] = [
-					{
-						$match: {
-							storeId: store._id,
-							posCreatedAt: {
-								$gte: formattedFromDate,
-								$lte: formattedToDate,
-							},
-						},
-					},
-					{
-						$group: {
-							_id: {
-								customerId: '$customerId',
-							},
-							count: { $sum: 1 },
-						},
-					},
-					{
-						$match: {
-							count: { $gte: 2 },
-						},
-					},
-					{
-						$project: {
-							customerId: '$_id.customerId',
-							count: 1,
-							_id: 0,
-						},
-					},
-				];
+								const result = await this.orderModel.aggregate(pipeline);
+								const currentCustomerIdsSet = new Set(result.map((item) => item.customerId.toString()));
+								const missingCustomerIds = existingCustomerIds.filter(
+									(item) => !currentCustomerIdsSet.has(item.customerId.toString())
+								);
 
-				const result = await this.orderModel.aggregate(pipeline);
-				const currentCustomerIdsSet = new Set(
-					result.map((item) => item.customerId.toString())
+								const insertOperations = result.map((item) => ({
+									insertOne: {
+										document: {
+											audienceId,
+											customerId: item.customerId,
+											storeId: store._id,
+										},
+									},
+								}));
+
+								bulkOperations.push(...insertOperations);
+
+								const updateOperations = missingCustomerIds.map((missingCustomerId) => ({
+									updateOne: {
+										filter: {
+											audienceId,
+											storeId: store._id,
+											customerId: missingCustomerId.customerId,
+										},
+										update: {
+											$set: { isArchive: true },
+										},
+									},
+								}));
+
+								bulkOperations.push(...updateOperations);
+							})
+						);
+					})
 				);
-				const missingCustomerIds = existingCustomerIds.filter(
-					(item) =>
-						!currentCustomerIdsSet.has(item.customerId.toString())
-				);
+			})
+		);
 
-				for (const item of result) {
-					const { customerId } = item;
-
-					try {
-						await this.audienceCustomerModel.create({
-							audienceId,
-							customerId,
-							storeId: store._id,
-						});
-					} catch (error) {
-						if (error.code === 11000) {
-							console.error(
-								'Duplicate key error:',
-								error.message
-							);
-						} else {
-							console.error(
-								'Unexpected error occurred:',
-								error.message
-							);
-							throw error;
-						}
-					}
-				}
-
-				for (const missingCustomerId of missingCustomerIds) {
-					await this.audienceCustomerModel.updateOne(
-						{
-							audienceId,
-							storeId: store._id,
-							customerId: missingCustomerId.customerId,
-						},
-						{ $set: { isArchive: true } }
-					);
-				}
+		try {
+			await this.audienceCustomerModel.bulkWrite(bulkOperations);
+		} catch (error) {
+			if (error.code === 11000) {
+				console.error('Duplicate key error:', error.message);
+			} else {
+				console.error('Unexpected error occurred:', error.message);
+				throw error;
 			}
+		}
+	}
+
+	async averageCartSize(storeId: Types.ObjectId, fromDate: Date, toDate: Date) {
+		try {
+			const pipeline = [
+				{
+					$match: {
+						storeId: new Types.ObjectId(storeId),
+						posCreatedAt: {
+							$gte: fromDate,
+							$lte: toDate,
+						},
+					},
+				},
+				{
+					$group: {
+						_id: null,
+						averageCartSize: { $avg: '$totals.subTotal' },
+					},
+				},
+				{
+					$project: {
+						_id: 0,
+						averageCartSize: { $round: ['$averageCartSize', 2] },
+					},
+				},
+			];
+
+			const result = await this.orderModel.aggregate(pipeline);
+			const { averageCartSize } = result.length > 0 ? result[0] : { averageCartSize: null };
+			return { averageCartSize };
+		} catch (error) {
+			console.error(error);
+			dynamicCatchException(error);
 		}
 	}
 }

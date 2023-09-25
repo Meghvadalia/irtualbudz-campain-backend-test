@@ -6,5 +6,11 @@ export interface IAudienceCustomer {
 	storeId: Types.ObjectId;
 	isActive?: boolean;
 	isDeleted?: boolean;
-	archive?: any;
+	isArchive?: boolean;
+	type: AudienceCustomerType;
+}
+
+export enum AudienceCustomerType {
+	SYSTEM = 'System',
+	USER = 'User',
 }

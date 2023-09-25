@@ -14,15 +14,15 @@ export class Action extends Model<IAction> {
 
 	@Prop({ default: false })
 	isDeleted: boolean;
-	
+
 	@Prop({
 		type: Types.ObjectId,
 		ref: DATABASE_COLLECTION.GRAPH,
-		default: null
+		default: null,
 	})
 	graphId: Types.ObjectId;
 
-	@Prop({default: false })
+	@Prop({ default: false })
 	isTrackable: boolean;
 }
 

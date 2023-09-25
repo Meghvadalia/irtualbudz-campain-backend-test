@@ -20,6 +20,8 @@ import { Suggestions } from 'src/model/suggestions/entities/suggestions.entity';
 import { ICampaignAsset, ICampaignAssetFiles } from 'src/model/campaignAssets/interface/campaignAsset.interface';
 import * as fs from 'fs';
 import { dynamicCatchException, throwNotFoundException } from 'src/utils/error.utils';
+import { ClientAudienceCustomerService } from './client.audienceCustomer.service';
+import { USER_TYPE } from 'src/microservices/user/constants/user.constant';
 
 @Injectable()
 export class ClientCampaignService {
@@ -33,21 +35,23 @@ export class ClientCampaignService {
 		@InjectModel(CampaignAsset.name) private readonly campaignAssetModel: Model<CampaignAsset>,
 		@InjectModel(Product.name) private readonly productModel: Model<Product>,
 		@InjectModel(Suggestions.name) private readonly suggestionModel: Model<Suggestions>,
-
 		private readonly userService: UsersService,
-		private readonly storeService: ClientStoreService
+		private readonly storeService: ClientStoreService,
+		private readonly audienceService: ClientAudienceCustomerService
 	) {}
 
 	async addCampaign(data, files) {
 		try {
 			const directory = path.join(process.cwd(), 'public', UPLOAD_DIRECTORY.CAMPAIGN);
-
 			await createDirectoryIfNotExists(directory);
 
 			const filePaths = await uploadFiles(files, directory);
 
 			const campaignDataWithFiles = { ...data, files: filePaths };
 			const campaign = await this.campaignModel.create(campaignDataWithFiles);
+			setImmediate(() => {
+				this.audienceService.addTargetAudience(data.audienceId, campaign._id as unknown as string, data.storeId);
+			});
 
 			return campaign;
 		} catch (error) {
@@ -62,9 +66,9 @@ export class ClientCampaignService {
 
 			const userData = await this.userService.findById(user.userId);
 
-			if (user.type === 'SUPER_ADMIN' || user.type === 'ADMIN') {
+			if (user.type === USER_TYPE.SUPER_ADMIN || user.type === USER_TYPE.ADMIN) {
 				campaignList = await this.populateCampaignData(storeId, name);
-			} else if (user.type === 'COMPANY_ADMIN') {
+			} else if (user.type === USER_TYPE.COMPANY_ADMIN) {
 				if (storeId) {
 					campaignList = await this.populateCampaignData(storeId, name);
 				} else {
@@ -74,15 +78,11 @@ export class ClientCampaignService {
 						campaignList.push(...campaignsForStore);
 					}
 				}
-			} else if (user.type === 'STORE_ADMIN' || user.type === 'MANAGER') {
+			} else if (user.type === USER_TYPE.STORE_ADMIN || user.type === USER_TYPE.MANAGER) {
 				campaignList = await this.populateCampaignData(userData.storeId, name);
 			}
 
 			if (campaignList.length === 0) {
-				// return {
-				// 	message: 'Campaign list not found.',
-				// 	statusCode: 404,
-				// };
 				throw new NotFoundException(`Campaign list not found`);
 			}
 

@@ -8,30 +8,28 @@ import { dynamicCatchException, throwNotFoundException } from 'src/utils/error.u
 
 @Injectable()
 export class ClientGraphService {
-	constructor(
-		@InjectModel(Graph.name) private graphModel: Model<IGraph>
-	) {}
+	constructor(@InjectModel(Graph.name) private readonly graphModel: Model<Graph>) {}
 	async graphById(id: string): Promise<any> {
 		try {
 			const graph = await this.graphModel.findById(id);
 			if (!graph) throwNotFoundException('Graph not found.');
 			return graph;
 		} catch (error) {
-			dynamicCatchException(error)
+			dynamicCatchException(error);
 		}
 	}
 
-	async updateGraphByName(){
+	async updateGraphByName() {
 		try {
-			console.log("Total "+graphData.length +" graph updates")
+			console.log('Total ' + graphData.length + ' graph updates');
 			for (let index = 0; index < graphData.length; index++) {
 				const element = graphData[index];
-				await this.graphModel.updateOne({name:element.name},{condition:element.condition},{axes:element.axes})
-				console.log(element.name +" Updated")
+				await this.graphModel.updateOne({ name: element.name }, { condition: element.condition }, { axes: element.axes });
+				console.log(element.name + ' Updated');
 			}
 		} catch (error) {
 			console.error('Failed to update graph data: ' + error.message);
-			dynamicCatchException(error)
+			dynamicCatchException(error);
 		}
 	}
 }

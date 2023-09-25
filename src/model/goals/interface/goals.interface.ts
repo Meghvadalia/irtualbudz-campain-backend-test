@@ -4,7 +4,7 @@ export interface IGOALS {
 	isDeleted?: boolean;
 	isActive?: boolean;
 	graphId?: string;
-	isTrackable?:boolean;
+	isTrackable?: boolean;
 }
 
 export enum GOALSTYPES {

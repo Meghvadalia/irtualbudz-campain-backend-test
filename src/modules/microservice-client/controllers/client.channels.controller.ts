@@ -13,7 +13,7 @@ export class ClientChannelController {
 			const channels = await this.clientChannelService.getAllChannels();
 			return sendSuccess(channels);
 		} catch (error) {
-			console.error('Error:' +error.message);
+			console.error('Error:' + error.message);
 			return sendError(error.message, error.status);
 		}
 	}
@@ -24,7 +24,7 @@ export class ClientChannelController {
 			const channel = await this.clientChannelService.addChannel(data);
 			return sendSuccess(channel, 'Channel added successfully');
 		} catch (error) {
-			console.error('Error:' +error.message);
+			console.error('Error:' + error.message);
 			return sendError(error.message, error.status);
 		}
 	}

@@ -12,8 +12,7 @@ export class ClientGoalsService {
 		try {
 			return await this.goalsModel.find({ isActive: true, isDeleted: false }).select(['name']);
 		} catch (error) {
-			dynamicCatchException(error)
+			dynamicCatchException(error);
 		}
-		
 	}
 }

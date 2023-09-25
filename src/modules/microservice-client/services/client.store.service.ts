@@ -18,10 +18,10 @@ import { dynamicCatchException } from 'src/utils/error.utils';
 @Injectable()
 export class ClientStoreService {
 	constructor(
-		@InjectModel(Store.name) private storeModel: Model<IStore>,
-		@InjectModel(Company.name) private companyModel: Model<ICompany>,
-		@InjectModel(POS.name) private posModel: Model<ICompany>,
-		@InjectModel(User.name) private userModel: Model<IUser>,
+		@InjectModel(Store.name) private readonly storeModel: Model<Store>,
+		@InjectModel(Company.name) private readonly companyModel: Model<Company>,
+		@InjectModel(POS.name) private readonly posModel: Model<Company>,
+		@InjectModel(User.name) private readonly userModel: Model<User>,
 		private readonly redisService: RedisService
 	) {}
 
@@ -85,7 +85,7 @@ export class ClientStoreService {
 				}
 			}
 		} catch (error) {
-			console.error('Error While Seeding the Data For Store'+ error);
+			console.error('Error While Seeding the Data For Store' + error);
 			return error;
 		}
 	}
@@ -107,7 +107,7 @@ export class ClientStoreService {
 			return stores;
 		} catch (error) {
 			console.error(error);
-			dynamicCatchException(error)
+			dynamicCatchException(error);
 		}
 	}
 
@@ -124,7 +124,7 @@ export class ClientStoreService {
 			}
 		} catch (error) {
 			console.error(error);
-			dynamicCatchException(error)
+			dynamicCatchException(error);
 		}
 	}
 
@@ -137,7 +137,7 @@ export class ClientStoreService {
 			return store;
 		} catch (error) {
 			console.error(error);
-			dynamicCatchException(error)
+			dynamicCatchException(error);
 		}
 	}
 
@@ -168,20 +168,20 @@ export class ClientStoreService {
 				const storeData = data.data;
 				for (let index = 0; index < storeData.length; index++) {
 					const element: IStoreResponseFlowHub = storeData[index];
-					
+
 					const existingStore = await this.storeModel.findOne({
 						'location.importId': element.importId,
 						companyId: companyData._id,
 					});
 
 					if (existingStore) {
-						await this.storeModel.findByIdAndUpdate({_id:existingStore._id},{locationName:element.locationName})
-						console.log(element.locationName)
+						await this.storeModel.findByIdAndUpdate({ _id: existingStore._id }, { locationName: element.locationName });
+						console.log(element.locationName);
 					}
 				}
 			}
 		} catch (error) {
-			console.error('Error While Seeding the Data For Store'+ error);
+			console.error('Error While Seeding the Data For Store' + error);
 			return error;
 		}
 	}

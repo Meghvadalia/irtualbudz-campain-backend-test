@@ -60,7 +60,7 @@ import { ClientGraphController } from './controllers/client.graph.controller';
 import { CampaignAsset, CampaignAssetsSchema } from 'src/model/campaignAssets/entities/campaignAsset.entity';
 import { ClientNotificationController } from './controllers/client.notification.controller';
 import { ClientNotificationService } from './services/client.notification.service';
-import { NotificationSchema,Notification } from 'src/model/notification/entities/notification.entity';
+import { NotificationSchema, Notification } from 'src/model/notification/entities/notification.entity';
 
 @Module({
 	imports: [
@@ -112,7 +112,7 @@ import { NotificationSchema,Notification } from 'src/model/notification/entities
 		ClientCampaignController,
 		ClientSuggestionController,
 		ClientGraphController,
-		ClientNotificationController
+		ClientNotificationController,
 	],
 	providers: [
 		ClientOrderService,
@@ -134,7 +134,7 @@ import { NotificationSchema,Notification } from 'src/model/notification/entities
 		ClientSuggestionService,
 		ClientGoalService,
 		ClientGraphService,
-		ClientNotificationService
+		ClientNotificationService,
 	],
 	exports: [AudienceDetailsService],
 })

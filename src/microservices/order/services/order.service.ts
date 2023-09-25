@@ -471,11 +471,10 @@ export class OrderService {
 						0
 					);
 
-					// FromLastModifiedDateUTC=${fromDate.toISOString()}&ToLastModifiedDateUTC=${toDate.toISOString()}
-					// &
 					orderOptions = {
-						url: `${posData.liveUrl}/reporting/transactions?
-						IncludeDetail=true&IncludeTaxes=true&IncludeOrderIds=true`,
+						url: `${
+							posData.liveUrl
+						}/reporting/transactions?FromLastModifiedDateUTC=${fromDate.toISOString()}&ToLastModifiedDateUTC=${toDate.toISOString()}&IncludeDetail=true&IncludeTaxes=true&IncludeOrderIds=true`,
 						headers: {
 							Accept: 'application/json',
 							Authorization: token,

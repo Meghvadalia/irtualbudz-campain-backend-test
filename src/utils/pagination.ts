@@ -1,4 +1,4 @@
-import { Model } from "mongoose";
+import { Model } from 'mongoose';
 
 export const pagination = (data: any, page: number = 1, perPage: number = 10) => {
 	const startIndex = (+page - 1) * +perPage;
@@ -15,7 +15,6 @@ export const pagination = (data: any, page: number = 1, perPage: number = 10) =>
 	};
 };
 
-
 export const paginateWithNextHit = async (model: Model<any>, aggPipe: any, limit: number, page: number) => {
 	if (limit) {
 		limit = Math.abs(limit);
@@ -25,29 +24,23 @@ export const paginateWithNextHit = async (model: Model<any>, aggPipe: any, limit
 	} else {
 		limit = 10;
 	}
-	if (page && (page !== 0)) {
+	if (page && page !== 0) {
 		page = Math.abs(page);
 	} else {
 		page = 1;
 	}
-	const skip = (limit * (page - 1));
+	const skip = limit * (page - 1);
 
 	aggPipe.push({
 		$facet: {
-			data: [
-				{ $skip: skip },
-				{ $limit: limit },
-			],
-			metadata: [
-				{ $count: 'total' },
-				{ $addFields: { page } },
-			],
-		}
+			data: [{ $skip: skip }, { $limit: limit }],
+			metadata: [{ $count: 'total' }, { $addFields: { page } }],
+		},
 	});
 	const result = await model.aggregate(aggPipe);
 	/* tslint:disable:no-string-literal */
 	let next_hit = false;
-	const total_page = (result[0].data.length > 0) ? Math.ceil(result[0].metadata[0].total / limit) : 0;
+	const total_page = result[0].data.length > 0 ? Math.ceil(result[0].metadata[0].total / limit) : 0;
 	if (result[0]['data'].length > limit) {
 		result[0]['data'].pop();
 	}
@@ -64,4 +57,4 @@ export const paginateWithNextHit = async (model: Model<any>, aggPipe: any, limit
 		limit,
 		data: result[0]['data'],
 	};
-}
+};

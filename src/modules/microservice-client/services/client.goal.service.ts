@@ -7,7 +7,7 @@ import { dynamicCatchException, throwBadRequestException } from 'src/utils/error
 
 @Injectable()
 export class ClientGoalService {
-	constructor(@InjectModel(Goals.name) private goalModel: Model<IGOALS>) {}
+	constructor(@InjectModel(Goals.name) private readonly goalModel: Model<Goals>) {}
 
 	async goalsById(id: string): Promise<any> {
 		try {
@@ -15,7 +15,7 @@ export class ClientGoalService {
 			if (!goals) throwBadRequestException('Goals not found.');
 			return goals;
 		} catch (error) {
-			dynamicCatchException(error)
+			dynamicCatchException(error);
 		}
 	}
 }

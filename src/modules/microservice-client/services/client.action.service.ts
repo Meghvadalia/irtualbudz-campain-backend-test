@@ -6,7 +6,7 @@ import { dynamicCatchException, throwNotFoundException } from 'src/utils/error.u
 
 @Injectable()
 export class ClientActionService {
-	constructor(@InjectModel(Action.name) private readonly actionModel: Model<Action>) { }
+	constructor(@InjectModel(Action.name) private readonly actionModel: Model<Action>) {}
 
 	async getActionList() {
 		try {
@@ -14,20 +14,19 @@ export class ClientActionService {
 				.find({ isActive: true, isDeleted: false })
 				.select(['-createdAt', '-updatedAt', '-__v', '-isDeleted', '-isActive']);
 			if (actionList.length === 0) {
-				throwNotFoundException("Action list not found.")
+				throwNotFoundException('Action list not found.');
 			}
-			return actionList
+			return actionList;
 		} catch (error) {
-			dynamicCatchException(error)
+			dynamicCatchException(error);
 		}
-
 	}
 
 	async getActionById(id) {
 		try {
 			return await this.actionModel.findOne({ _id: id });
 		} catch (error) {
-			dynamicCatchException(error)
+			dynamicCatchException(error);
 		}
 	}
 
@@ -37,11 +36,10 @@ export class ClientActionService {
 				.find({ isTrackable: false })
 				.select(['-createdAt', '-updatedAt', '-__v', '-isDeleted', '-isActive', '-graphId']);
 			if (trackableActionList.length === 0) {
-				throwNotFoundException("Trackable action list not found.")
+				throwNotFoundException('Trackable action list not found.');
 			}
 		} catch (error) {
-			dynamicCatchException(error)
+			dynamicCatchException(error);
 		}
-
 	}
 }

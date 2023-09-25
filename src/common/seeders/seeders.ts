@@ -34,16 +34,12 @@ export class SeederService {
 		@InjectModel(Company.name) private companyModel: Model<Company>,
 		@InjectModel(User.name) private userModel: Model<User>,
 		@InjectModel(Store.name) private storeModel: Model<Store>,
-		@InjectModel(AudienceDetail.name)
-		private audienceDetailModel: Model<AudienceDetail>,
-		@InjectModel(Channel.name)
-		private readonly channelModel: Model<Channel>,
+		@InjectModel(AudienceDetail.name) private audienceDetailModel: Model<AudienceDetail>,
+		@InjectModel(Channel.name) private readonly channelModel: Model<Channel>,
 		@InjectModel(Goals.name) private goalsModel: Model<Goals>,
-		@InjectModel(CampaignTypes.name)
-		private campaignTypesModel: Model<CampaignTypes>,
+		@InjectModel(CampaignTypes.name) private campaignTypesModel: Model<CampaignTypes>,
 		@InjectModel(Action.name) private actionsModel: Model<Action>,
-		@InjectModel(Suggestions.name)
-		private suggestionModel: Model<Suggestions>,
+		@InjectModel(Suggestions.name) private suggestionModel: Model<Suggestions>,
 		@InjectModel(Graph.name) private graphModel: Model<Graph>,
 		private readonly storeService: ClientStoreService
 	) {

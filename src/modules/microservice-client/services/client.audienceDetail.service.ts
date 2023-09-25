@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
+import { Model, Types } from 'mongoose';
 import { AudienceDetail } from '../entities/audienceDetails.entity';
 import { dynamicCatchException } from 'src/utils/error.utils';
 
@@ -10,12 +10,20 @@ export class AudienceDetailsService {
 
 	async getAudienceIdByName(name: string) {
 		try {
-			const audienceId = await this.audienceDetailsModel.findOne<AudienceDetail>({ name: name });
+			const audienceId = await this.audienceDetailsModel.findOne<AudienceDetail>({ name });
 			return audienceId;
 		} catch (error) {
-			dynamicCatchException(error)
+			dynamicCatchException(error);
 		}
-		
+	}
+
+	async getAudienceDetailById(id: string) {
+		try {
+			const audienceId = await this.audienceDetailsModel.findById<AudienceDetail>({ _id: new Types.ObjectId(id) });
+			return audienceId;
+		} catch (error) {
+			dynamicCatchException(error);
+		}
 	}
 
 	async getAllAudiences() {
@@ -30,8 +38,7 @@ export class AudienceDetailsService {
 			});
 			return allAudiences;
 		} catch (error) {
-			dynamicCatchException(error)
+			dynamicCatchException(error);
 		}
-		
 	}
 }

@@ -24,16 +24,8 @@ export class ClientStoreController {
 
 	@Post('update/:posName')
 	@UseGuards(RolesGuard)
-	@Roles(
-		USER_TYPE.SUPER_ADMIN,
-		USER_TYPE.ADMIN,
-		USER_TYPE.COMPANY_ADMIN,
-		USER_TYPE.STORE_ADMIN,
-		USER_TYPE.MANAGER
-	)
-	async updateStore(
-		@Param('posName') posName: string,
-	) {
+	@Roles(USER_TYPE.SUPER_ADMIN, USER_TYPE.ADMIN, USER_TYPE.COMPANY_ADMIN, USER_TYPE.STORE_ADMIN, USER_TYPE.MANAGER)
+	async updateStore(@Param('posName') posName: string) {
 		try {
 			const storeList = await this.clientStoreService.updateStoreData(posName);
 			return sendSuccess(storeList);

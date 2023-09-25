@@ -13,15 +13,14 @@ export class ClientChannelService {
 	async getAllChannels(): Promise<IChannel[]> {
 		try {
 			let channelList = await this.channelModel.find<IChannel>({}, { name: 1, _id: 1 });
-			if(channelList.length == 0){
-				throwNotFoundException("Channel not found.")
-			}else{
-				return channelList
+			if (channelList.length == 0) {
+				throwNotFoundException('Channel not found.');
+			} else {
+				return channelList;
 			}
 		} catch (error) {
-			dynamicCatchException(error)
+			dynamicCatchException(error);
 		}
-		
 	}
 
 	async addChannel(data: ChannelDto) {
@@ -30,10 +29,9 @@ export class ClientChannelService {
 			return {
 				name: newChannel.name,
 				_id: newChannel._id,
-			};	
+			};
 		} catch (error) {
-			dynamicCatchException(error)
+			dynamicCatchException(error);
 		}
-		
 	}
 }
