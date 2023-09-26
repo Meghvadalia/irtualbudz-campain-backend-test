@@ -306,7 +306,7 @@ export const graphData = [
 				$project: {
 					_id: 0,
 					date: '$_id',
-					totalGrossProfit: 1,
+					totalGrossProfit: {$divide:['$totalGrossProfit',100]},
 				},
 			},
 			{
