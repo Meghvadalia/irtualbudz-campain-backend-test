@@ -5,7 +5,7 @@ import { Kafka, Producer } from 'kafkajs';
 export class OrderProducer {
 	private producer: Producer;
 	private readonly topic = 'order-topic';
-	private readonly groupId = 'order-grup';
+	private readonly groupId = 'order-group';
 
 	constructor(private readonly kafka: Kafka) {
 		this.producer = this.kafka.producer();

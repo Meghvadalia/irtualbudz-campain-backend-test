@@ -69,9 +69,8 @@ export class ClientNotificationService {
 			];
 			return await paginateWithNextHit(this.notificationModel, pipeline, limit, page);
 		} catch (error) {
-			dynamicCatchException(error)
+			dynamicCatchException(error);
 		}
-		
 	}
 
 	async getNotificationArrayList() {
@@ -86,9 +85,8 @@ export class ClientNotificationService {
 			let mergedArray = [].concat(...data);
 			return mergedArray;
 		} catch (error) {
-			dynamicCatchException(error)
+			dynamicCatchException(error);
 		}
-		
 	}
 
 	getStoreAndCompanyWiseUsers(store) {
@@ -108,7 +106,7 @@ export class ClientNotificationService {
 						$count: 'total',
 					},
 				];
-	
+
 				let slowMovingItemsAggregate = [
 					{
 						$match: {
@@ -161,9 +159,9 @@ export class ClientNotificationService {
 					this.inventoryModel.aggregate(expireProductsAggregate),
 					this.orderModel.aggregate(slowMovingItemsAggregate),
 				]);
-	
+
 				const notifications = [];
-	
+
 				if (expireProducts.length > 0 && expireProducts[0]?.total > 0) {
 					const userList = await this.userModel.find({
 						$or: [
@@ -174,7 +172,7 @@ export class ClientNotificationService {
 							},
 						],
 					});
-	
+
 					notifications.push(
 						...userList.map((x) => ({
 							userId: x._id,
@@ -186,7 +184,7 @@ export class ClientNotificationService {
 						}))
 					);
 				}
-	
+
 				if (slowMovingItems.length > 0 && slowMovingItems[0]?.total > 0) {
 					const userList = await this.userModel.find({
 						$or: [
@@ -197,7 +195,7 @@ export class ClientNotificationService {
 							},
 						],
 					});
-	
+
 					notifications.push(
 						...userList.map((x) => ({
 							userId: x._id,
@@ -209,22 +207,20 @@ export class ClientNotificationService {
 						}))
 					);
 				}
-	
+
 				resolve(notifications);
 			} catch (error) {
-				dynamicCatchException(error)
+				dynamicCatchException(error);
 			}
-			
 		});
 	}
 
 	async insertStoreWiseNotification(notificationArray: INOTIFICATION[]) {
 		try {
 			let notification = await this.notificationModel.insertMany(notificationArray);
-			return `${notification.length} notifications added`;	
+			return `${notification.length} notifications added`;
 		} catch (error) {
-			dynamicCatchException(error)
+			dynamicCatchException(error);
 		}
-		
 	}
 }

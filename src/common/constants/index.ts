@@ -25,7 +25,7 @@ export const DATABASE_COLLECTION = {
 	SUGGESTIONS: 'suggestions',
 	DISCOUNTS: 'discounts',
 	CAMPAIGN_ASSETS: 'campaignAssets',
-	NOTIFICATION: 'notification'
+	NOTIFICATION: 'notification',
 };
 
 export const enum PERMISSIONS_FOR_DATABASE {
@@ -68,7 +68,6 @@ export const UPLOAD_DIRECTORY = {
 
 export const FILE_UPLOAD_LIMIT = 10;
 
-
 export const DAYS_OF_WEEK = {
 	Sunday: 1,
 	Monday: 2,
@@ -76,6 +75,15 @@ export const DAYS_OF_WEEK = {
 	Wednesday: 4,
 	Thursday: 5,
 	Friday: 6,
-	Saturday: 7
-  };
-  
+	Saturday: 7,
+};
+
+export const CAMPAIGN_TOPIC = {
+	campaignTopic: 'campaign-topic',
+	campaignGroup: 'campaign-group',
+};
+
+export const KAFKA_CAMPAIGN_EVENT_TYPE = {
+	EVENT_STARTED: 'event-started',
+	EVENT_ENDED: 'event-ended',
+};

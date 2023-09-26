@@ -109,10 +109,10 @@ export class ClientCustomerService {
 						_id: 0,
 						averageAge: { $round: ['$averageAge', 0] },
 						averageAgeGrowth: {
-								'$cond': {
-									if: { '$eq': ['$toDateAverageAge', 0] }, 
-									then: 0, 
-									else: {
+							$cond: {
+								if: { $eq: ['$toDateAverageAge', 0] },
+								then: 0,
+								else: {
 									$round: [
 										{
 											$multiply: [
@@ -129,8 +129,8 @@ export class ClientCustomerService {
 										},
 										2,
 									],
-								}
-							}
+								},
+							},
 						},
 					},
 				},
@@ -141,9 +141,8 @@ export class ClientCustomerService {
 
 			return { averageAge, averageAgeGrowth };
 		} catch (error) {
-			dynamicCatchException(error)
+			dynamicCatchException(error);
 		}
-		
 	}
 
 	async getNewCustomersByMonth(storeId: Types.ObjectId) {
@@ -205,7 +204,7 @@ export class ClientCustomerService {
 
 			return { newCustomersByMonth };
 		} catch (error) {
-			dynamicCatchException(error)
+			dynamicCatchException(error);
 		}
 	}
 	async getTotalCurrentYearCustomer(storeId: Types.ObjectId) {
@@ -224,7 +223,7 @@ export class ClientCustomerService {
 			}
 			return { totalCustomerForCurrentYear: 0 };
 		} catch (error) {
-			dynamicCatchException(error)
+			dynamicCatchException(error);
 		}
 	}
 }

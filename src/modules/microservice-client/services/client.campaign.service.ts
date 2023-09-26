@@ -2,7 +2,7 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Campaign } from '../entities/campaign.entity';
 import mongoose, { Model, Types } from 'mongoose';
-import { ICampaign } from '../interfaces/campaign.interface';
+import { CAMPAIGN_STATUS, ICampaign } from '../interfaces/campaign.interface';
 import * as path from 'path';
 import { pagination } from 'src/utils/pagination';
 import { UsersService } from 'src/microservices/user/service/users.service';
@@ -13,7 +13,7 @@ import { Channel } from 'src/model/channels/entities/channel.entity';
 import { AudienceDetail } from '../entities/audienceDetails.entity';
 import { Action } from 'src/model/actions/entities/actions.entity';
 import { createDirectoryIfNotExists, uploadFiles } from 'src/utils/fileUpload';
-import { UPLOAD_DIRECTORY } from 'src/common/constants';
+import { KAFKA_CAMPAIGN_EVENT_TYPE, UPLOAD_DIRECTORY } from 'src/common/constants';
 import { CampaignAsset } from 'src/model/campaignAssets/entities/campaignAsset.entity';
 import { Product } from 'src/microservices/inventory';
 import { Suggestions } from 'src/model/suggestions/entities/suggestions.entity';
@@ -22,6 +22,7 @@ import * as fs from 'fs';
 import { dynamicCatchException, throwNotFoundException } from 'src/utils/error.utils';
 import { ClientAudienceCustomerService } from './client.audienceCustomer.service';
 import { USER_TYPE } from 'src/microservices/user/constants/user.constant';
+import { CampaignProducer } from 'src/modules/kafka/producers/campaign.producer';
 
 @Injectable()
 export class ClientCampaignService {
@@ -37,27 +38,53 @@ export class ClientCampaignService {
 		@InjectModel(Suggestions.name) private readonly suggestionModel: Model<Suggestions>,
 		private readonly userService: UsersService,
 		private readonly storeService: ClientStoreService,
-		private readonly audienceService: ClientAudienceCustomerService
+		private readonly audienceService: ClientAudienceCustomerService,
+		private readonly campaignProducer: CampaignProducer
 	) {}
 
-	async addCampaign(data, files) {
-		try {
-			const directory = path.join(process.cwd(), 'public', UPLOAD_DIRECTORY.CAMPAIGN);
-			await createDirectoryIfNotExists(directory);
+	async addCampaign(data: Partial<ICampaign>, files) {
+		const directory = path.join(process.cwd(), 'public', UPLOAD_DIRECTORY.CAMPAIGN);
+		await createDirectoryIfNotExists(directory);
 
-			const filePaths = await uploadFiles(files, directory);
+		const filePaths = await uploadFiles(files, directory);
 
-			const campaignDataWithFiles = { ...data, files: filePaths };
-			const campaign = await this.campaignModel.create(campaignDataWithFiles);
-			setImmediate(() => {
-				this.audienceService.addTargetAudience(data.audienceId, campaign._id as unknown as string, data.storeId);
-			});
+		const campaignDataWithFiles = { ...data, files: filePaths };
+		const campaign = await this.campaignModel.create(campaignDataWithFiles);
+		setImmediate(() => {
+			this.audienceService.addTargetAudience(data.audienceId, campaign._id as unknown as string, data.storeId.toString());
+		});
 
-			return campaign;
-		} catch (error) {
-			console.error(error);
-			dynamicCatchException(error);
+		const currentDate = new Date();
+		if (campaign.startDateWithTime > currentDate) {
+			this.campaignProducer.sendCampaignMessage(
+				campaign._id as unknown as string,
+				campaign.startDateWithTime,
+				campaign.endDateWithTime,
+				KAFKA_CAMPAIGN_EVENT_TYPE.EVENT_STARTED
+			);
 		}
+		setTimeout(() => {
+			this.campaignProducer.sendCampaignMessage(
+				campaign._id as unknown as string,
+				campaign.startDateWithTime,
+				campaign.endDateWithTime,
+				KAFKA_CAMPAIGN_EVENT_TYPE.EVENT_ENDED
+			);
+		}, 1000);
+
+		return campaign;
+	}
+
+	async updateStatusToInProgress(campaignId: string) {
+		return this.updateCampaignStatus(campaignId, CAMPAIGN_STATUS.IN_PROGRESS);
+	}
+
+	async updateStatusToClosed(campaignId: string) {
+		return this.updateCampaignStatus(campaignId, CAMPAIGN_STATUS.CLOSED);
+	}
+
+	private async updateCampaignStatus(campaignId: string, status: string) {
+		return this.campaignModel.findByIdAndUpdate(campaignId, { $set: { campaignStatus: status } }, { new: true });
 	}
 
 	async campaignList(user, page: number, limit: number, storeId?: string, name?: string) {
@@ -82,9 +109,7 @@ export class ClientCampaignService {
 				campaignList = await this.populateCampaignData(userData.storeId, name);
 			}
 
-			if (campaignList.length === 0) {
-				throw new NotFoundException(`Campaign list not found`);
-			}
+			if (campaignList.length === 0) throw new NotFoundException(`Campaign list not found`);
 
 			const paginatedCampaignList = pagination(campaignList, page, limit);
 			return paginatedCampaignList;

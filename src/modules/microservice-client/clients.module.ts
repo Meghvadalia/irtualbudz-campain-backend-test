@@ -61,6 +61,8 @@ import { CampaignAsset, CampaignAssetsSchema } from 'src/model/campaignAssets/en
 import { ClientNotificationController } from './controllers/client.notification.controller';
 import { ClientNotificationService } from './services/client.notification.service';
 import { NotificationSchema, Notification } from 'src/model/notification/entities/notification.entity';
+import { Kafka } from 'kafkajs';
+import { CampaignProducer } from '../kafka/producers/campaign.producer';
 
 @Module({
 	imports: [
@@ -115,6 +117,15 @@ import { NotificationSchema, Notification } from 'src/model/notification/entitie
 		ClientNotificationController,
 	],
 	providers: [
+		{
+			provide: Kafka,
+			useFactory: () => {
+				return new Kafka({
+					clientId: 'your-client-id',
+					brokers: ['localhost:9092'],
+				});
+			},
+		},
 		ClientOrderService,
 		SeederService,
 		ClientStoreService,
@@ -135,7 +146,8 @@ import { NotificationSchema, Notification } from 'src/model/notification/entitie
 		ClientGoalService,
 		ClientGraphService,
 		ClientNotificationService,
+		CampaignProducer,
 	],
-	exports: [AudienceDetailsService],
+	exports: [AudienceDetailsService, ClientCampaignService],
 })
 export class MicroserviceClientModule {}
