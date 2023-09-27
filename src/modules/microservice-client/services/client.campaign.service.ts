@@ -94,6 +94,9 @@ export class ClientCampaignService {
 			const userData = await this.userService.findById(user.userId);
 
 			if (user.type === USER_TYPE.SUPER_ADMIN || user.type === USER_TYPE.ADMIN) {
+				if (!storeId) {
+					campaignList = await this.populateCampaignData(null, name);
+				}
 				campaignList = await this.populateCampaignData(storeId, name);
 			} else if (user.type === USER_TYPE.COMPANY_ADMIN) {
 				if (storeId) {
@@ -130,14 +133,19 @@ export class ClientCampaignService {
 			];
 
 			let query = this.campaignModel.find({});
-
+			const regex = new RegExp(name, 'i');
 			if (storeId && name) {
-				const regex = new RegExp(name, 'i');
-
+				console.log('storeId and name');
 				query = query.find({
 					storeId: new mongoose.Types.ObjectId(storeId),
 					campaignName: { $regex: regex },
 				});
+			} else if (!storeId && name) {
+				query = query.find({
+					campaignName: { $regex: regex },
+				});
+			} else if (!storeId) {
+				query = query;
 			} else {
 				query = query.find({ storeId: new mongoose.Types.ObjectId(storeId) });
 			}
