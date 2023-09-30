@@ -11,8 +11,8 @@ export class Campaign extends Model<ICampaign> {
 	@Prop({ ref: DATABASE_COLLECTION.GOALS, required: true, type: mongoose.Schema.Types.ObjectId })
 	goals: Types.ObjectId;
 
-	@Prop({ required: true, ref: DATABASE_COLLECTION.CAMPAIGN_TYPES, type: mongoose.Schema.Types.ObjectId })
-	campaignType: Types.ObjectId;
+	// @Prop({ ref: DATABASE_COLLECTION.CAMPAIGN_TYPES, type: mongoose.Schema.Types.ObjectId })
+	// campaignType: Types.ObjectId;
 
 	@Prop({ required: true, ref: DATABASE_COLLECTION.AUDIENCE_DETAIL, type: mongoose.Schema.Types.ObjectId })
 	audienceId: Types.ObjectId;

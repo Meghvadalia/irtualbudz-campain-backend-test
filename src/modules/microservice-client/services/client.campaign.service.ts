@@ -29,7 +29,7 @@ export class ClientCampaignService {
 	constructor(
 		@InjectModel(Campaign.name) private readonly campaignModel: Model<Campaign>,
 		@InjectModel(Goals.name) private readonly goalsModel: Model<Goals>,
-		@InjectModel(CampaignTypes.name) private readonly campaignTypeModel: Model<CampaignTypes>,
+		// @InjectModel(CampaignTypes.name) private readonly campaignTypeModel: Model<CampaignTypes>,
 		@InjectModel(Channel.name) private readonly channelModel: Model<Channel>,
 		@InjectModel(AudienceDetail.name) private readonly audienceModel: Model<AudienceDetail>,
 		@InjectModel(Action.name) private readonly actionModel: Model<Action>,
@@ -124,7 +124,7 @@ export class ClientCampaignService {
 	private async populateCampaignData(storeId?: string, name?: string): Promise<any[]> {
 		try {
 			const populateOptions = [
-				{ path: 'campaignType', select: 'name', model: this.campaignTypeModel },
+				// { path: 'campaignType', select: 'name', model: this.campaignTypeModel },
 				{ path: 'goals', select: 'name', model: this.goalsModel },
 				{ path: 'actions', select: 'name', model: this.actionModel },
 				{ path: 'audienceId', select: 'name', model: this.audienceModel },
@@ -170,7 +170,7 @@ export class ClientCampaignService {
 			const campaign = await this.campaignModel
 				.findOne({ _id: campaignId })
 				.populate([
-					{ path: 'campaignType', select: 'name', model: this.campaignTypeModel },
+					// { path: 'campaignType', select: 'name', model: this.campaignTypeModel },
 					{ path: 'goals', select: 'name', model: this.goalsModel },
 					{ path: 'audienceId', select: 'name', model: this.audienceModel },
 					{ path: 'actions', select: 'name', model: this.actionModel },

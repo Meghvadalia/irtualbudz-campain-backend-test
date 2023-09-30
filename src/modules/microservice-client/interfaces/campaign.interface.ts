@@ -3,7 +3,7 @@ import { Types } from 'mongoose';
 export interface ICampaign {
 	campaignName: string;
 	goals: string;
-	campaignType: string;
+	// campaignType: string;
 	audienceId: Types.ObjectId;
 	storeId: Types.ObjectId;
 	actions: string;

@@ -6,38 +6,50 @@ import { Customer } from '../../../microservices/customers/entities/customer.ent
 import { ClientStoreService } from './client.store.service';
 import { getCurrentYearDateRange } from 'src/utils/time.utils';
 import { dynamicCatchException } from 'src/utils/error.utils';
+import { DATABASE_COLLECTION } from 'src/common/constants';
+import { Order } from 'src/microservices/order/entities/order.entity';
 
 @Injectable()
 export class ClientCustomerService {
 	constructor(
 		@InjectModel(Customer.name) private customerModel: Model<Customer>,
-		private clientStoreService: ClientStoreService
+		@InjectModel(Order.name) private orderModel: Model<Order>,
+		private readonly clientStoreService: ClientStoreService
 	) {}
 
 	async getAverageAge(storeId: Types.ObjectId, fromDate: Date, toDate: Date) {
 		try {
-			const startDateStartTime = fromDate;
-			const storeData = await this.clientStoreService.storeById(storeId.toString());
-			const endDateEndTime = toDate;
 			const aggregationPipeline = [
 				{
 					$match: {
-						storeId: { $in: [storeId] },
-						userCreatedAt: {
-							$gte: startDateStartTime,
-							$lte: endDateEndTime,
+						storeId,
+						posCreatedAt: {
+							$gte: fromDate,
+							$lte: toDate,
 						},
 					},
 				},
 				{
-					$addFields: {
-						userCreatedAtLocal: {
-							$dateToString: {
-								format: '%Y-%m-%d',
-								date: '$userCreatedAt',
-								timezone: storeData.timeZone,
-							},
+					$lookup: {
+						from: DATABASE_COLLECTION.CUSTOMER,
+						let: {
+							customerId: '$customerId',
 						},
+						pipeline: [
+							{
+								$match: {
+									$expr: {
+										$or: [{ $eq: ['$_id', '$$customerId'] }, { $eq: ['$posCustomerId', '$$customerId'] }],
+									},
+								},
+							},
+						],
+						as: 'customers',
+					},
+				},
+				{
+					$unwind: {
+						path: '$customers',
 					},
 				},
 				{
@@ -45,60 +57,11 @@ export class ClientCustomerService {
 						_id: null,
 						averageAge: {
 							$avg: {
-								$divide: [{ $subtract: [new Date(), '$birthDate'] }, 1000 * 60 * 60 * 24 * 365],
-							},
-						},
-						toDateAverageAge: {
-							$avg: {
-								$cond: [
+								$divide: [
 									{
-										$eq: [
-											'$userCreatedAtLocal',
-											{
-												$dateToString: {
-													format: '%Y-%m-%d',
-													date: startDateStartTime,
-													timezone: storeData.timeZone,
-												},
-											},
-										],
+										$subtract: [new Date(), '$customers.birthDate'],
 									},
-									{
-										$divide: [
-											{
-												$subtract: [new Date(), '$birthDate'],
-											},
-											1000 * 60 * 60 * 24 * 365,
-										],
-									},
-									null,
-								],
-							},
-						},
-						fromDateAverageAge: {
-							$avg: {
-								$cond: [
-									{
-										$eq: [
-											'$userCreatedAtLocal',
-											{
-												$dateToString: {
-													format: '%Y-%m-%d',
-													date: endDateEndTime,
-													timezone: storeData.timeZone,
-												},
-											},
-										],
-									},
-									{
-										$divide: [
-											{
-												$subtract: [new Date(), '$birthDate'],
-											},
-											1000 * 60 * 60 * 24 * 365,
-										],
-									},
-									null,
+									1000 * 60 * 60 * 24 * 365,
 								],
 							},
 						},
@@ -107,39 +70,17 @@ export class ClientCustomerService {
 				{
 					$project: {
 						_id: 0,
-						averageAge: { $round: ['$averageAge', 0] },
-						averageAgeGrowth: {
-							$cond: {
-								if: { $eq: ['$toDateAverageAge', 0] },
-								then: 0,
-								else: {
-									$round: [
-										{
-											$multiply: [
-												{
-													$divide: [
-														{
-															$subtract: ['$toDateAverageAge', '$fromDateAverageAge'],
-														},
-														'$fromDateAverageAge',
-													],
-												},
-												100,
-											],
-										},
-										2,
-									],
-								},
-							},
+						averageAge: {
+							$round: ['$averageAge', 0],
 						},
 					},
 				},
 			];
 
-			const result = await this.customerModel.aggregate(aggregationPipeline);
-			const { averageAge, averageAgeGrowth } = result.length > 0 ? result[0] : { averageAge: null, averageAgeGrowth: null };
+			const result = await this.orderModel.aggregate(aggregationPipeline);
+			const { averageAge } = result.length > 0 ? result[0] : { averageAge: null };
 
-			return { averageAge, averageAgeGrowth };
+			return { averageAge };
 		} catch (error) {
 			dynamicCatchException(error);
 		}

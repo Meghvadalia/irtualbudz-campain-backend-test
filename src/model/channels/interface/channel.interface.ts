@@ -5,7 +5,8 @@ export interface IChannel {
 }
 
 export const Channels = {
-	NEWS_LETTER: 'News-Letters',
+	// NEWS_LETTER: 'News-Letters',
+	Email: 'Email',
 	SMS: 'SMS',
 	Screens: 'Screens',
 	ONLINE_ORDERING_PLATFORM: 'Online Ordering Platform',
