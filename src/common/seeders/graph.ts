@@ -116,7 +116,6 @@ export const graphData = [
 									day: '$_id.day',
 								},
 							},
-							timezone: '',
 						},
 					},
 					count: 1,
@@ -206,7 +205,7 @@ export const graphData = [
 									day: '$_id.day',
 								},
 							},
-							timezone: '',
+							
 						},
 					},
 					count: 1,
@@ -373,7 +372,6 @@ export const graphData = [
 						$dateToString: {
 							format: '%Y-%m-%d',
 							date: '$posCreatedAt',
-							timezone: '',
 						},
 					},
 					itemCount: {
@@ -583,7 +581,7 @@ export const graphData = [
 									day: '$_id.day',
 								},
 							},
-							timezone: '',
+							
 						},
 					},
 					totalFinalTotal: {
