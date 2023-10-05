@@ -290,7 +290,7 @@ export class ClientOrderService {
 									console.log('in brand');
 									if (actionDBData.name == ACTIONS.MARKET_SPECIFIC_BRAND) {
 										replacements = [...replacements, ...[{ key: 'product.brand', value: { $in: brand } }]];
-									} else {
+									}else {
 										let tempIds = await this.cartModel.find({ title2: { $in: brand } }).select({ _id: 1 });
 										let productIds = tempIds.map((x) => x._id);
 										replacements = [...replacements, ...[{ key: '$or', value: [{ itemsInCart: { $in: productIds } }] }]];
@@ -302,7 +302,7 @@ export class ClientOrderService {
 									if (actionDBData.name == ACTIONS.MARKET_SPECIFIC_BRAND) {
 										let brandNames = await this.productModel.distinct('brand', { _id: { $in: product } });
 										replacements = [...replacements, ...[{ key: 'product.brand', value: { $in: brandNames } }]];
-									} else {
+									}else {
 										replacements = [...replacements, ...[{ key: '$or', value: [{ itemsInCart: { $in: product } }] }]];
 									}
 								}
@@ -317,6 +317,13 @@ export class ClientOrderService {
 										let brandNames = await this.productModel.distinct('brand', { category: { $in: categories } });
 										replacements = [...replacements, ...[{ key: 'product.brand', value: { $in: brandNames } }]];
 									}
+								}
+								if(actionDBData.name == ACTIONS.BUNDLES){
+									replacements = [...replacements, ...[{ key: '$or', value: [
+										{ 'carts.title2': { $in: brand } },
+										{ 'carts.category': { $in: categories } },
+										{ 'carts.productName': { $in: product } },
+									]  }]];
 								}
 							}
 
