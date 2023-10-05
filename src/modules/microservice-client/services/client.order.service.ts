@@ -239,7 +239,7 @@ export class ClientOrderService {
 						newStages = [
 							{
 								$addFields: {
-									dayOfWeek: { $dayOfWeek: { date: '$posCreatedAt', timezone: storeData.timeZone } },
+									dayOfWeek: { $dayOfWeek: { date: '$posCreatedAt'} },
 								},
 							},
 							{

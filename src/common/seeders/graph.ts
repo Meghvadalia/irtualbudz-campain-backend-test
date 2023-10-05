@@ -104,54 +104,51 @@ export const graphData = [
 					},
 				},
 			},
+			{$sort:{_id:1}},
 			{
-				$project: {
-					date: {
-						$dateToString: {
-							format: '%Y-%m-%d',
-							date: {
-								$dateFromParts: {
-									year: '$_id.year',
-									month: '$_id.month',
-									day: '$_id.day',
-								},
+				"$group": {
+					"_id": null,
+					"chartData": {
+						"$push": {
+							"date": {
+								"$dateToString": {
+									"format": "%Y-%m-%d",
+									"date": {
+										"$dateFromParts": {
+											"year": "$_id.year",
+											"month": "$_id.month",
+											"day": "$_id.day"
+										}
+									}
+								}
 							},
-						},
+							"count": "$count"
+						}
 					},
-					count: 1,
-					_id: 0,
-				},
+					"TotalCount": { "$sum": "$count" },
+					"FirstDayCount": { "$first": "$count" },
+					"LastDayCount": { "$last": "$count" }
+				}
 			},
 			{
-				$sort: {
-					date: 1,
-				},
-			},
-			{
-				$group: {
-					_id: null, // Group all documents into a single group
-					chartData: { $push: { date: '$date', count: '$count' } }, // Store daily counts with dates in an array
-					TotalCount: { $sum: '$count' }, // Calculate the total count
-					FirstDayCount: { $first: '$count' }, // Get the count of the first day
-					LastDayCount: { $last: '$count' }, // Get the count of the last day
-				},
-			},
-			{
-				$project: {
-					_id: 0,
-					chartData: 1,
-					TotalCount: 1,
-					PercentageChange: {
-						$cond: {
-							if: { $eq: ['$LastDayCount', 0] },
-							then: 0,
-							else: {
-								$multiply: [{ $divide: [{ $subtract: ['$LastDayCount', '$FirstDayCount'] }, '$FirstDayCount'] }, 100],
-							},
-						},
-					},
-				},
-			},
+				"$project": {
+					"_id": 0,
+					"chartData": 1,
+					"TotalCount": 1,
+					"PercentageChange": {
+						"$cond": {
+							"if": { "$eq": ["$LastDayCount", 0] },
+							"then": 0,
+							"else": {
+								"$multiply": [
+									{ "$divide": [{ "$subtract": ["$LastDayCount", "$FirstDayCount"] }, "$FirstDayCount"] },
+									100
+								]
+							}
+						}
+					}
+				}
+			}
 		],
 		axes: [
 			{
