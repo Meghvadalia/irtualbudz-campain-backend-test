@@ -4,7 +4,7 @@ export interface ICampaign {
 	campaignName: string;
 	goals: string;
 	// campaignType: string;
-	audienceId: Types.ObjectId;
+	audienceId: Types.ObjectId[];
 	storeId: Types.ObjectId;
 	actions: string;
 	startDateWithTime: Date;
@@ -12,8 +12,8 @@ export interface ICampaign {
 	notes: string;
 	files: string[];
 	channels: Types.ObjectId[];
-	sortItem: string[];
-	sortBy: sortBy;
+	sortItem: SORT_ITEM[];
+	// sortBy: sortBy;
 	productDiscount: number[];
 	productDiscountNote: string[];
 	selectedSuggestion: string[];
@@ -23,7 +23,7 @@ export interface ICampaign {
 	campaignStatus: CAMPAIGN_STATUS;
 }
 
-export enum sortBy {
+export enum SORT_KEYS {
 	AllSellable = 'sellable',
 	Brand = 'brand',
 	Category = 'category',
@@ -33,4 +33,14 @@ export enum CAMPAIGN_STATUS {
 	NOT_STARTED = 'Not Started',
 	IN_PROGRESS = 'In Progress',
 	CLOSED = 'Closed',
+}
+
+export interface SORT_ITEM {
+	suggestionId: Types.ObjectId;
+	sortBy: SORT_BY[];
+}
+
+export interface SORT_BY {
+	key: SORT_KEYS;
+	value: Types.ObjectId[] | string[];
 }

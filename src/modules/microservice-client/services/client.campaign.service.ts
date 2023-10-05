@@ -2,7 +2,7 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Campaign } from '../entities/campaign.entity';
 import mongoose, { Model, Types } from 'mongoose';
-import { CAMPAIGN_STATUS, ICampaign } from '../interfaces/campaign.interface';
+import { CAMPAIGN_STATUS, ICampaign, SORT_KEYS } from '../interfaces/campaign.interface';
 import * as path from 'path';
 import { pagination } from 'src/utils/pagination';
 import { UsersService } from 'src/microservices/user/service/users.service';
@@ -47,11 +47,32 @@ export class ClientCampaignService {
 		await createDirectoryIfNotExists(directory);
 
 		const filePaths = await uploadFiles(files, directory);
+		// @ts-ignore
+		data.sortItem = JSON.parse(data.sortItem);
+		if (data.sortItem && Array.isArray(data.sortItem)) {
+			data.sortItem.forEach((sortItem) => {
+				if (sortItem.suggestionId) {
+					sortItem.suggestionId = new Types.ObjectId(sortItem.suggestionId);
+				}
+
+				if (sortItem.sortBy && Array.isArray(sortItem.sortBy)) {
+					sortItem.sortBy.forEach((sortBy) => {
+						if (sortBy.key === SORT_KEYS.AllSellable) {
+							sortBy.value = sortBy.value.map((value) => new Types.ObjectId(value));
+						}
+					});
+				}
+			});
+		}
 
 		const campaignDataWithFiles = { ...data, files: filePaths };
 		const campaign = await this.campaignModel.create(campaignDataWithFiles);
 		setImmediate(() => {
-			this.audienceService.addTargetAudience(data.audienceId, campaign._id as unknown as string, data.storeId.toString());
+			const audienceIds = Array.isArray(data.audienceId) ? data.audienceId : [data.audienceId];
+
+			for (const audienceId of audienceIds) {
+				this.audienceService.addTargetAudience(audienceId, campaign._id as unknown as string, data.storeId.toString());
+			}
 		});
 
 		const currentDate = new Date();
@@ -114,6 +135,38 @@ export class ClientCampaignService {
 
 			if (campaignList.length === 0) throw new NotFoundException(`Campaign list not found`);
 
+			for (const campaign of campaignList) {
+				const populatedSortItems = [];
+
+				for (const item of campaign.sortItem) {
+					const suggestion = await this.suggestionModel.findById(item.suggestionId).select(['name']);
+					const sortByArray = [];
+
+					for (const sort of item.sortBy) {
+						if (sort.key === SORT_KEYS.AllSellable) {
+							const productDetails = await Promise.all(
+								sort.value.map((productRef) => this.fetchProductDetails(productRef.toString()))
+							);
+							sortByArray.push({
+								key: sort.key,
+								value: productDetails,
+							});
+						} else {
+							sortByArray.push({
+								key: sort.key,
+								value: sort.value,
+							});
+						}
+					}
+
+					populatedSortItems.push({
+						suggestion,
+						sortBy: sortByArray,
+					});
+					campaign.sortItem = populatedSortItems;
+				}
+			}
+
 			const paginatedCampaignList = pagination(campaignList, page, limit);
 			return paginatedCampaignList;
 		} catch (error) {
@@ -124,18 +177,17 @@ export class ClientCampaignService {
 	private async populateCampaignData(storeId?: string, name?: string): Promise<any[]> {
 		try {
 			const populateOptions = [
-				// { path: 'campaignType', select: 'name', model: this.campaignTypeModel },
 				{ path: 'goals', select: 'name', model: this.goalsModel },
 				{ path: 'actions', select: 'name', model: this.actionModel },
 				{ path: 'audienceId', select: 'name', model: this.audienceModel },
 				{ path: 'channels', select: 'name', model: this.channelModel },
-				{ path: 'selectedSuggestion', select: 'name', model: this.suggestionModel },
+				// { path: 'campaignType', select: 'name', model: this.campaignTypeModel },
+				// { path: 'suggestionId', select: 'name', model: this.suggestionModel },
 			];
 
 			let query = this.campaignModel.find({});
 			const regex = new RegExp(name, 'i');
 			if (storeId && name) {
-				console.log('storeId and name');
 				query = query.find({
 					storeId: new mongoose.Types.ObjectId(storeId),
 					campaignName: { $regex: regex },
@@ -165,17 +217,27 @@ export class ClientCampaignService {
 		}
 	}
 
+	async fetchProductDetails(productId) {
+		try {
+			const product = await this.productModel.findOne({ _id: productId }).select(['productName']);
+			return product;
+		} catch (error) {
+			console.error(`Error fetching product details for ID ${productId}: ${error}`);
+			return null;
+		}
+	}
+
 	async getCampaignDetail(campaignId) {
 		try {
 			const campaign = await this.campaignModel
 				.findOne({ _id: campaignId })
 				.populate([
-					// { path: 'campaignType', select: 'name', model: this.campaignTypeModel },
 					{ path: 'goals', select: 'name', model: this.goalsModel },
 					{ path: 'audienceId', select: 'name', model: this.audienceModel },
 					{ path: 'actions', select: 'name', model: this.actionModel },
 					{ path: 'channels', select: 'name', model: this.channelModel },
-					{ path: 'selectedSuggestion', select: 'name', model: this.suggestionModel },
+					// { path: 'campaignType', select: 'name', model: this.campaignTypeModel },
+					// { path: 'selectedSuggestion', select: 'name', model: this.suggestionModel },
 				])
 				.select(['-createdAt', '-updatedAt', '-__v']);
 
@@ -184,27 +246,34 @@ export class ClientCampaignService {
 				.populate({ path: 'channelId', select: 'name', model: this.channelModel })
 				.select(['-createdAt', '-__v', '-updatedAt', '-campaignId']);
 
-			const fetchProductDetails = async (productId) => {
-				try {
-					const product = await this.productModel.findOne({ _id: productId }).select(['productName']);
-					return product;
-				} catch (error) {
-					console.error(`Error fetching product details for ID ${productId}: ${error}`);
-					return null;
-				}
-			};
+			const populatedSortItems = [];
 
-			const populatedSortItems = await Promise.all(
-				campaign.sortItem.map(async (item) => {
-					if (mongoose.Types.ObjectId.isValid(item)) {
-						const product = await fetchProductDetails(item);
-						if (product) {
-							return product.toObject();
-						}
+			for (const item of campaign.sortItem) {
+				const suggestion = await this.suggestionModel.findById(item.suggestionId).select(['name']);
+				const sortByArray = [];
+
+				for (const sort of item.sortBy) {
+					if (sort.key === SORT_KEYS.AllSellable) {
+						const productDetails = await Promise.all(
+							sort.value.map((productRef) => this.fetchProductDetails(productRef.toString()))
+						);
+						sortByArray.push({
+							key: sort.key,
+							value: productDetails,
+						});
+					} else {
+						sortByArray.push({
+							key: sort.key,
+							value: sort.value,
+						});
 					}
-					return item;
-				})
-			);
+				}
+
+				populatedSortItems.push({
+					suggestion,
+					sortBy: sortByArray,
+				});
+			}
 
 			const combinedData = {
 				campaign: {

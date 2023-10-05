@@ -615,9 +615,11 @@ export const graphData = [
 			{
 				$group: {
 					_id: {
-						year: { $year: '$posCreatedAt' },
-						month: { $month: '$posCreatedAt' },
-						day: { $dayOfMonth: '$posCreatedAt' },
+						$dateToString: {
+							format: '%Y-%m-%d',
+							date: '$posCreatedAt',
+							timezone: '',
+						},
 					},
 					totalFinalTotal: { $sum: '$totals.finalTotal' },
 				},
@@ -625,19 +627,7 @@ export const graphData = [
 			{
 				$project: {
 					_id: 0,
-					date: {
-						$dateToString: {
-							format: '%Y-%m-%d',
-							date: {
-								$dateFromParts: {
-									year: '$_id.year',
-									month: '$_id.month',
-									day: '$_id.day',
-								},
-							},
-							timezone: '',
-						},
-					},
+					date: '$_id',
 					totalFinalTotal: {
 						$round: ['$totalFinalTotal', 2],
 					},
@@ -694,6 +684,122 @@ export const graphData = [
 			{
 				xAxis: ['date'],
 				yAxis: ['Transactions'],
+			},
+		],
+	},
+	{
+		name: ACTIONS.BUNDLES,
+		condition: [
+			{
+				$match: {
+					storeId: '',
+					posCreatedAt: {
+						$gte: '',
+						$lte: '',
+					},
+				},
+			},
+			{
+				$lookup: {
+					from: DATABASE_COLLECTION.CART,
+					localField: 'itemsInCart',
+					foreignField: '_id',
+					as: 'carts',
+				},
+			},
+			{
+				$unwind: '$carts',
+			},
+			{
+				$match: {
+					$or: [
+						{ 'carts.title2': { $in: [] } },
+						{ 'carts.category': { $in: [] } },
+						{ 'carts.productName': { $in: [] } },
+					],
+				},
+			},
+			{
+				$group: {
+					_id: {
+						date: {
+							$dateToString: {
+								format: '%Y-%m-%d',
+								date: '$posCreatedAt',
+								timezone: '',
+							},
+						},
+					},
+					orderCount: {
+						$sum: 1,
+					},
+				},
+			},
+			{
+				$group: {
+					_id: '$_id.date',
+					orderCount: {
+						$sum: '$orderCount',
+					},
+				},
+			},
+			{
+				$project: {
+					_id: 0,
+					date: '$_id',
+					orderCount: 1,
+				},
+			},
+			{
+				$sort: {
+					date: 1,
+				},
+			},
+			{
+				$group: {
+					_id: null, // Group all documents into a single group
+					TotalCount: { $sum: '$orderCount' }, // Calculate the total order count
+					FirstDayOrderCount: { $first: '$orderCount' }, // Get the order count of the first day
+					LastDayOrderCount: { $last: '$orderCount' }, // Get the order count of the last day
+					chartData: {
+						$push: { date: '$date', order: '$orderCount' },
+					}, // Store daily order counts with dates in an array
+				},
+			},
+			{
+				$project: {
+					_id: 0,
+					chartData: 1,
+					TotalCount: 1,
+					PercentageChange: {
+						$cond: {
+							if: { $eq: ['$LastDayOrderCount', 0] },
+							then: 0,
+							else: {
+								$multiply: [
+									{
+										$divide: [
+											{
+												$subtract: [
+													'$LastDayOrderCount',
+													'$FirstDayOrderCount',
+												],
+											},
+											'$FirstDayOrderCount',
+										],
+									},
+									100,
+								],
+							},
+						},
+					},
+				},
+			},
+		],
+		axes: [
+			{
+				xAxis: ['date'],
+				yAxis: ['order'],
 			},
 		],
 	},

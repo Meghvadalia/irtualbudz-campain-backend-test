@@ -44,8 +44,10 @@ export class ClientDashboardService {
 			// actionData,
 		} = await this.totalSales(storeId, formattedFromDate, formattedToDate, query.goalFlag, campaignId, audienceTracking);
 
-		const topCategory = await this.topSellingCategory(storeId, formattedFromDate, formattedToDate);
-		const { returningCustomer: returningCustomer, newCustomer } = await this.recVsMedCustomer(
+		// const topCategory = await this.topSellingCategory(storeId, formattedFromDate, formattedToDate);
+		const { returningCustomer, newCustomer, newCustomerAverageSpend, recurringCustomerAverageSpend } =
+			await this.recVsMedCustomer(storeId, formattedFromDate, formattedToDate);
+		const registerdVsNonRegisteredCustomers = await this.registerdVsNonRegisteredCustomers(
 			storeId,
 			formattedFromDate,
 			formattedToDate
@@ -59,6 +61,8 @@ export class ClientDashboardService {
 		const topDiscountedProduct = await this.orderService.topDiscountedItem(storeId, formattedFromDate, formattedToDate);
 		const topUsedCoupon = await this.orderService.topDiscountedCoupon(storeId, formattedFromDate, formattedToDate);
 		const { newCustomersByMonth, totalCustomerForCurrentYear } = await this.getCustomerAnalytics(storeId);
+		const oneTimeVsReturningCategory = await this.orderService.getOneTimeVsReturning(storeId, formattedFromDate, formattedToDate);
+
 		return {
 			overview: {
 				totalSales: {
@@ -88,11 +92,17 @@ export class ClientDashboardService {
 					loyaltyPointsConverted,
 					loyaltyPointsConversionGrowth,
 				},
-				topCategory,
+				topCategory: oneTimeVsReturningCategory?.categoryWithMaxTotalAmountRepeated[0]?.category,
 				recOrMedCustomer: {
 					newCustomer: newCustomer,
 					returningCustomer: returningCustomer,
 				},
+				oneTimeVsReturningCategory,
+				recVsMedAverageSpend: {
+					recurringCustomerAverageSpend,
+					newCustomerAverageSpend,
+				},
+				registerdVsNonRegisteredCustomers,
 			},
 			sales: {
 				brandWiseSalesData: brandWiseOrderData,
@@ -115,8 +125,13 @@ export class ClientDashboardService {
 	}
 
 	async recVsMedCustomer(storeId: Types.ObjectId, fromDate: Date, toDate: Date) {
-		const customerPercentage = this.orderService.getRecurringAndNewCustomerPercentage(storeId, fromDate, toDate);
+		const customerPercentage = await this.orderService.getRecurringAndNewCustomerPercentage(storeId, fromDate, toDate);
 		return customerPercentage;
+	}
+
+	async registerdVsNonRegisteredCustomers(storeId: Types.ObjectId, fromDate: Date, toDate: Date) {
+		const customers = await this.orderService.getRegisteredVsNonRegisteredCustomers(storeId, fromDate, toDate);
+		return customers;
 	}
 
 	async calculateAverageSpendAndLoyaltyPoints(storeId: Types.ObjectId, fromDate: Date, toDate: Date) {
@@ -187,12 +202,12 @@ export class ClientDashboardService {
 		}
 	}
 
-	async topSellingCategory(storeId: Types.ObjectId, fromDate: Date, toDate: Date) {
-		try {
-			const topCategory = await this.orderService.getTopCategory(storeId, fromDate, toDate);
-			return topCategory;
-		} catch (error) {
-			dynamicCatchException(error);
-		}
-	}
+	// async topSellingCategory(storeId: Types.ObjectId, fromDate: Date, toDate: Date) {
+	// 	try {
+	// 		const topCategory = await this.orderService.getTopCategory(storeId, fromDate, toDate);
+	// 		return topCategory;
+	// 	} catch (error) {
+	// 		dynamicCatchException(error);
+	// 	}
+	// }
 }

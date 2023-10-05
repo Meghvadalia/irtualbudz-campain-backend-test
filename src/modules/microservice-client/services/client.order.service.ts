@@ -9,7 +9,7 @@ import { ClientActionService } from './client.action.service';
 import { ClientCampaignService } from './client.campaign.service';
 import { ClientStoreService } from './client.store.service';
 import { updatePipeline } from 'src/utils/pipelineUpdator';
-import { sortBy } from '../interfaces/campaign.interface';
+import { SORT_KEYS } from '../interfaces/campaign.interface';
 import { ACTIONS } from 'src/common/seeders/actions';
 import { AudienceCustomer } from '../entities/audienceCustomers.entity';
 import { AudienceDetail } from '../entities/audienceDetails.entity';
@@ -182,9 +182,9 @@ export class ClientOrderService {
 			console.log('Create query for graph data');
 			if (campaignData && campaignData != null) {
 				if (campaignData?.audienceId) {
-					let audienceName = await this.audienceDetailsModel.findOne({ _id: campaignData?.audienceId });
+					let audienceName = await this.audienceDetailsModel.find({ _id: { $in: campaignData?.audienceId } });
 					let customerIds;
-					if (audienceName?.name == AudienceName.ALL) {
+					if (audienceName.findIndex((x) => x.name == AudienceName.ALL) != -1) {
 						customerIds = await this.audienceCustomerModel.find(
 							{
 								storeId: storeId,
@@ -194,7 +194,7 @@ export class ClientOrderService {
 					} else {
 						customerIds = await this.audienceCustomerModel.find(
 							{
-								audienceId: campaignData?.audienceId,
+								audienceId: { $in: campaignData?.audienceId },
 								storeId: storeId,
 							},
 							{ customerId: true, _id: false }
@@ -204,7 +204,7 @@ export class ClientOrderService {
 					ids = customerIds.length > 0 ? customerIds.map((x) => x.customerId) : [];
 
 					audienceDBData = {
-						name: audienceName?.name,
+						name: audienceName.map((x) => x.name).toString(),
 						count: ids.length,
 					};
 					console.log('audienceDBData =>', audienceDBData);
@@ -269,34 +269,57 @@ export class ClientOrderService {
 								{ key: 'timezone', value: storeData.timeZone },
 							];
 							if (campaingFilterItem) {
-								if (sortType == sortBy.AllSellable) {
+								let product = [];
+								let brand = [];
+								let categories = [];
+								for (let i = 0; i < campaignData.sortItem.length; i++) {
+									const element = campaignData.sortItem[i];
+									for (let j = 0; j < element.sortBy.length; j++) {
+										const element1 = element.sortBy[j];
+										if (element1.key == SORT_KEYS.AllSellable) {
+											product = [...product, ...element1.value];
+										} else if (element1.key == SORT_KEYS.Brand) {
+											brand = [...brand, ...element1.value];
+										} else if (element1.key == SORT_KEYS.Category) {
+											categories = [...categories, ...element1.value];
+										}
+									}
+								}
+
+								if (brand.length > 0) {
+									console.log('in brand');
 									if (actionDBData.name == ACTIONS.MARKET_SPECIFIC_BRAND) {
-										let brandNames = await this.productModel.distinct('brand', { _id: { $in: campaingFilterItem } });
+										replacements = [...replacements, ...[{ key: 'product.brand', value: { $in: brand } }]];
+									} else {
+										let tempIds = await this.cartModel.find({ title2: { $in: brand } }).select({ _id: 1 });
+										let productIds = tempIds.map((x) => x._id);
+										replacements = [...replacements, ...[{ key: '$or', value: [{ itemsInCart: { $in: productIds } }] }]];
+									}
+								}
+
+								if (product.length > 0) {
+									console.log('in product');
+									if (actionDBData.name == ACTIONS.MARKET_SPECIFIC_BRAND) {
+										let brandNames = await this.productModel.distinct('brand', { _id: { $in: product } });
 										replacements = [...replacements, ...[{ key: 'product.brand', value: { $in: brandNames } }]];
 									} else {
-										replacements = [...replacements, ...[{ key: '$or', value: [{ itemsInCart: { $in: campaingFilterItem } }] }]];
+										replacements = [...replacements, ...[{ key: '$or', value: [{ itemsInCart: { $in: product } }] }]];
 									}
-								} else if (sortType == sortBy.Brand) {
+								}
+
+								if (categories.length > 0) {
+									console.log('in categories');
 									if (actionDBData.name == ACTIONS.REDUCE_INVENTORY) {
-										let tempIds = await this.cartModel.find({ title2: { $in: campaingFilterItem } }).select({ _id: 1 });
+										let tempIds = await this.cartModel.find({ category: { $in: categories } }).select({ _id: 1 });
 										let productIds = tempIds.map((x) => x._id);
 										replacements = [...replacements, ...[{ key: '$or', value: [{ itemsInCart: { $in: productIds } }] }]];
 									} else {
-										console.log('in brand');
-										replacements = [...replacements, ...[{ key: 'product.brand', value: { $in: campaingFilterItem } }]];
-									}
-								} else if (sortType == sortBy.Category) {
-									if (actionDBData.name == ACTIONS.REDUCE_INVENTORY) {
-										let tempIds = await this.cartModel.find({ category: { $in: campaingFilterItem } }).select({ _id: 1 });
-										let productIds = tempIds.map((x) => x._id);
-										replacements = [...replacements, ...[{ key: '$or', value: [{ itemsInCart: { $in: productIds } }] }]];
-									}
-									if (actionDBData.name == ACTIONS.MARKET_SPECIFIC_BRAND) {
-										let brandNames = await this.productModel.distinct('brand', { category: { $in: campaingFilterItem } });
+										let brandNames = await this.productModel.distinct('brand', { category: { $in: categories } });
 										replacements = [...replacements, ...[{ key: 'product.brand', value: { $in: brandNames } }]];
 									}
 								}
 							}
+
 							for (let i = 0; i < replacements.length; i++) {
 								const element = replacements[i];
 								updatePipeline(actionPipeline, element.key, element.value);
@@ -772,65 +795,67 @@ export class ClientOrderService {
 		}
 	}
 
-	async getTopCategory(storeId: Types.ObjectId, fromDate: Date, toDate: Date) {
-		const fromStartDate = fromDate;
-		const toEndDate = toDate;
-		try {
-			const pipeline: PipelineStage[] = [
-				{
-					$match: {
-						storeId,
-						posCreatedAt: {
-							$gte: fromStartDate,
-							$lte: toEndDate,
-						},
-					},
-				},
-				{
-					$unwind: '$itemsInCart',
-				},
-				{
-					$lookup: {
-						from: 'cart',
-						localField: 'itemsInCart',
-						foreignField: '_id',
-						as: 'category',
-					},
-				},
-				{
-					$unwind: '$category',
-				},
-				{
-					$group: {
-						_id: '$category.category',
-						totalAmount: { $sum: '$totals.finalTotal' },
-					},
-				},
-				{
-					$sort: {
-						totalAmount: -1,
-					},
-				},
-				{
-					$limit: 1,
-				},
-				{
-					$project: {
-						_id: 0,
-						topCategory: '$_id',
-						totalAmount: 1,
-					},
-				},
-			];
+	// async getTopCategory(storeId: Types.ObjectId, fromDate: Date, toDate: Date) {
+	// 	const fromStartDate = fromDate;
+	// 	const toEndDate = toDate;
+	// 	try {
+	// 		const pipeline: PipelineStage[] = [
+	// 			{
+	// 				$match: {
+	// 					storeId,
+	// 					posCreatedAt: {
+	// 						$gte: fromStartDate,
+	// 						$lte: toEndDate,
+	// 					},
+	// 				},
+	// 			},
+	// 			{
+	// 				$unwind: '$itemsInCart',
+	// 			},
+	// 			{
+	// 				$lookup: {
+	// 					from: 'cart',
+	// 					localField: 'itemsInCart',
+	// 					foreignField: '_id',
+	// 					as: 'category',
+	// 				},
+	// 			},
+	// 			{
+	// 				$unwind: '$category',
+	// 			},
+	// 			{
+	// 				$group: {
+	// 					_id: '$category.category',
+	// 					totalAmount: { $sum: '$totals.finalTotal' },
+	// 				},
+	// 			},
+	// 			{
+	// 				$sort: {
+	// 					totalAmount: -1,
+	// 				},
+	// 			},
+	// 			{
+	// 				$limit: 1,
+	// 			},
+	// 			{
+	// 				$project: {
+	// 					_id: 0,
+	// 					topCategory: '$_id',
+	// 					totalAmount: 1,
+	// 				},
+	// 			},
+	// 		];
+	// 		console.log("pipeline")
+	// 		console.log(pipeline)
 
-			const result = await this.orderModel.aggregate(pipeline);
-			const { totalAmount, topCategory } = result.length > 0 ? result[0] : { totalAmount: 0, topCategory: '' };
-			return topCategory;
-		} catch (error) {
-			console.error(error);
-			dynamicCatchException(error);
-		}
-	}
+	// 		const result = await this.orderModel.aggregate(pipeline);
+	// 		const { totalAmount, topCategory } = result.length > 0 ? result[0] : { totalAmount: 0, topCategory: '' };
+	// 		return topCategory;
+	// 	} catch (error) {
+	// 		console.error(error);
+	// 		dynamicCatchException(error);
+	// 	}
+	// }
 
 	async getRecurringAndNewCustomerPercentage(storeId: Types.ObjectId, fromDate: Date, toDate: Date) {
 		const fromStartDate = fromDate;
@@ -850,6 +875,7 @@ export class ClientOrderService {
 					$group: {
 						_id: '$customerId',
 						orderCount: { $sum: 1 },
+						totalSpend: { $sum: '$totals.finalTotal' },
 					},
 				},
 				{
@@ -866,6 +892,16 @@ export class ClientOrderService {
 							},
 						},
 						totalCustomers: { $sum: 1 },
+						recurringCustomerAverageSpend: {
+							$avg: {
+								$cond: [{ $gt: ['$orderCount', 1] }, '$totalSpend', null],
+							},
+						},
+						newCustomerAverageSpend: {
+							$avg: {
+								$cond: [{ $eq: ['$orderCount', 1] }, '$totalSpend', null],
+							},
+						},
 					},
 				},
 				{
@@ -878,12 +914,7 @@ export class ClientOrderService {
 										if: { $eq: ['$recurringCustomers', 0] },
 										then: 0,
 										else: {
-											$multiply: [
-												{
-													$divide: ['$recurringCustomers', '$totalCustomers'],
-												},
-												100,
-											],
+											$multiply: [{ $divide: ['$recurringCustomers', '$totalCustomers'] }, 100],
 										},
 									},
 								},
@@ -897,25 +928,117 @@ export class ClientOrderService {
 										if: { $eq: ['$newCustomers', 0] },
 										then: 0,
 										else: {
-											$multiply: [
-												{
-													$divide: ['$newCustomers', '$totalCustomers'],
-												},
-												100,
-											],
+											$multiply: [{ $divide: ['$newCustomers', '$totalCustomers'] }, 100],
 										},
 									},
 								},
 								2,
 							],
 						},
+						recurringCustomerAverageSpend: {
+							$round: ['$recurringCustomerAverageSpend', 2],
+						},
+						newCustomerAverageSpend: {
+							$round: ['$newCustomerAverageSpend', 2],
+						},
 					},
 				},
 			];
 			const result = await this.orderModel.aggregate(pipeline);
 
-			const { returningCustomer, newCustomer } = result.length > 0 ? result[0] : { returningCustomer: 0, newCustomer: 0 };
-			return { returningCustomer: returningCustomer, newCustomer };
+			const { returningCustomer, newCustomer, recurringCustomerAverageSpend, newCustomerAverageSpend } =
+				result.length > 0
+					? result[0]
+					: { returningCustomer: 0, newCustomer: 0, recurringCustomerAverageSpend: 0, newCustomerAverageSpend: 0 };
+			return { returningCustomer, newCustomer, recurringCustomerAverageSpend, newCustomerAverageSpend };
+		} catch (error) {
+			console.error('Error While Calculating the percentage' + error);
+			dynamicCatchException(error);
+		}
+	}
+
+	async getRegisteredVsNonRegisteredCustomers(storeId: Types.ObjectId, fromDate: Date, toDate: Date) {
+		const fromStartDate = fromDate;
+		const fromEndDate = toDate;
+		try {
+			const pipeline: PipelineStage[] = [
+				{
+					$match: {
+						storeId,
+						posCreatedAt: {
+							$gte: fromStartDate,
+							$lte: fromEndDate,
+						},
+					},
+				},
+				{
+					$lookup: {
+						from: 'customers',
+						let: {
+							customerId: '$customerId',
+						},
+						pipeline: [
+							{
+								$match: {
+									$expr: {
+										$or: [
+											{
+												$eq: ['$posCustomerId', '$$customerId'],
+											},
+											{
+												$eq: ['$_id', '$$customerId'],
+											},
+										],
+									},
+								},
+							},
+						],
+						as: 'customerInfo',
+					},
+				},
+				{
+					$addFields: {
+						isRegistered: {
+							$cond: {
+								if: {
+									$eq: [
+										{
+											$size: '$customerInfo',
+										},
+										0,
+									],
+								},
+								then: 'NonRegistered',
+								else: 'Registered',
+							},
+						},
+					},
+				},
+				{
+					$group: {
+						_id: '$isRegistered',
+						averageSpend: {
+							$avg: '$totals.finalTotal',
+						},
+					},
+				},
+				{
+					$project: {
+						_id: 0,
+						status: '$_id',
+						averageSpend: {
+							$round: ['$averageSpend', 2],
+						},
+					},
+				},
+			];
+			const result = await this.orderModel.aggregate(pipeline);
+
+			const transformedResult = {};
+			result.forEach((item) => {
+				transformedResult[item.status] = item.averageSpend;
+			});
+			return transformedResult;
 		} catch (error) {
 			console.error('Error While Calculating the percentage' + error);
 			dynamicCatchException(error);
@@ -1667,6 +1790,205 @@ export class ClientOrderService {
 		} catch (error) {
 			console.error(error);
 			dynamicCatchException(error);
+		}
+	}
+
+	async getOneTimeVsReturning(storeId: Types.ObjectId, fromDate: Date, toDate: Date) {
+		try {
+			const pipeline: PipelineStage[] = [
+				{
+					$match: {
+						storeId,
+						posCreatedAt: {
+							$gte: fromDate,
+							$lte: toDate,
+						},
+					},
+				},
+				{
+					$unwind: '$itemsInCart',
+				},
+				{
+					$lookup: {
+						from: 'cart',
+						localField: 'itemsInCart',
+						foreignField: '_id',
+						as: 'category',
+					},
+				},
+				{
+					$unwind: '$category',
+				},
+				{
+					$group: {
+						_id: '$category.category',
+						totalAmount: {
+							$sum: '$totals.finalTotal',
+						},
+						count: { $sum: 1 }, // Count the number of occurrences of each category
+					},
+				},
+				{
+					$facet: {
+						// 'repeatedCategories': [
+						// 	{
+						// 		'$match': {
+						// 			count: { '$gt': 1 } // Filter for repeated categories
+						// 		}
+						// 	},
+						// 	{
+						// 		'$sort': {
+						// 			totalAmount: -1
+						// 		}
+						// 	},
+						// 	{
+						// 		'$project': {
+						// 			_id: 0,
+						// 			category: '$_id',
+						// 			totalAmount: 1,
+						// 			count: 1
+						// 		}
+						// 	}
+						// ],
+						// 'singleTimeCategories': [
+						// 	{
+						// 		'$match': {
+						// 			count: 1 // Filter for single-time categories
+						// 		}
+						// 	},
+						// 	{
+						// 		'$project': {
+						// 			_id: 0,
+						// 			category: '$_id',
+						// 			totalAmount: 1,
+						// 			count: 1
+						// 		}
+						// 	}
+						// ],
+						repeatedCategoriesCount: [
+							{
+								$count: 'count',
+							},
+						],
+						singleTimeCategoriesCount: [
+							{
+								$match: {
+									count: 1,
+								},
+							},
+							{
+								$count: 'count',
+							},
+						],
+						categoryWithMaxTotalAmountRepeated: [
+							{
+								$match: {
+									count: { $gt: 1 },
+								},
+							},
+							{
+								$sort: {
+									totalAmount: -1,
+								},
+							},
+							{
+								$limit: 1,
+							},
+							{
+								$project: {
+									_id: 0,
+									category: '$_id',
+									totalAmount: 1,
+								},
+							},
+						],
+						// 'categoryWithMaxTotalAmountSingleTime': [
+						// 	{
+						// 		'$match': {
+						// 			count: 1
+						// 		}
+						// 	},
+						// 	{
+						// 		'$sort': {
+						// 			totalAmount: -1
+						// 		}
+						// 	},
+						// 	{
+						// 		'$limit': 1
+						// 	},
+						// 	{
+						// 		'$project': {
+						// 			_id: 0,
+						// 			category: '$_id',
+						// 			totalAmount: 1
+						// 		}
+						// 	}
+						// ]
+					},
+				},
+				{
+					$unwind: {
+						path: '$repeatedCategoriesCount',
+						preserveNullAndEmptyArrays: true,
+					},
+				},
+				{
+					$unwind: {
+						path: '$singleTimeCategoriesCount',
+						preserveNullAndEmptyArrays: true,
+					},
+				},
+				{
+					$addFields: {
+						repeatedPercentage: {
+							$cond: {
+								if: { $eq: ['$repeatedCategoriesCount.count', 0] },
+								then: 0,
+								else: {
+									$round: [
+										{
+											$multiply: [
+												{
+													$divide: [
+														'$repeatedCategoriesCount.count',
+														{ $sum: ['$repeatedCategoriesCount.count', '$singleTimeCategoriesCount.count'] },
+													],
+												},
+												100,
+											],
+										},
+									],
+								},
+							},
+						},
+						singleTimePercentage: {
+							$cond: {
+								if: { $eq: ['$singleTimeCategoriesCount.count', 0] },
+								then: 0,
+								else: {
+									$round: [
+										{
+											$multiply: [
+												{
+													$divide: [
+														'$singleTimeCategoriesCount.count',
+														{ $sum: ['$repeatedCategoriesCount.count', '$singleTimeCategoriesCount.count'] },
+													],
+												},
+												100,
+											],
+										},
+									],
+								},
+							},
+						},
+					},
+				},
+			];
+			const result = await this.orderModel.aggregate(pipeline);
+			return result[0];
+		} catch (error) {
+			console.error(error);
 		}
 	}
 }
