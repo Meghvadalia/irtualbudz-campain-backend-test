@@ -41,7 +41,9 @@ export const graphData = [
 			{
 				$group: {
 					_id: null, // Group all documents into a single group
-					chartData: { $push: { date: '$date', Average: '$Average' } }, // Store daily averages with dates in an array
+					chartData: {
+						$push: { date: '$date', Average: '$Average' },
+					}, // Store daily averages with dates in an array
 					TotalCount: { $sum: '$Average' }, // Calculate the total average
 					FirstDayAverage: { $first: '$Average' }, // Get the average of the first day
 					LastDayAverage: { $last: '$Average' }, // Get the average of the last day
@@ -57,7 +59,20 @@ export const graphData = [
 							if: { $eq: ['$LastDayAverage', 0] },
 							then: 0,
 							else: {
-								$multiply: [{ $divide: [{ $subtract: ['$LastDayAverage', '$FirstDayAverage'] }, '$FirstDayAverage'] }, 100],
+								$multiply: [
+									{
+										$divide: [
+											{
+												$subtract: [
+													'$LastDayAverage',
+													'$FirstDayAverage',
+												],
+											},
+											'$FirstDayAverage',
+										],
+									},
+									100,
+								],
 							},
 						},
 					},
@@ -89,14 +104,10 @@ export const graphData = [
 			{
 				$group: {
 					_id: {
-						year: {
-							$year: '$posCreatedAt',
-						},
-						month: {
-							$month: '$posCreatedAt',
-						},
-						day: {
-							$dayOfMonth: '$posCreatedAt',
+						$dateToString: {
+							format: '%Y-%m-%d',
+							date: '$posCreatedAt',
+							timezone: '',
 						},
 					},
 					count: {
@@ -104,51 +115,50 @@ export const graphData = [
 					},
 				},
 			},
-			{$sort:{_id:1}},
+			{ $sort: { _id: 1 } },
 			{
-				"$group": {
-					"_id": null,
-					"chartData": {
-						"$push": {
-							"date": {
-								"$dateToString": {
-									"format": "%Y-%m-%d",
-									"date": {
-										"$dateFromParts": {
-											"year": "$_id.year",
-											"month": "$_id.month",
-											"day": "$_id.day"
-										}
-									}
-								}
-							},
-							"count": "$count"
-						}
+				$group: {
+					_id: null,
+					chartData: {
+						$push: {
+							date: '$_id',
+							count: '$count',
+						},
 					},
-					"TotalCount": { "$sum": "$count" },
-					"FirstDayCount": { "$first": "$count" },
-					"LastDayCount": { "$last": "$count" }
-				}
+					TotalCount: { $sum: '$count' },
+					FirstDayCount: { $first: '$count' },
+					LastDayCount: { $last: '$count' },
+				},
 			},
 			{
-				"$project": {
-					"_id": 0,
-					"chartData": 1,
-					"TotalCount": 1,
-					"PercentageChange": {
-						"$cond": {
-							"if": { "$eq": ["$LastDayCount", 0] },
-							"then": 0,
-							"else": {
-								"$multiply": [
-									{ "$divide": [{ "$subtract": ["$LastDayCount", "$FirstDayCount"] }, "$FirstDayCount"] },
-									100
-								]
-							}
-						}
-					}
-				}
-			}
+				$project: {
+					_id: 0,
+					chartData: 1,
+					TotalCount: 1,
+					PercentageChange: {
+						$cond: {
+							if: { $eq: ['$LastDayCount', 0] },
+							then: 0,
+							else: {
+								$multiply: [
+									{
+										$divide: [
+											{
+												$subtract: [
+													'$LastDayCount',
+													'$FirstDayCount',
+												],
+											},
+											'$FirstDayCount',
+										],
+									},
+									100,
+								],
+							},
+						},
+					},
+				},
+			},
 		],
 		axes: [
 			{
@@ -175,14 +185,10 @@ export const graphData = [
 			{
 				$group: {
 					_id: {
-						year: {
-							$year: '$posCreatedAt',
-						},
-						month: {
-							$month: '$posCreatedAt',
-						},
-						day: {
-							$dayOfMonth: '$posCreatedAt',
+						$dateToString: {
+							format: '%Y-%m-%d',
+							date: '$posCreatedAt',
+							timezone: '',
 						},
 					},
 					count: {
@@ -192,19 +198,7 @@ export const graphData = [
 			},
 			{
 				$project: {
-					date: {
-						$dateToString: {
-							format: '%Y-%m-%d',
-							date: {
-								$dateFromParts: {
-									year: '$_id.year',
-									month: '$_id.month',
-									day: '$_id.day',
-								},
-							},
-							
-						},
-					},
+					date: '$_id',
 					count: 1,
 					_id: 0,
 				},
@@ -233,7 +227,20 @@ export const graphData = [
 							if: { $eq: ['$LastDayCount', 0] },
 							then: 0,
 							else: {
-								$multiply: [{ $divide: [{ $subtract: ['$LastDayCount', '$FirstDayCount'] }, '$FirstDayCount'] }, 100],
+								$multiply: [
+									{
+										$divide: [
+											{
+												$subtract: [
+													'$LastDayCount',
+													'$FirstDayCount',
+												],
+											},
+											'$FirstDayCount',
+										],
+									},
+									100,
+								],
 							},
 						},
 					},
@@ -285,10 +292,17 @@ export const graphData = [
 				$project: {
 					_id: 1,
 					posCreatedAt: {
-						$dateToString: { format: '%Y-%m-%d', date: '$posCreatedAt' },
+						$dateToString: {
+							format: '%Y-%m-%d',
+							date: '$posCreatedAt',
+							timezone: '',
+						},
 					},
 					grossProfit: {
-						$subtract: ['$inventoryData.priceInMinorUnits', '$inventoryData.costInMinorUnits'],
+						$subtract: [
+							'$inventoryData.priceInMinorUnits',
+							'$inventoryData.costInMinorUnits',
+						],
 					},
 				},
 			},
@@ -302,7 +316,7 @@ export const graphData = [
 				$project: {
 					_id: 0,
 					date: '$_id',
-					totalGrossProfit: {$divide:['$totalGrossProfit',100]},
+					totalGrossProfit: { $divide: ['$totalGrossProfit', 100] },
 				},
 			},
 			{
@@ -314,7 +328,12 @@ export const graphData = [
 					TotalCount: { $sum: '$totalGrossProfit' }, // Calculate the total gross profit
 					FirstDayGrossProfit: { $first: '$totalGrossProfit' }, // Get the profit of the first day
 					LastDayGrossProfit: { $last: '$totalGrossProfit' }, // Get the profit of the last day
-					chartData: { $push: { date: '$date', GrossProfit: '$totalGrossProfit' } }, // Store daily profits with dates in an array
+					chartData: {
+						$push: {
+							date: '$date',
+							GrossProfit: '$totalGrossProfit',
+						},
+					}, // Store daily profits with dates in an array
 				},
 			},
 			{
@@ -328,7 +347,17 @@ export const graphData = [
 							then: 0,
 							else: {
 								$multiply: [
-									{ $divide: [{ $subtract: ['$LastDayGrossProfit', '$FirstDayGrossProfit'] }, '$FirstDayGrossProfit'] },
+									{
+										$divide: [
+											{
+												$subtract: [
+													'$LastDayGrossProfit',
+													'$FirstDayGrossProfit',
+												],
+											},
+											'$FirstDayGrossProfit',
+										],
+									},
 									100,
 								],
 							},
@@ -369,6 +398,7 @@ export const graphData = [
 						$dateToString: {
 							format: '%Y-%m-%d',
 							date: '$posCreatedAt',
+							timezone: '',
 						},
 					},
 					itemCount: {
@@ -402,7 +432,9 @@ export const graphData = [
 					TotalCount: { $sum: '$totalItems' }, // Calculate the total item count
 					FirstDayItemCount: { $first: '$totalItems' }, // Get the item count of the first day
 					LastDayItemCount: { $last: '$totalItems' }, // Get the item count of the last day
-					chartData: { $push: { date: '$date', totalItems: '$totalItems' } }, // Store daily item counts with dates in an array
+					chartData: {
+						$push: { date: '$date', totalItems: '$totalItems' },
+					}, // Store daily item counts with dates in an array
 				},
 			},
 			{
@@ -415,7 +447,20 @@ export const graphData = [
 							if: { $eq: ['$LastDayItemCount', 0] },
 							then: 0,
 							else: {
-								$multiply: [{ $divide: [{ $subtract: ['$LastDayItemCount', '$FirstDayItemCount'] }, '$FirstDayItemCount'] }, 100],
+								$multiply: [
+									{
+										$divide: [
+											{
+												$subtract: [
+													'$LastDayItemCount',
+													'$FirstDayItemCount',
+												],
+											},
+											'$FirstDayItemCount',
+										],
+									},
+									100,
+								],
 							},
 						},
 					},
@@ -513,7 +558,9 @@ export const graphData = [
 					TotalCount: { $sum: '$orderCount' }, // Calculate the total order count
 					FirstDayOrderCount: { $first: '$orderCount' }, // Get the order count of the first day
 					LastDayOrderCount: { $last: '$orderCount' }, // Get the order count of the last day
-					chartData: { $push: { date: '$date', order: '$orderCount' } }, // Store daily order counts with dates in an array
+					chartData: {
+						$push: { date: '$date', order: '$orderCount' },
+					}, // Store daily order counts with dates in an array
 				},
 			},
 			{
@@ -527,7 +574,17 @@ export const graphData = [
 							then: 0,
 							else: {
 								$multiply: [
-									{ $divide: [{ $subtract: ['$LastDayOrderCount', '$FirstDayOrderCount'] }, '$FirstDayOrderCount'] },
+									{
+										$divide: [
+											{
+												$subtract: [
+													'$LastDayOrderCount',
+													'$FirstDayOrderCount',
+												],
+											},
+											'$FirstDayOrderCount',
+										],
+									},
 									100,
 								],
 							},
@@ -578,7 +635,7 @@ export const graphData = [
 									day: '$_id.day',
 								},
 							},
-							
+							timezone: '',
 						},
 					},
 					totalFinalTotal: {
@@ -595,7 +652,12 @@ export const graphData = [
 					TotalCount: { $sum: '$totalFinalTotal' }, // Calculate the total final total
 					FirstDayFinalTotal: { $first: '$totalFinalTotal' }, // Get the final total of the first day
 					LastDayFinalTotal: { $last: '$totalFinalTotal' }, // Get the final total of the last day
-					chartData: { $push: { date: '$date', Transactions: '$totalFinalTotal' } }, // Store daily final totals with dates in an array
+					chartData: {
+						$push: {
+							date: '$date',
+							Transactions: '$totalFinalTotal',
+						},
+					}, // Store daily final totals with dates in an array
 				},
 			},
 			{
@@ -609,7 +671,17 @@ export const graphData = [
 							then: 0,
 							else: {
 								$multiply: [
-									{ $divide: [{ $subtract: ['$LastDayFinalTotal', '$FirstDayFinalTotal'] }, '$FirstDayFinalTotal'] },
+									{
+										$divide: [
+											{
+												$subtract: [
+													'$LastDayFinalTotal',
+													'$FirstDayFinalTotal',
+												],
+											},
+											'$FirstDayFinalTotal',
+										],
+									},
 									100,
 								],
 							},
