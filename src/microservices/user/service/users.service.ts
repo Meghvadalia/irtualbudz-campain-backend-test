@@ -2,7 +2,7 @@ import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 
 import { User } from '../entities/user.entity';
-import { Model } from 'mongoose';
+import { Model, Types } from 'mongoose';
 import { CreateUserDto } from '../dto/user.dto';
 import { passwordService } from 'src/utils/password.util';
 import { JwtService } from 'src/utils/token.util';
@@ -26,19 +26,17 @@ export class UsersService {
 		if (emailExists) throw new RpcException('Email is already taken.');
 
 		if (payload.companyId) {
-			const company = await this.clientCompanyService.company(
-				payload.companyId
-			);
+			const company = await this.clientCompanyService.company(payload.companyId);
 			if (!company) throw new RpcException('Company Can not be found');
-			payload.companyId = company._id;
+			// @ts-ignore
+			payload.companyId = new Types.ObjectId(company._id);
 		} else {
-			const store = await this.clientStoreService.storeById(
-				payload.storeId
-			);
-			if (!store)
-				throw new RpcException('Store Can not be found with this ID');
-			payload.storeId = store._id;
-			payload.companyId = store.companyId;
+			const store = await this.clientStoreService.storeById(payload.storeId);
+			if (!store) throw new RpcException('Store Can not be found with this ID');
+			// @ts-ignore
+			payload.storeId = new Types.ObjectId(store._id);
+			// @ts-ignore
+			payload.companyId = new Types.ObjectId(store.companyId);
 		}
 
 		const newUser = await this.userModel.create({ ...payload });
@@ -52,19 +50,18 @@ export class UsersService {
 	}
 
 	async login(email: string, password: string): Promise<any> {
-			const user = (await this.findByEmail(email)) as User;
-			if (!user)  {
-				throw new RpcException("Email not found.");
-			} else {
+		const user = (await this.findByEmail(email)) as User;
+		if (!user) {
+			throw new RpcException('Email not found.');
+		} else {
 			const comparePassword = await passwordService.comparePasswords(password, user.password);
 			if (user && comparePassword) {
-				const { token, refreshToken } =
-					await this.sessionService.createSession(user._id, {
-						userId: user._id,
-						type: user.type,
-					});
+				const { token, refreshToken } = await this.sessionService.createSession(user._id, {
+					userId: user._id,
+					type: user.type,
+				});
 				return { user, token, refreshToken };
-			} else{
+			} else {
 				throw new RpcException('Invalid password.');
 			}
 		}
@@ -77,8 +74,7 @@ export class UsersService {
 
 	async generateNewAccessToken(refreshToken: string) {
 		try {
-			const decodedToken =
-				this.jwtService.verifyRefreshToken(refreshToken);
+			const decodedToken = this.jwtService.verifyRefreshToken(refreshToken);
 
 			const user = await this.findById(decodedToken.userId);
 			const session = await this.sessionService.findSession(user?.id);

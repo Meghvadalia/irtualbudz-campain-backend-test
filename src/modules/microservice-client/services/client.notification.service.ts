@@ -97,8 +97,8 @@ export class ClientNotificationService {
 						$match: {
 							storeId: store._id,
 							expirationDate: {
-								$gte: new Date(), // Filter only future expiration dates
-								$lt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 1 month from now
+								$gte: new Date(),
+								$lt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
 							},
 						},
 					},
@@ -162,20 +162,20 @@ export class ClientNotificationService {
 
 				const notifications = [];
 
-				if (expireProducts.length > 0 && expireProducts[0]?.total > 0) {
-					const userList = await this.userModel.find({
-						$or: [
-							{ storeId: new mongoose.Types.ObjectId(store._id) },
-							{
-								storeId: { $in: ['', null] },
-								companyId: new mongoose.Types.ObjectId(store.companyId),
-							},
-						],
-					});
+				const userList = await this.userModel.find({
+					$or: [
+						{ storeId: new mongoose.Types.ObjectId(store._id) },
+						{
+							storeId: { $in: ['', null] },
+							companyId: new mongoose.Types.ObjectId(store.companyId),
+						},
+					],
+				});
 
+				if (expireProducts.length > 0 && expireProducts[0]?.total > 0) {
 					notifications.push(
-						...userList.map((x) => ({
-							userId: x._id,
+						...userList.map((user) => ({
+							userId: user._id,
 							storeId: store._id,
 							message: `You have a new message for ${expireProducts[0].total} product(s) expiring in 1 month`,
 							title: 'Expiring products',
@@ -186,19 +186,9 @@ export class ClientNotificationService {
 				}
 
 				if (slowMovingItems.length > 0 && slowMovingItems[0]?.total > 0) {
-					const userList = await this.userModel.find({
-						$or: [
-							{ storeId: new mongoose.Types.ObjectId(store._id) },
-							{
-								storeId: { $in: ['', null] },
-								companyId: new mongoose.Types.ObjectId(store.companyId),
-							},
-						],
-					});
-
 					notifications.push(
-						...userList.map((x) => ({
-							userId: x._id,
+						...userList.map((user) => ({
+							userId: user._id,
 							storeId: store._id,
 							message: `You have a new message for ${slowMovingItems[0].total} items that are moving slowly`,
 							title: 'Slow Moving Items',
@@ -207,6 +197,17 @@ export class ClientNotificationService {
 						}))
 					);
 				}
+
+				notifications.push(
+					...userList.map((user) => ({
+						userId: user._id,
+						storeId: store._id,
+						message: 'Create the campaign for halloween',
+						title: 'Halloween is coming',
+						isDeleted: false,
+						isRead: false,
+					}))
+				);
 
 				resolve(notifications);
 			} catch (error) {

@@ -27,6 +27,7 @@ export class ClientNotificationController {
 	}
 
 	@Cron(CronExpression.EVERY_DAY_AT_7AM)
+	// @Get('seed')
 	// @UseGuards(RolesGuard)
 	// @Roles(USER_TYPE.SUPER_ADMIN, USER_TYPE.ADMIN, USER_TYPE.COMPANY_ADMIN, USER_TYPE.STORE_ADMIN, USER_TYPE.MANAGER)
 	async seedNotifications() {
