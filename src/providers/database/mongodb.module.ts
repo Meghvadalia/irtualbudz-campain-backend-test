@@ -5,7 +5,7 @@ import { MongodbConfigService } from 'src/config/database/mongodb/config.service
 import * as mongoose from 'mongoose';
 
 // somewhere in your code
-// mongoose.set('debug', true);
+mongoose.set('debug', true);
 @Module({
 	imports: [
 		MongooseModule.forRootAsync({

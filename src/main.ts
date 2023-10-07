@@ -12,8 +12,8 @@ import { ValidationPipe } from '@nestjs/common';
 import * as express from 'express';
 import { customErrorLogger, customLogger } from './common/middlwares/logging.middleware';
 
-// console.log = customLogger;
-// console.error = customErrorLogger;
+console.log = customLogger;
+console.error = customErrorLogger;
 async function bootstrap() {
 	const app = await NestFactory.create(AppModule);
 	app.useGlobalPipes(new ValidationPipe());

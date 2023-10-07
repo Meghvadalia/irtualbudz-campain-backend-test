@@ -29,6 +29,11 @@ export class ClientDashboardService {
 
 		const { formattedFromDate, formattedToDate } = getStoreTimezoneDateRange(query.fromDate, query.toDate, storeData.timeZone);
 		const averageAge = await this.calculateAverageAge(storeId, formattedFromDate, formattedToDate);
+		const { newCustomers, returningCustomers } = await this.returningVsNewCustomerTopCategory(
+			storeId,
+			formattedFromDate,
+			formattedToDate
+		);
 
 		const { averageSpend, loyaltyPointsConverted, averageSpendGrowth, loyaltyPointsConversionGrowth } =
 			await this.calculateAverageSpendAndLoyaltyPoints(storeId, formattedFromDate, formattedToDate);
@@ -44,7 +49,7 @@ export class ClientDashboardService {
 			// actionData,
 		} = await this.totalSales(storeId, formattedFromDate, formattedToDate, query.goalFlag, campaignId, audienceTracking);
 
-		// const topCategory = await this.topSellingCategory(storeId, formattedFromDate, formattedToDate);
+		const topCategory = await this.topSellingCategory(storeId, formattedFromDate, formattedToDate);
 		const { returningCustomer, newCustomer, newCustomerAverageSpend, recurringCustomerAverageSpend } =
 			await this.recVsMedCustomer(storeId, formattedFromDate, formattedToDate);
 		const registerdVsNonRegisteredCustomers = await this.registerdVsNonRegisteredCustomers(
@@ -61,7 +66,6 @@ export class ClientDashboardService {
 		const topDiscountedProduct = await this.orderService.topDiscountedItem(storeId, formattedFromDate, formattedToDate);
 		const topUsedCoupon = await this.orderService.topDiscountedCoupon(storeId, formattedFromDate, formattedToDate);
 		const { newCustomersByMonth, totalCustomerForCurrentYear } = await this.getCustomerAnalytics(storeId);
-		const oneTimeVsReturningCategory = await this.orderService.getOneTimeVsReturning(storeId, formattedFromDate, formattedToDate);
 
 		return {
 			overview: {
@@ -92,17 +96,21 @@ export class ClientDashboardService {
 					loyaltyPointsConverted,
 					loyaltyPointsConversionGrowth,
 				},
-				topCategory: oneTimeVsReturningCategory?.categoryWithMaxTotalAmountRepeated[0]?.category,
+				topCategory,
 				recOrMedCustomer: {
 					newCustomer: newCustomer,
 					returningCustomer: returningCustomer,
 				},
-				oneTimeVsReturningCategory,
+
 				recVsMedAverageSpend: {
 					recurringCustomerAverageSpend,
 					newCustomerAverageSpend,
 				},
 				registerdVsNonRegisteredCustomers,
+				recVsMedTopCategory: {
+					newCustomers,
+					returningCustomers,
+				},
 			},
 			sales: {
 				brandWiseSalesData: brandWiseOrderData,
@@ -122,6 +130,11 @@ export class ClientDashboardService {
 	async calculateAverageAge(storeId: Types.ObjectId, fromDate: Date, toDate: Date) {
 		const averageAge = await this.customerService.getAverageAge(storeId, fromDate, toDate);
 		return averageAge;
+	}
+
+	async returningVsNewCustomerTopCategory(storeId: Types.ObjectId, fromDate: Date, toDate: Date) {
+		const topCategory = await this.orderService.recurringVsNewCustomerTopCategory(storeId, fromDate, toDate);
+		return topCategory;
 	}
 
 	async recVsMedCustomer(storeId: Types.ObjectId, fromDate: Date, toDate: Date) {
@@ -202,12 +215,12 @@ export class ClientDashboardService {
 		}
 	}
 
-	// async topSellingCategory(storeId: Types.ObjectId, fromDate: Date, toDate: Date) {
-	// 	try {
-	// 		const topCategory = await this.orderService.getTopCategory(storeId, fromDate, toDate);
-	// 		return topCategory;
-	// 	} catch (error) {
-	// 		dynamicCatchException(error);
-	// 	}
-	// }
+	async topSellingCategory(storeId: Types.ObjectId, fromDate: Date, toDate: Date) {
+		try {
+			const topCategory = await this.orderService.getTopCategory(storeId, fromDate, toDate);
+			return topCategory;
+		} catch (error) {
+			dynamicCatchException(error);
+		}
+	}
 }

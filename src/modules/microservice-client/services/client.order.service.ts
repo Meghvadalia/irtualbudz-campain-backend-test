@@ -15,7 +15,7 @@ import { AudienceCustomer } from '../entities/audienceCustomers.entity';
 import { AudienceDetail } from '../entities/audienceDetails.entity';
 import { RedisService } from 'src/config/cache/config.service';
 import { IReplacements } from 'src/common/interface';
-import { AudienceName, DAYS_OF_WEEK } from 'src/common/constants';
+import { AudienceName, DATABASE_COLLECTION, DAYS_OF_WEEK } from 'src/common/constants';
 import { dynamicCatchException } from 'src/utils/error.utils';
 import { Cart } from 'src/microservices/order/entities/cart.entity';
 import { Product } from 'src/microservices/inventory/entities/product.entity';
@@ -207,7 +207,6 @@ export class ClientOrderService {
 						name: audienceName.map((x) => x.name).toString(),
 						count: ids.length,
 					};
-					console.log('audienceDBData =>', audienceDBData);
 				}
 				if (campaignData?.goals != null && campaignData?.goals != undefined && campaignData?.goals != '') {
 					goalDBData = await this.clientGoalService.goalsById(campaignData?.goals);
@@ -239,7 +238,7 @@ export class ClientOrderService {
 						newStages = [
 							{
 								$addFields: {
-									dayOfWeek: { $dayOfWeek: { date: '$posCreatedAt'} },
+									dayOfWeek: { $dayOfWeek: { date: '$posCreatedAt' } },
 								},
 							},
 							{
@@ -290,7 +289,7 @@ export class ClientOrderService {
 									console.log('in brand');
 									if (actionDBData.name == ACTIONS.MARKET_SPECIFIC_BRAND) {
 										replacements = [...replacements, ...[{ key: 'product.brand', value: { $in: brand } }]];
-									}else {
+									} else {
 										let tempIds = await this.cartModel.find({ title2: { $in: brand } }).select({ _id: 1 });
 										let productIds = tempIds.map((x) => x._id);
 										replacements = [...replacements, ...[{ key: '$or', value: [{ itemsInCart: { $in: productIds } }] }]];
@@ -302,7 +301,7 @@ export class ClientOrderService {
 									if (actionDBData.name == ACTIONS.MARKET_SPECIFIC_BRAND) {
 										let brandNames = await this.productModel.distinct('brand', { _id: { $in: product } });
 										replacements = [...replacements, ...[{ key: 'product.brand', value: { $in: brandNames } }]];
-									}else {
+									} else {
 										replacements = [...replacements, ...[{ key: '$or', value: [{ itemsInCart: { $in: product } }] }]];
 									}
 								}
@@ -318,12 +317,20 @@ export class ClientOrderService {
 										replacements = [...replacements, ...[{ key: 'product.brand', value: { $in: brandNames } }]];
 									}
 								}
-								if(actionDBData.name == ACTIONS.BUNDLES){
-									replacements = [...replacements, ...[{ key: '$or', value: [
-										{ 'carts.title2': { $in: brand } },
-										{ 'carts.category': { $in: categories } },
-										{ 'carts.productName': { $in: product } },
-									]  }]];
+								if (actionDBData.name == ACTIONS.BUNDLES) {
+									replacements = [
+										...replacements,
+										...[
+											{
+												key: '$or',
+												value: [
+													{ 'carts.title2': { $in: brand } },
+													{ 'carts.category': { $in: categories } },
+													{ 'carts.productName': { $in: product } },
+												],
+											},
+										],
+									];
 								}
 							}
 
@@ -344,16 +351,12 @@ export class ClientOrderService {
 			// }
 
 			// console.log("redisUniqueId Value ====>", redisUniqueId)
-			console.log('goalPipeline');
-			console.log(JSON.stringify(goalPipeline));
 			console.time('<============== query goal pipeline ===============>');
 			let goalData = await this.orderModel.aggregate(goalPipeline);
 			console.timeEnd('<============== query goal pipeline ===============>');
 
 			let actionData;
 			if (actionPipeline) {
-				console.log('actionPipeline');
-				console.log(JSON.stringify(actionPipeline));
 				console.time('<============== query action pipeline ===============>');
 				actionData = await this.orderModel.aggregate(actionPipeline);
 				console.timeEnd('<============== query action pipeline ===============>');
@@ -802,67 +805,197 @@ export class ClientOrderService {
 		}
 	}
 
-	// async getTopCategory(storeId: Types.ObjectId, fromDate: Date, toDate: Date) {
-	// 	const fromStartDate = fromDate;
-	// 	const toEndDate = toDate;
-	// 	try {
-	// 		const pipeline: PipelineStage[] = [
-	// 			{
-	// 				$match: {
-	// 					storeId,
-	// 					posCreatedAt: {
-	// 						$gte: fromStartDate,
-	// 						$lte: toEndDate,
-	// 					},
-	// 				},
-	// 			},
-	// 			{
-	// 				$unwind: '$itemsInCart',
-	// 			},
-	// 			{
-	// 				$lookup: {
-	// 					from: 'cart',
-	// 					localField: 'itemsInCart',
-	// 					foreignField: '_id',
-	// 					as: 'category',
-	// 				},
-	// 			},
-	// 			{
-	// 				$unwind: '$category',
-	// 			},
-	// 			{
-	// 				$group: {
-	// 					_id: '$category.category',
-	// 					totalAmount: { $sum: '$totals.finalTotal' },
-	// 				},
-	// 			},
-	// 			{
-	// 				$sort: {
-	// 					totalAmount: -1,
-	// 				},
-	// 			},
-	// 			{
-	// 				$limit: 1,
-	// 			},
-	// 			{
-	// 				$project: {
-	// 					_id: 0,
-	// 					topCategory: '$_id',
-	// 					totalAmount: 1,
-	// 				},
-	// 			},
-	// 		];
-	// 		console.log("pipeline")
-	// 		console.log(pipeline)
+	async getTopCategory(storeId: Types.ObjectId, fromDate: Date, toDate: Date) {
+		const fromStartDate = fromDate;
+		const toEndDate = toDate;
+		try {
+			const pipeline: PipelineStage[] = [
+				{
+					$match: {
+						storeId,
+						posCreatedAt: {
+							$gte: fromStartDate,
+							$lte: toEndDate,
+						},
+					},
+				},
+				{
+					$unwind: '$itemsInCart',
+				},
+				{
+					$lookup: {
+						from: 'cart',
+						localField: 'itemsInCart',
+						foreignField: '_id',
+						as: 'category',
+					},
+				},
+				{
+					$unwind: '$category',
+				},
+				{
+					$group: {
+						_id: '$category.category',
+						totalAmount: { $sum: '$totals.finalTotal' },
+					},
+				},
+				{
+					$sort: {
+						totalAmount: -1,
+					},
+				},
+				{
+					$limit: 1,
+				},
+				{
+					$project: {
+						_id: 0,
+						topCategory: '$_id',
+						totalAmount: 1,
+					},
+				},
+			];
 
-	// 		const result = await this.orderModel.aggregate(pipeline);
-	// 		const { totalAmount, topCategory } = result.length > 0 ? result[0] : { totalAmount: 0, topCategory: '' };
-	// 		return topCategory;
-	// 	} catch (error) {
-	// 		console.error(error);
-	// 		dynamicCatchException(error);
-	// 	}
-	// }
+			const result = await this.orderModel.aggregate(pipeline);
+			const { totalAmount, topCategory } = result.length > 0 ? result[0] : { totalAmount: 0, topCategory: '' };
+			return topCategory;
+		} catch (error) {
+			console.error(error);
+			dynamicCatchException(error);
+		}
+	}
+
+	async recurringVsNewCustomerTopCategory(storeId: Types.ObjectId, fromDate: Date, toDate: Date) {
+		const fromStartDate = fromDate;
+		const fromEndDate = toDate;
+
+		try {
+			const pipeline: PipelineStage[] = [
+				{
+					$match: {
+						storeId,
+						posCreatedAt: {
+							$gte: fromStartDate,
+							$lte: fromEndDate,
+						},
+					},
+				},
+				{
+					$unwind: {
+						path: '$itemsInCart',
+					},
+				},
+				{
+					$lookup: {
+						from: DATABASE_COLLECTION.CART,
+						localField: 'itemsInCart',
+						foreignField: '_id',
+						as: 'cartData',
+					},
+				},
+				{
+					$unwind: {
+						path: '$cartData',
+					},
+				},
+				{
+					$group: {
+						_id: {
+							customerId: '$customerId',
+							category: '$cartData.category',
+						},
+						orderCount: {
+							$sum: 1,
+						},
+					},
+				},
+				{
+					$group: {
+						_id: '$_id.category',
+						newCustomers: {
+							$sum: {
+								$cond: [
+									{
+										$gte: ['$orderCount', 2],
+									},
+									1,
+									0,
+								],
+							},
+						},
+						returningCustomers: {
+							$sum: {
+								$cond: [
+									{
+										$gte: ['$orderCount', 2],
+									},
+									0,
+									1,
+								],
+							},
+						},
+					},
+				},
+				{
+					$facet: {
+						newCustomers: [
+							{
+								$sort: {
+									newCustomers: -1,
+								},
+							},
+							{
+								$limit: 1,
+							},
+							{
+								$project: {
+									_id: 0,
+									category: '$_id',
+									count: '$newCustomers',
+								},
+							},
+						],
+						returningCustomers: [
+							{
+								$sort: {
+									returningCustomers: -1,
+								},
+							},
+							{
+								$limit: 1,
+							},
+							{
+								$project: {
+									_id: 0,
+									category: '$_id',
+									count: '$returningCustomers',
+								},
+							},
+						],
+					},
+				},
+				{
+					$project: {
+						_id: 0,
+						newCustomers: {
+							$arrayElemAt: ['$newCustomers.category', 0],
+						},
+						returningCustomers: {
+							$arrayElemAt: ['$returningCustomers.category', 0],
+						},
+					},
+				},
+			];
+			const result = await this.orderModel.aggregate(pipeline);
+
+			const { returningCustomers, newCustomers } = result.length > 0 ? result[0] : { returningCustomers: '', newCustomers: '' };
+
+			return { returningCustomers, newCustomers };
+		} catch (error) {
+			console.error('Error While Calculating the percentage' + error);
+			dynamicCatchException(error);
+		}
+	}
 
 	async getRecurringAndNewCustomerPercentage(storeId: Types.ObjectId, fromDate: Date, toDate: Date) {
 		const fromStartDate = fromDate;
@@ -881,32 +1014,86 @@ export class ClientOrderService {
 				{
 					$group: {
 						_id: '$customerId',
-						orderCount: { $sum: 1 },
-						totalSpend: { $sum: '$totals.finalTotal' },
+						orderCount: {
+							$sum: 1,
+						},
+						totalSpending: {
+							$sum: '$totals.finalTotal',
+						},
+					},
+				},
+				{
+					$project: {
+						customerId: '$_id',
+						orderCount: 1,
+						totalSpending: 1,
+						customerType: {
+							$cond: {
+								if: {
+									$gte: ['$orderCount', 2],
+								},
+								then: 'Returning',
+								else: 'New',
+							},
+						},
+					},
+				},
+				{
+					$group: {
+						_id: '$customerType',
+						customerCount: {
+							$sum: 1,
+						},
+						averageSpending: {
+							$avg: '$totalSpending',
+						},
 					},
 				},
 				{
 					$group: {
 						_id: null,
-						recurringCustomers: {
+						returningCustomerCount: {
 							$sum: {
-								$cond: [{ $gt: ['$orderCount', 1] }, 1, 0],
+								$cond: [
+									{
+										$eq: ['$_id', 'Returning'],
+									},
+									'$customerCount',
+									0,
+								],
 							},
 						},
-						newCustomers: {
+						newCustomerCount: {
 							$sum: {
-								$cond: [{ $eq: ['$orderCount', 1] }, 1, 0],
+								$cond: [
+									{
+										$eq: ['$_id', 'New'],
+									},
+									'$customerCount',
+									0,
+								],
 							},
 						},
-						totalCustomers: { $sum: 1 },
-						recurringCustomerAverageSpend: {
+						returningCustomerAverageSpend: {
 							$avg: {
-								$cond: [{ $gt: ['$orderCount', 1] }, '$totalSpend', null],
+								$cond: [
+									{
+										$eq: ['$_id', 'Returning'],
+									},
+									'$averageSpending',
+									null,
+								],
 							},
 						},
 						newCustomerAverageSpend: {
 							$avg: {
-								$cond: [{ $eq: ['$orderCount', 1] }, '$totalSpend', null],
+								$cond: [
+									{
+										$eq: ['$_id', 'New'],
+									},
+									'$averageSpending',
+									null,
+								],
 							},
 						},
 					},
@@ -917,13 +1104,17 @@ export class ClientOrderService {
 						returningCustomer: {
 							$round: [
 								{
-									$cond: {
-										if: { $eq: ['$recurringCustomers', 0] },
-										then: 0,
-										else: {
-											$multiply: [{ $divide: ['$recurringCustomers', '$totalCustomers'] }, 100],
+									$multiply: [
+										{
+											$divide: [
+												'$returningCustomerCount',
+												{
+													$add: ['$returningCustomerCount', '$newCustomerCount'],
+												},
+											],
 										},
-									},
+										100,
+									],
 								},
 								2,
 							],
@@ -931,19 +1122,23 @@ export class ClientOrderService {
 						newCustomer: {
 							$round: [
 								{
-									$cond: {
-										if: { $eq: ['$newCustomers', 0] },
-										then: 0,
-										else: {
-											$multiply: [{ $divide: ['$newCustomers', '$totalCustomers'] }, 100],
+									$multiply: [
+										{
+											$divide: [
+												'$newCustomerCount',
+												{
+													$add: ['$returningCustomerCount', '$newCustomerCount'],
+												},
+											],
 										},
-									},
+										100,
+									],
 								},
 								2,
 							],
 						},
 						recurringCustomerAverageSpend: {
-							$round: ['$recurringCustomerAverageSpend', 2],
+							$round: ['$returningCustomerAverageSpend', 2],
 						},
 						newCustomerAverageSpend: {
 							$round: ['$newCustomerAverageSpend', 2],
@@ -1797,205 +1992,6 @@ export class ClientOrderService {
 		} catch (error) {
 			console.error(error);
 			dynamicCatchException(error);
-		}
-	}
-
-	async getOneTimeVsReturning(storeId: Types.ObjectId, fromDate: Date, toDate: Date) {
-		try {
-			const pipeline: PipelineStage[] = [
-				{
-					$match: {
-						storeId,
-						posCreatedAt: {
-							$gte: fromDate,
-							$lte: toDate,
-						},
-					},
-				},
-				{
-					$unwind: '$itemsInCart',
-				},
-				{
-					$lookup: {
-						from: 'cart',
-						localField: 'itemsInCart',
-						foreignField: '_id',
-						as: 'category',
-					},
-				},
-				{
-					$unwind: '$category',
-				},
-				{
-					$group: {
-						_id: '$category.category',
-						totalAmount: {
-							$sum: '$totals.finalTotal',
-						},
-						count: { $sum: 1 }, // Count the number of occurrences of each category
-					},
-				},
-				{
-					$facet: {
-						// 'repeatedCategories': [
-						// 	{
-						// 		'$match': {
-						// 			count: { '$gt': 1 } // Filter for repeated categories
-						// 		}
-						// 	},
-						// 	{
-						// 		'$sort': {
-						// 			totalAmount: -1
-						// 		}
-						// 	},
-						// 	{
-						// 		'$project': {
-						// 			_id: 0,
-						// 			category: '$_id',
-						// 			totalAmount: 1,
-						// 			count: 1
-						// 		}
-						// 	}
-						// ],
-						// 'singleTimeCategories': [
-						// 	{
-						// 		'$match': {
-						// 			count: 1 // Filter for single-time categories
-						// 		}
-						// 	},
-						// 	{
-						// 		'$project': {
-						// 			_id: 0,
-						// 			category: '$_id',
-						// 			totalAmount: 1,
-						// 			count: 1
-						// 		}
-						// 	}
-						// ],
-						repeatedCategoriesCount: [
-							{
-								$count: 'count',
-							},
-						],
-						singleTimeCategoriesCount: [
-							{
-								$match: {
-									count: 1,
-								},
-							},
-							{
-								$count: 'count',
-							},
-						],
-						categoryWithMaxTotalAmountRepeated: [
-							{
-								$match: {
-									count: { $gt: 1 },
-								},
-							},
-							{
-								$sort: {
-									totalAmount: -1,
-								},
-							},
-							{
-								$limit: 1,
-							},
-							{
-								$project: {
-									_id: 0,
-									category: '$_id',
-									totalAmount: 1,
-								},
-							},
-						],
-						// 'categoryWithMaxTotalAmountSingleTime': [
-						// 	{
-						// 		'$match': {
-						// 			count: 1
-						// 		}
-						// 	},
-						// 	{
-						// 		'$sort': {
-						// 			totalAmount: -1
-						// 		}
-						// 	},
-						// 	{
-						// 		'$limit': 1
-						// 	},
-						// 	{
-						// 		'$project': {
-						// 			_id: 0,
-						// 			category: '$_id',
-						// 			totalAmount: 1
-						// 		}
-						// 	}
-						// ]
-					},
-				},
-				{
-					$unwind: {
-						path: '$repeatedCategoriesCount',
-						preserveNullAndEmptyArrays: true,
-					},
-				},
-				{
-					$unwind: {
-						path: '$singleTimeCategoriesCount',
-						preserveNullAndEmptyArrays: true,
-					},
-				},
-				{
-					$addFields: {
-						repeatedPercentage: {
-							$cond: {
-								if: { $eq: ['$repeatedCategoriesCount.count', 0] },
-								then: 0,
-								else: {
-									$round: [
-										{
-											$multiply: [
-												{
-													$divide: [
-														'$repeatedCategoriesCount.count',
-														{ $sum: ['$repeatedCategoriesCount.count', '$singleTimeCategoriesCount.count'] },
-													],
-												},
-												100,
-											],
-										},
-									],
-								},
-							},
-						},
-						singleTimePercentage: {
-							$cond: {
-								if: { $eq: ['$singleTimeCategoriesCount.count', 0] },
-								then: 0,
-								else: {
-									$round: [
-										{
-											$multiply: [
-												{
-													$divide: [
-														'$singleTimeCategoriesCount.count',
-														{ $sum: ['$repeatedCategoriesCount.count', '$singleTimeCategoriesCount.count'] },
-													],
-												},
-												100,
-											],
-										},
-									],
-								},
-							},
-						},
-					},
-				},
-			];
-			const result = await this.orderModel.aggregate(pipeline);
-			return result[0];
-		} catch (error) {
-			console.error(error);
 		}
 	}
 }
