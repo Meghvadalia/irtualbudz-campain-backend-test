@@ -13,7 +13,6 @@ import { SORT_KEYS } from '../interfaces/campaign.interface';
 import { ACTIONS } from 'src/common/seeders/actions';
 import { AudienceCustomer } from '../entities/audienceCustomers.entity';
 import { AudienceDetail } from '../entities/audienceDetails.entity';
-import { RedisService } from 'src/config/cache/config.service';
 import { IReplacements } from 'src/common/interface';
 import { AudienceName, DATABASE_COLLECTION, DAYS_OF_WEEK } from 'src/common/constants';
 import { dynamicCatchException } from 'src/utils/error.utils';
@@ -29,7 +28,6 @@ export class ClientOrderService {
 		public clientActionService: ClientActionService,
 		public clientCampaignService: ClientCampaignService,
 		public clientStoreService: ClientStoreService,
-		private readonly redisService: RedisService,
 		@InjectModel(AudienceDetail.name) private audienceDetailsModel: Model<AudienceDetail>,
 		@InjectModel(AudienceCustomer.name) private audienceCustomerModel: Model<AudienceCustomer>,
 		@InjectModel(Cart.name) private cartModel: Model<Cart>,
@@ -609,7 +607,7 @@ export class ClientOrderService {
 				},
 				{
 					$group: {
-						_id: '$customerId',
+						_id: null,
 						averageSpend: { $avg: '$totals.finalTotal' },
 						totalPoints: { $sum: '$currentPoints' },
 						fromDateAverageSpend: {
@@ -695,32 +693,17 @@ export class ClientOrderService {
 					},
 				},
 				{
-					$group: {
-						_id: null,
-						averageSpend: { $avg: '$averageSpend' },
-						totalPointsConverted: { $sum: '$totalPoints' },
-						fromDateAverageSpend: { $avg: '$fromDateAverageSpend' },
-						toDateAverageSpend: { $avg: '$toDateAverageSpend' },
-						fromDateTotalLoyaltyPointsConverted: {
-							$sum: '$fromDateTotalLoyaltyPointsConverted',
-						},
-						toDateTotalLoyaltyPointsConverted: {
-							$sum: '$toDateTotalLoyaltyPointsConverted',
-						},
-					},
-				},
-				{
 					$project: {
 						_id: 0,
-						averageSpend: {
-							$round: [{ $ifNull: ['$averageSpend', 0] }, 2],
-						},
-						loyaltyPointsConverted: '$totalPointsConverted',
+						averageSpend: { $round: [{ $ifNull: ['$averageSpend', 0] }, 2] },
+						loyaltyPointsConverted: '$totalPoints',
 						averageSpendGrowth: {
 							$round: [
 								{
 									$cond: [
-										{ $ne: ['$fromDateAverageSpend', 0] },
+										{
+											$ne: ['$fromDateAverageSpend', 0],
+										},
 										{
 											$multiply: [
 												{
@@ -824,7 +807,7 @@ export class ClientOrderService {
 				},
 				{
 					$lookup: {
-						from: 'cart',
+						from: DATABASE_COLLECTION.CART,
 						localField: 'itemsInCart',
 						foreignField: '_id',
 						as: 'category',
@@ -887,7 +870,7 @@ export class ClientOrderService {
 				},
 				{
 					$lookup: {
-						from: DATABASE_COLLECTION.CART,
+						from: 'cart',
 						localField: 'itemsInCart',
 						foreignField: '_id',
 						as: 'cartData',
@@ -904,6 +887,9 @@ export class ClientOrderService {
 							customerId: '$customerId',
 							category: '$cartData.category',
 						},
+						finalTotal: {
+							$sum: '$totals.finalTotal',
+						},
 						orderCount: {
 							$sum: 1,
 						},
@@ -911,82 +897,74 @@ export class ClientOrderService {
 				},
 				{
 					$group: {
-						_id: '$_id.category',
-						newCustomers: {
-							$sum: {
+						_id: {
+							category: '$_id.category',
+							isReturningCustomer: {
 								$cond: [
 									{
-										$gte: ['$orderCount', 2],
+										$gt: ['$orderCount', 1],
 									},
-									1,
-									0,
+									true,
+									false,
 								],
 							},
 						},
-						returningCustomers: {
-							$sum: {
-								$cond: [
-									{
-										$gte: ['$orderCount', 2],
-									},
-									0,
-									1,
-								],
-							},
+						totalSpent: {
+							$max: '$finalTotal',
 						},
 					},
 				},
 				{
-					$facet: {
-						newCustomers: [
-							{
-								$sort: {
-									newCustomers: -1,
-								},
+					$sort: {
+						'_id.isReturningCustomer': 1,
+						totalSpent: -1,
+					},
+				},
+				{
+					$group: {
+						_id: '$_id.isReturningCustomer',
+						topCategory: {
+							$first: '$_id.category',
+						},
+					},
+				},
+				{
+					$group: {
+						_id: null,
+						newCustomers: {
+							$max: {
+								$cond: [
+									{
+										$eq: ['$_id', false],
+									},
+									'$topCategory',
+									null,
+								],
 							},
-							{
-								$limit: 1,
+						},
+						returningCustomers: {
+							$max: {
+								$cond: [
+									{
+										$eq: ['$_id', true],
+									},
+									'$topCategory',
+									null,
+								],
 							},
-							{
-								$project: {
-									_id: 0,
-									category: '$_id',
-									count: '$newCustomers',
-								},
-							},
-						],
-						returningCustomers: [
-							{
-								$sort: {
-									returningCustomers: -1,
-								},
-							},
-							{
-								$limit: 1,
-							},
-							{
-								$project: {
-									_id: 0,
-									category: '$_id',
-									count: '$returningCustomers',
-								},
-							},
-						],
+						},
 					},
 				},
 				{
 					$project: {
 						_id: 0,
-						newCustomers: {
-							$arrayElemAt: ['$newCustomers.category', 0],
-						},
-						returningCustomers: {
-							$arrayElemAt: ['$returningCustomers.category', 0],
-						},
+						newCustomers: 1,
+						returningCustomers: 1,
 					},
 				},
 			];
 			const result = await this.orderModel.aggregate(pipeline);
+			console.log('PIPELINE ==>', JSON.stringify(pipeline));
 
 			const { returningCustomers, newCustomers } = result.length > 0 ? result[0] : { returningCustomers: '', newCustomers: '' };
 
@@ -1014,7 +992,7 @@ export class ClientOrderService {
 				{
 					$group: {
 						_id: '$customerId',
-						orderCount: {
+						totalOrders: {
 							$sum: 1,
 						},
 						totalSpending: {
@@ -1023,28 +1001,20 @@ export class ClientOrderService {
 					},
 				},
 				{
-					$project: {
-						customerId: '$_id',
-						orderCount: 1,
-						totalSpending: 1,
-						customerType: {
+					$group: {
+						_id: {
 							$cond: {
 								if: {
-									$gte: ['$orderCount', 2],
+									$gte: ['$totalOrders', 2],
 								},
-								then: 'Returning',
-								else: 'New',
+								then: 'Returning Customers',
+								else: 'New Customers',
 							},
 						},
-					},
-				},
-				{
-					$group: {
-						_id: '$customerType',
 						customerCount: {
 							$sum: 1,
 						},
-						averageSpending: {
+						avgSpending: {
 							$avg: '$totalSpending',
 						},
 					},
@@ -1052,48 +1022,75 @@ export class ClientOrderService {
 				{
 					$group: {
 						_id: null,
-						returningCustomerCount: {
-							$sum: {
-								$cond: [
-									{
-										$eq: ['$_id', 'Returning'],
-									},
-									'$customerCount',
-									0,
-								],
+						totalCustomers: {
+							$sum: '$customerCount',
+						},
+						customerTypes: {
+							$push: {
+								customerType: '$_id',
+								customerCount: '$customerCount',
+								avgSpending: '$avgSpending',
 							},
 						},
-						newCustomerCount: {
-							$sum: {
-								$cond: [
-									{
-										$eq: ['$_id', 'New'],
-									},
-									'$customerCount',
-									0,
-								],
+					},
+				},
+				{
+					$unwind: {
+						path: '$customerTypes',
+					},
+				},
+				{
+					$project: {
+						_id: 0,
+						customerType: '$customerTypes.customerType',
+						customerCount: '$customerTypes.customerCount',
+						avgSpending: {
+							$round: ['$customerTypes.avgSpending', 2],
+						},
+						percentage: {
+							$round: [
+								{
+									$multiply: [
+										{
+											$divide: ['$customerTypes.customerCount', '$totalCustomers'],
+										},
+										100,
+									],
+								},
+								2,
+							],
+						},
+					},
+				},
+				{
+					$group: {
+						_id: null,
+						results: {
+							$push: {
+								k: {
+									$cond: [
+										{
+											$eq: ['$customerType', 'New Customers'],
+										},
+										'newCustomer',
+										'returningCustomer',
+									],
+								},
+								v: '$percentage',
 							},
 						},
-						returningCustomerAverageSpend: {
-							$avg: {
-								$cond: [
-									{
-										$eq: ['$_id', 'Returning'],
-									},
-									'$averageSpending',
-									null,
-								],
-							},
-						},
-						newCustomerAverageSpend: {
-							$avg: {
-								$cond: [
-									{
-										$eq: ['$_id', 'New'],
-									},
-									'$averageSpending',
-									null,
-								],
+						avgSpend: {
+							$push: {
+								k: {
+									$cond: [
+										{
+											$eq: ['$customerType', 'New Customers'],
+										},
+										'newCustomerAverageSpend',
+										'recurringCustomerAverageSpend',
+									],
+								},
+								v: '$avgSpending',
 							},
 						},
 					},
@@ -1101,47 +1098,18 @@ export class ClientOrderService {
 				{
 					$project: {
 						_id: 0,
-						returningCustomer: {
-							$round: [
-								{
-									$multiply: [
-										{
-											$divide: [
-												'$returningCustomerCount',
-												{
-													$add: ['$returningCustomerCount', '$newCustomerCount'],
-												},
-											],
-										},
-										100,
-									],
-								},
-								2,
-							],
+						results: {
+							$arrayToObject: '$results',
 						},
-						newCustomer: {
-							$round: [
-								{
-									$multiply: [
-										{
-											$divide: [
-												'$newCustomerCount',
-												{
-													$add: ['$returningCustomerCount', '$newCustomerCount'],
-												},
-											],
-										},
-										100,
-									],
-								},
-								2,
-							],
+						avgSpend: {
+							$arrayToObject: '$avgSpend',
 						},
-						recurringCustomerAverageSpend: {
-							$round: ['$returningCustomerAverageSpend', 2],
-						},
-						newCustomerAverageSpend: {
-							$round: ['$newCustomerAverageSpend', 2],
+					},
+				},
+				{
+					$replaceRoot: {
+						newRoot: {
+							$mergeObjects: ['$results', '$avgSpend'],
 						},
 					},
 				},

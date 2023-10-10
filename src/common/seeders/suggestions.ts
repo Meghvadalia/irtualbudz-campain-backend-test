@@ -138,11 +138,6 @@ export const SuggestionList: ISuggestions[] = [
 					orderIdList: 1,
 				},
 			},
-			{
-				$sort: {
-					name: 1,
-				},
-			},
 			{ $skip: '' },
 			{ $limit: '' },
 		],

@@ -220,6 +220,7 @@ export class ClientSuggestionService {
 									pipeline.splice(indexToInsert + 1, 0, updatedPipeline);
 								}
 							}
+							console.log(...pipeline);
 							break;
 					}
 				} else if (suggestion.name === suggestionsList.NEW_INVENTORY_ITEM) {

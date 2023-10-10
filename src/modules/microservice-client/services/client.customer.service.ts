@@ -95,7 +95,7 @@ export class ClientCustomerService {
 			const pipeline: PipelineStage[] = [
 				{
 					$match: {
-						storeId: { $in: [new Types.ObjectId(storeId)] },
+						storeId,
 						userCreatedAt: {
 							$gte: formattedFromDate,
 							$lte: formattedToDate,
@@ -104,8 +104,8 @@ export class ClientCustomerService {
 				},
 				{
 					$group: {
-						_id: { $month: '$userCreatedAt' }, // Group by month of creation
-						count: { $sum: 1 }, // Count the number of users in each group
+						_id: { $month: '$userCreatedAt' },
+						count: { $sum: 1 },
 					},
 				},
 				{ $sort: { _id: 1 } },

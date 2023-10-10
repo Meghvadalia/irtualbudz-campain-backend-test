@@ -40,13 +40,13 @@ export const graphData = [
 			},
 			{
 				$group: {
-					_id: null, // Group all documents into a single group
+					_id: null,
 					chartData: {
 						$push: { date: '$date', Average: '$Average' },
-					}, // Store daily averages with dates in an array
-					TotalCount: { $sum: '$Average' }, // Calculate the total average
-					FirstDayAverage: { $first: '$Average' }, // Get the average of the first day
-					LastDayAverage: { $last: '$Average' }, // Get the average of the last day
+					},
+					TotalCount: { $sum: '$Average' },
+					FirstDayAverage: { $first: '$Average' },
+					LastDayAverage: { $last: '$Average' },
 				},
 			},
 			{
@@ -54,6 +54,7 @@ export const graphData = [
 					_id: 0,
 					chartData: 1,
 					TotalCount: 1,
+					LastDayAverage: 1,
 					PercentageChange: {
 						$cond: {
 							if: { $eq: ['$LastDayAverage', 0] },
@@ -63,10 +64,7 @@ export const graphData = [
 									{
 										$divide: [
 											{
-												$subtract: [
-													'$LastDayAverage',
-													'$FirstDayAverage',
-												],
+												$subtract: ['$LastDayAverage', '$FirstDayAverage'],
 											},
 											'$FirstDayAverage',
 										],
@@ -144,10 +142,7 @@ export const graphData = [
 									{
 										$divide: [
 											{
-												$subtract: [
-													'$LastDayCount',
-													'$FirstDayCount',
-												],
+												$subtract: ['$LastDayCount', '$FirstDayCount'],
 											},
 											'$FirstDayCount',
 										],
@@ -231,10 +226,7 @@ export const graphData = [
 									{
 										$divide: [
 											{
-												$subtract: [
-													'$LastDayCount',
-													'$FirstDayCount',
-												],
+												$subtract: ['$LastDayCount', '$FirstDayCount'],
 											},
 											'$FirstDayCount',
 										],
@@ -299,10 +291,7 @@ export const graphData = [
 						},
 					},
 					grossProfit: {
-						$subtract: [
-							'$inventoryData.priceInMinorUnits',
-							'$inventoryData.costInMinorUnits',
-						],
+						$subtract: ['$inventoryData.priceInMinorUnits', '$inventoryData.costInMinorUnits'],
 					},
 				},
 			},
@@ -350,10 +339,7 @@ export const graphData = [
 									{
 										$divide: [
 											{
-												$subtract: [
-													'$LastDayGrossProfit',
-													'$FirstDayGrossProfit',
-												],
+												$subtract: ['$LastDayGrossProfit', '$FirstDayGrossProfit'],
 											},
 											'$FirstDayGrossProfit',
 										],
@@ -451,10 +437,7 @@ export const graphData = [
 									{
 										$divide: [
 											{
-												$subtract: [
-													'$LastDayItemCount',
-													'$FirstDayItemCount',
-												],
+												$subtract: ['$LastDayItemCount', '$FirstDayItemCount'],
 											},
 											'$FirstDayItemCount',
 										],
@@ -577,10 +560,7 @@ export const graphData = [
 									{
 										$divide: [
 											{
-												$subtract: [
-													'$LastDayOrderCount',
-													'$FirstDayOrderCount',
-												],
+												$subtract: ['$LastDayOrderCount', '$FirstDayOrderCount'],
 											},
 											'$FirstDayOrderCount',
 										],
@@ -664,10 +644,7 @@ export const graphData = [
 									{
 										$divide: [
 											{
-												$subtract: [
-													'$LastDayFinalTotal',
-													'$FirstDayFinalTotal',
-												],
+												$subtract: ['$LastDayFinalTotal', '$FirstDayFinalTotal'],
 											},
 											'$FirstDayFinalTotal',
 										],
@@ -712,11 +689,7 @@ export const graphData = [
 			},
 			{
 				$match: {
-					$or: [
-						{ 'carts.title2': { $in: [] } },
-						{ 'carts.category': { $in: [] } },
-						{ 'carts.productName': { $in: [] } },
-					],
+					$or: [{ 'carts.title2': { $in: [] } }, { 'carts.category': { $in: [] } }, { 'carts.productName': { $in: [] } }],
 				},
 			},
 			{
@@ -780,10 +753,7 @@ export const graphData = [
 									{
 										$divide: [
 											{
-												$subtract: [
-													'$LastDayOrderCount',
-													'$FirstDayOrderCount',
-												],
+												$subtract: ['$LastDayOrderCount', '$FirstDayOrderCount'],
 											},
 											'$FirstDayOrderCount',
 										],
