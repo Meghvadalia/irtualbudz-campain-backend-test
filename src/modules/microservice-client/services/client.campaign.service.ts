@@ -23,6 +23,8 @@ import { dynamicCatchException, throwNotFoundException } from 'src/utils/error.u
 import { ClientAudienceCustomerService } from './client.audienceCustomer.service';
 import { USER_TYPE } from 'src/microservices/user/constants/user.constant';
 import { CampaignProducer } from 'src/modules/kafka/producers/campaign.producer';
+import { ClientNotificationService } from './client.notification.service';
+import { NotificationType } from 'src/model/notification/interface/notification.interface';
 
 @Injectable()
 export class ClientCampaignService {
@@ -39,8 +41,9 @@ export class ClientCampaignService {
 		private readonly userService: UsersService,
 		private readonly storeService: ClientStoreService,
 		private readonly audienceService: ClientAudienceCustomerService,
-		private readonly campaignProducer: CampaignProducer
-	) {}
+		private readonly campaignProducer: CampaignProducer,
+		private readonly clientNotificationService: ClientNotificationService
+	) { }
 
 	async addCampaign(data: Partial<ICampaign>, files) {
 		const directory = path.join(process.cwd(), 'public', UPLOAD_DIRECTORY.CAMPAIGN);
@@ -307,12 +310,28 @@ export class ClientCampaignService {
 			if (asset) {
 				asset.files = [...asset.files, ...assetFiles];
 				await asset.save();
+				let campaignData = await this.campaignModel.findById(campaignId)
+				await this.clientNotificationService.createSingleNotificationForStore(
+					campaignData.storeId,
+					`New asset uploaded in ${campaignData.campaignName} campaign`,
+					`New asset in ${campaignData.campaignName}`,
+					{ campaignId: campaignData._id },
+					NotificationType.NewAsset
+				)
 			} else {
 				const campaignAssetWithFiles = {
 					...data,
 					files: assetFiles,
 				};
 				asset = await this.campaignAssetModel.create(campaignAssetWithFiles);
+				let campaignData = await this.campaignModel.findById(campaignId)
+				await this.clientNotificationService.createSingleNotificationForStore(
+					campaignData.storeId,
+					`New asset uploaded in ${campaignData.campaignName} campaign`,
+					`New asset in ${campaignData.campaignName}`,
+					{ campaignId: campaignData._id },
+					NotificationType.NewAsset
+				)
 			}
 
 			return asset;

@@ -32,6 +32,12 @@ export class Notification extends Model<INOTIFICATION> {
 	@Prop({ required: true, ref: DATABASE_COLLECTION.STORES, type: mongoose.Schema.Types.ObjectId })
 	storeId: Types.ObjectId;
 
+	@Prop({ type: Array })
+	notificationData:Object
+
+	@Prop({})
+	notificationType:string
+
 }
 
 export const NotificationSchema = SchemaFactory.createForClass(Notification);

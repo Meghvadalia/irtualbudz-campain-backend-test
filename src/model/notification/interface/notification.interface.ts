@@ -7,4 +7,13 @@ export interface INOTIFICATION {
     isRead: boolean;
     isDeleted: boolean;
     createdAt?:Date;
+    notificationData?:Object;
+    notificationType:NotificationType
+}
+
+export enum NotificationType{
+    NewAsset = 'New Assets',
+    Expiring = 'Expiring products',
+    Halloween = 'Halloween',
+    SlowMoving= 'Slow Moving Items'
 }

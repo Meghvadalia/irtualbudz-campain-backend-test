@@ -7,10 +7,11 @@ import { Order } from 'src/microservices/order/entities/order.entity';
 import { USER_TYPE } from 'src/microservices/user/constants/user.constant';
 import { User } from 'src/microservices/user/entities/user.entity';
 import { Notification } from 'src/model/notification/entities/notification.entity';
-import { INOTIFICATION } from 'src/model/notification/interface/notification.interface';
+import { INOTIFICATION, NotificationType } from 'src/model/notification/interface/notification.interface';
 import { Store } from 'src/model/store/entities/store.entity';
 import { dynamicCatchException } from 'src/utils/error.utils';
 import { paginateWithNextHit } from 'src/utils/pagination';
+import { sendSuccess } from 'src/utils/request-response.utils';
 
 @Injectable()
 export class ClientNotificationService {
@@ -20,7 +21,7 @@ export class ClientNotificationService {
 		@InjectModel(User.name) private userModel: Model<User>,
 		@InjectModel(Order.name) private orderModel: Model<Order>,
 		@InjectModel(Inventory.name) private readonly inventoryModel: Model<Inventory>
-	) {}
+	) { }
 
 	async listAllNotification(user: { userId: Types.ObjectId; type: string }, page: number, limit: number) {
 		try {
@@ -89,7 +90,7 @@ export class ClientNotificationService {
 		}
 	}
 
-	getStoreAndCompanyWiseUsers(store) {
+	getStoreAndCompanyWiseUsers(store, message = '', title = '', data = {}) {
 		return new Promise(async (resolve, reject) => {
 			try {
 				let expireProductsAggregate = [
@@ -177,10 +178,12 @@ export class ClientNotificationService {
 						...userList.map((user) => ({
 							userId: user._id,
 							storeId: store._id,
-							message: `You have a new message for ${expireProducts[0].total} product(s) expiring in 1 month`,
-							title: 'Expiring products',
+							message: message != '' ? message : `You have a new message for ${expireProducts[0].total} product(s) expiring in 1 month`,
+							title: title != '' ? title : 'Expiring products',
 							isDeleted: false,
 							isRead: false,
+							notificationData:data,
+							notificationType:NotificationType.Expiring
 						}))
 					);
 				}
@@ -190,10 +193,12 @@ export class ClientNotificationService {
 						...userList.map((user) => ({
 							userId: user._id,
 							storeId: store._id,
-							message: `You have a new message for ${slowMovingItems[0].total} items that are moving slowly`,
-							title: 'Slow Moving Items',
+							message: message != '' ? message : `You have a new message for ${slowMovingItems[0].total} items that are moving slowly`,
+							title: title != '' ? title : 'Slow Moving Items',
 							isDeleted: false,
 							isRead: false,
+							notificationData:data,
+							notificationType:NotificationType.SlowMoving
 						}))
 					);
 				}
@@ -206,6 +211,8 @@ export class ClientNotificationService {
 						title: 'Halloween is coming',
 						isDeleted: false,
 						isRead: false,
+						notificationData:{},
+						notificationType:NotificationType.Halloween
 					}))
 				);
 
@@ -223,5 +230,16 @@ export class ClientNotificationService {
 		} catch (error) {
 			dynamicCatchException(error);
 		}
+	}
+
+	async createSingleNotificationForStore(storeId: Types.ObjectId, message = '', title = '',data = {}, type) {
+		let storeData = await this.storeModel.findById(storeId)
+		await this.getStoreAndCompanyWiseUsers(storeData, message, title, data)
+			.then(async (notificationList: any) => {
+				return sendSuccess(await this.insertStoreWiseNotification(notificationList));
+			})
+			.catch((error) => {
+				console.error(error)
+			})
 	}
 }
