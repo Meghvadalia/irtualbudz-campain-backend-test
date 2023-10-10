@@ -42,4 +42,17 @@ export class ClientNotificationController {
 			return sendError(error.message, error.status);
 		}
 	}
+
+	@Post('migration')
+	@UseGuards(RolesGuard)
+	@Roles(USER_TYPE.SUPER_ADMIN, USER_TYPE.ADMIN, USER_TYPE.COMPANY_ADMIN, USER_TYPE.STORE_ADMIN, USER_TYPE.MANAGER)
+	async seedNotificationsMigtation() {
+		try {
+			const notification = await this.clientNotificationService.migrationScriptForNotification();
+			
+		} catch (error) {
+			console.error(error.message);
+			return sendError(error.message, error.status);
+		}
+	}
 }

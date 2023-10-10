@@ -242,4 +242,34 @@ export class ClientNotificationService {
 				console.error(error)
 			})
 	}
+
+
+	async migrationScriptForNotification() {
+		try {
+			let NotificationList = await this.notificationModel.find({ notificationType: { $exists: false } });
+			console.log("Notification")
+			console.log(NotificationList.length)
+			for (let i = 0; i < NotificationList.length; i++) {
+				const element = NotificationList[i];
+				if(element.title == "Halloween is coming"){
+					element.notificationType = NotificationType.Halloween
+				}
+				if(element.title == NotificationType.SlowMoving){
+					element.notificationType = NotificationType.SlowMoving
+				}
+				if(element.title == NotificationType.Expiring){
+					element.notificationType = NotificationType.Expiring
+				}
+				if(element.title == NotificationType.NewAsset){
+					element.notificationType = NotificationType.NewAsset
+				}
+				let id = element._id
+				delete element._id
+				await this.notificationModel.findByIdAndUpdate(id,element)
+			}
+
+		} catch (error) {
+			dynamicCatchException(error);
+		}
+	}
 }
