@@ -52,7 +52,7 @@ export const SuggestionList: ISuggestions[] = [
 			},
 			{
 				$sort: {
-					name: 1,
+					expirationDate: -1,
 				},
 			},
 			{
