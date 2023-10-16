@@ -37,7 +37,7 @@ jobs:
           target: /var/www/html/monarc-backend/html/
 
       - name: Reload server
-        uses: appleboy/ssh-action@master
+        uses: appleboy/ssh-action@v1.0.0
         with:
           host: ${{ secrets.HOST }}
           username: ${{ secrets.USERNAME }}
