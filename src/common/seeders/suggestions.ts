@@ -999,4 +999,322 @@ export const SuggestionList: ISuggestions[] = [
 			},
 		],
 	},
+	{
+		name: Suggestions.BIG_SPENDER_TOP_5_MARGINS,
+		display: true,
+		isActive: true,
+		isDeleted: false,
+		collectionName: DATABASE_COLLECTION.AUDIENCE_CUSTOMERS,
+	},
+	{
+		name: Suggestions.FREQUENT_FLYER_TOP_5_MARGINS,
+		display: true,
+		isActive: true,
+		isDeleted: false,
+		collectionName: DATABASE_COLLECTION.AUDIENCE_CUSTOMERS,
+	},
+	{
+		name: Suggestions.GEN_X_TOP_5_MARGINS,
+		display: true,
+		isActive: true,
+		isDeleted: false,
+		collectionName: DATABASE_COLLECTION.AUDIENCE_CUSTOMERS,
+	},
+	{
+		name: Suggestions.GEN_Z_TOP_5_MARGINS,
+		display: true,
+		isActive: true,
+		isDeleted: false,
+		collectionName: DATABASE_COLLECTION.AUDIENCE_CUSTOMERS,
+	},
+	{
+		name: 'Top-5 margins',
+		display: false,
+		isActive: true,
+		isDeleted: false,
+		collectionName: DATABASE_COLLECTION.AUDIENCE_CUSTOMERS,
+		condition: [
+			{
+				$match: {
+					audienceId: '',
+					storeId: '',
+				},
+			},
+			{
+				$group: {
+					_id: "$customerId",
+				}
+			},
+			{
+				// Stage 3: Lookup customers in the orders collection
+				$lookup: {
+					from: DATABASE_COLLECTION.ORDER,
+					localField: "_id",
+					foreignField: "customerId",
+					as: "customerOrders"
+				},
+			},
+			{
+				// Stage 4: Unwind the customerOrders array
+				$unwind: "$customerOrders"
+			},
+			{
+				$lookup: {
+					from: DATABASE_COLLECTION.CART,
+					localField: "customerOrders.itemsInCart",
+					foreignField: "_id",
+					as: "cartItems"
+				}
+			},
+			{
+				$unwind: "$cartItems"
+			},
+			{
+				$lookup: {
+					from: DATABASE_COLLECTION.INVENTORY,
+					localField: "cartItems.sku",
+					foreignField: "sku",
+					as: "inventoryData"
+				}
+			},
+			{
+				$unwind: "$inventoryData"
+			},
+			{
+				$project: {
+					_id: 0,
+					customerId: "$_id",
+					grossProfit: {
+						$subtract: ["$inventoryData.priceInMinorUnits", "$inventoryData.costInMinorUnits"]
+					},
+					productName: '$cartItems.productName',
+					productId: '$inventoryData.productId'
+				}
+			},
+			{
+				$match: {
+					grossProfit: { $ne: null }
+				}
+			},
+			{
+				$group: {
+					_id: "$customerId",
+					productName: { $first: "$productName" },
+					grossProfit: { $first: "$grossProfit" },
+					productId:{$first:"$productId"}
+					
+				}
+			},
+			{
+				$sort: {
+					grossProfit: -1
+				}
+			},
+			{
+				$limit: 5
+			},
+			{
+				$project: {
+					name: "$productName",
+					_id:"$productId"
+				 }
+			}
+		],
+	},
+	{
+		name: 'Top-5 margins with unique brand',
+		display: false,
+		isActive: true,
+		isDeleted: false,
+		collectionName: DATABASE_COLLECTION.AUDIENCE_CUSTOMERS,
+		condition: [
+			{
+				$match: {
+					audienceId: '',
+					storeId: '',
+				},
+			},
+			{
+				$group: {
+					_id: "$customerId",
+				}
+			},
+			{
+				// Stage 3: Lookup customers in the orders collection
+				$lookup: {
+					from: DATABASE_COLLECTION.ORDER,
+					localField: "_id",
+					foreignField: "customerId",
+					as: "customerOrders"
+				},
+			},
+			{
+				// Stage 4: Unwind the customerOrders array
+				$unwind: "$customerOrders"
+			},
+			{
+				$lookup: {
+					from: DATABASE_COLLECTION.CART,
+					localField: "customerOrders.itemsInCart",
+					foreignField: "_id",
+					as: "cartItems"
+				}
+			},
+			{
+				$unwind: "$cartItems"
+			},
+			{
+				$lookup: {
+					from: DATABASE_COLLECTION.INVENTORY,
+					localField: "cartItems.sku",
+					foreignField: "sku",
+					as: "inventoryData"
+				}
+			},
+			{
+				$unwind: "$inventoryData"
+			},
+			{
+				$project: {
+					_id: 0,
+					customerId: "$_id",
+					grossProfit: {
+						$subtract: ["$inventoryData.priceInMinorUnits", "$inventoryData.costInMinorUnits"]
+					},
+					name: '$cartItems.title2'
+				}
+			},
+			{
+				// Stage 11: Filter out documents with null grossProfit
+				$match: {
+					grossProfit: { $ne: null }
+				}
+			},
+			{
+				// Stage 14: Group by brand to get distinct brands
+				$group: {
+					_id: "$name",
+					grossProfit: { $first: "$grossProfit" }
+				},
+			},
+			{
+				// Stage 13: Sort by grossProfit in descending order
+				$sort: {
+					grossProfit: -1
+				}
+			},
+			{
+				// Stage 14: Limit the number of results to 5
+				$limit: 5
+			},
+			{
+				$project: {
+					_id: 0,
+					name: "$_id"
+				 }
+			}
+		],
+	},
+	{
+		name: 'Top-5 margins with unique category',
+		display: false,
+		isActive: true,
+		isDeleted: false,
+		collectionName: DATABASE_COLLECTION.AUDIENCE_CUSTOMERS,
+		condition: [
+			{
+				$match: {
+					audienceId: '',
+					storeId: '',
+				},
+			},
+			{
+				$group: {
+					_id: "$customerId",
+				}
+			},
+			{
+				// Stage 3: Lookup customers in the orders collection
+				$lookup: {
+					from: DATABASE_COLLECTION.ORDER,
+					localField: "_id",
+					foreignField: "customerId",
+					as: "customerOrders"
+				},
+			},
+			{
+				// Stage 4: Unwind the customerOrders array
+				$unwind: "$customerOrders"
+			},
+			{
+				$lookup: {
+					from: DATABASE_COLLECTION.CART,
+					localField: "customerOrders.itemsInCart",
+					foreignField: "_id",
+					as: "cartItems"
+				}
+			},
+			{
+				$unwind: "$cartItems"
+			},
+			{
+				$lookup: {
+					from: DATABASE_COLLECTION.INVENTORY,
+					localField: "cartItems.sku",
+					foreignField: "sku",
+					as: "inventoryData"
+				}
+			},
+			{
+				$unwind: "$inventoryData"
+			},
+			{
+				$project: {
+					_id: 0,
+					customerId: "$_id",
+					grossProfit: {
+						$subtract: ["$inventoryData.priceInMinorUnits", "$inventoryData.costInMinorUnits"]
+					},
+					name: '$cartItems.category'
+				}
+			},
+			{
+				// Stage 11: Filter out documents with null grossProfit
+				$match: {
+					grossProfit: { $ne: null }
+				}
+			},
+			// {
+			// 	// Stage 12: Group by customerId to remove duplicates
+			// 	$group: {
+			// 		_id: "$customerId",
+			// 		name: { $first: "$name" },
+			// 		grossProfit: { $first: "$grossProfit" }
+			// 	}
+			// },
+			{
+				// Stage 14: Group by brand to get distinct brands
+				$group: {
+					_id: "$name",
+					grossProfit: { $first: "$grossProfit" }
+				},
+			},
+			{
+				// Stage 13: Sort by grossProfit in descending order
+				$sort: {
+					grossProfit: -1
+				}
+			},
+			{
+				// Stage 14: Limit the number of results to 5
+				$limit: 5
+			},
+			{
+				$project: {
+					_id: 0,
+					name: "$_id"
+				 }
+			}
+		],
+	},
 ];

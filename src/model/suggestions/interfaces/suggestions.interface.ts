@@ -24,4 +24,8 @@ export enum Suggestions {
 	HAPPY_HOUR_SPECIALS = 'Happy Hour Specials',
 	RECEIPT_FOR_DISCOUNTS = 'Bring in receipt for discounts',
 	BUNDLE_ITEMS = 'Bundle Items',
+	BIG_SPENDER_TOP_5_MARGINS = 'Big Spender top 5 margins',
+	GEN_Z_TOP_5_MARGINS = 'Generation Z top 5 margins',
+	GEN_X_TOP_5_MARGINS = 'Generation X top 5 margins',
+	FREQUENT_FLYER_TOP_5_MARGINS = 'Frequent Flyer top 5 margins',
 }

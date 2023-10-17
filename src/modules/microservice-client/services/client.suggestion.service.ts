@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import mongoose, { Model } from 'mongoose';
+import mongoose, { Model, Types } from 'mongoose';
 import { Inventory } from 'src/microservices/inventory';
 import { Order } from 'src/microservices/order/entities/order.entity';
 import { Suggestions } from 'src/model/suggestions/entities/suggestions.entity';
@@ -9,10 +9,12 @@ import { updatePipeline } from 'src/utils/pipelineUpdator';
 import { Suggestions as suggestionsList } from 'src/model/suggestions/interfaces/suggestions.interface';
 import { RpcException } from '@nestjs/microservices';
 import * as _ from 'lodash';
-import { DATABASE_COLLECTION } from 'src/common/constants';
+import { AudienceName, DATABASE_COLLECTION } from 'src/common/constants';
 import { ClientStoreService } from './client.store.service';
 import { getStoreTimezoneDateRange } from 'src/utils/time.utils';
 import { dynamicCatchException } from 'src/utils/error.utils';
+import { AudienceDetailsService } from './client.audienceDetail.service';
+import { AudienceCustomer } from '../entities/audienceCustomers.entity';
 
 @Injectable()
 export class ClientSuggestionService {
@@ -20,12 +22,15 @@ export class ClientSuggestionService {
 		@InjectModel(Suggestions.name) private readonly suggesionModel: Model<Suggestions>,
 		@InjectModel(Order.name) private readonly orderModel: Model<Order>,
 		@InjectModel(Inventory.name) private readonly inventoryModel: Model<Inventory>,
-		private readonly storeService: ClientStoreService
+		@InjectModel(AudienceCustomer.name) private readonly audienceCustomerModel: Model<AudienceCustomer>,
+		private readonly storeService: ClientStoreService,
+		private readonly audienceDetailsService: AudienceDetailsService
 	) {}
 
 	private collectionMap: Record<string, Model<any>> = {
 		inventories: this.inventoryModel,
 		orders: this.orderModel,
+		audienceCustomers: this.audienceCustomerModel,
 	};
 
 	async suggestionList() {
@@ -58,8 +63,10 @@ export class ClientSuggestionService {
 			const storeObjectId = new mongoose.Types.ObjectId(storeId);
 			const { timeZone } = await this.storeService.storeById(storeId);
 
+			let audienceId = '';
+
 			const storeDateTime = getStoreTimezoneDateRange(fromDate.toLocaleString(), toDate.toLocaleString(), timeZone);
-			const replacements = [
+			let replacements = [
 				{ key: 'storeId', value: storeObjectId },
 				{ key: '$gte', value: storeDateTime.formattedFromDate },
 				{ key: '$lte', value: storeDateTime.formattedToDate },
@@ -420,7 +427,105 @@ export class ClientSuggestionService {
 							}
 							break;
 					}
+				} else if (
+					suggestion.name === suggestionsList.BIG_SPENDER_TOP_5_MARGINS ||
+					suggestion.name === suggestionsList.FREQUENT_FLYER_TOP_5_MARGINS ||
+					suggestion.name === suggestionsList.GEN_X_TOP_5_MARGINS ||
+					suggestion.name === suggestionsList.GEN_Z_TOP_5_MARGINS
+				) {
+					let suggestionData;
+
+					suggestionData = await this.suggesionModel.findOne({ name: 'Top-5 margins' });
+					pipeline = _.cloneDeep(suggestionData.condition);
+
+					if (suggestion.name === suggestionsList.BIG_SPENDER_TOP_5_MARGINS) {
+						const audienceDetails = await this.audienceDetailsService.getAudienceIdByName(AudienceName.BIG_SPENDER);
+						audienceId = audienceDetails._id;
+					} else if (suggestion.name === suggestionsList.FREQUENT_FLYER_TOP_5_MARGINS) {
+						const audienceDetails = await this.audienceDetailsService.getAudienceIdByName(AudienceName.FREQUENT_FLYER);
+						audienceId = audienceDetails._id;
+					} else if (suggestion.name === suggestionsList.GEN_X_TOP_5_MARGINS) {
+						const audienceDetails = await this.audienceDetailsService.getAudienceIdByName(AudienceName.GENERATION_X);
+						audienceId = audienceDetails._id;
+					} else if (suggestion.name === suggestionsList.GEN_Z_TOP_5_MARGINS) {
+						const audienceDetails = await this.audienceDetailsService.getAudienceIdByName(AudienceName.GENERATION_Z);
+						audienceId = audienceDetails._id;
+					}
+
+					switch (filter) {
+						case 'sellable':
+							const matchCondition = { 'inventoryData.forSale': true };
+							if (text) {
+								matchCondition['product.productName'] = { $regex: text, $options: 'i' };
+							}
+
+							const updatedPipeline = {
+								$match: matchCondition,
+							};
+
+							let indexToInsert = -1;
+							for (let i = pipeline.length - 1; i >= 0; i--) {
+								if (pipeline[i]['$unwind'] !== undefined) {
+									indexToInsert = i;
+									break;
+								}
+							}
+
+							if (indexToInsert !== -1) {
+								pipeline.splice(indexToInsert + 1, 0, updatedPipeline);
+							}
+							break;
+
+						case 'brand':
+							suggestionData = await this.suggesionModel.findOne({ name: 'Top-5 margins with unique brand' });
+							pipeline = _.cloneDeep(suggestionData.condition);
+
+							if (text) {
+								const updatedPipeline = {
+									$match: { _id: { $regex: text, $options: 'i' } },
+								};
+
+								const indexToInsert = pipeline.findIndex((stage) => stage.$group);
+								if (indexToInsert !== -1) {
+									pipeline.splice(indexToInsert + 1, 0, updatedPipeline);
+								}
+							}
+							break;
+						case 'category':
+							suggestionData = await this.suggesionModel.findOne({ name: 'Top-5 margins with unique category' });
+							pipeline = _.cloneDeep(suggestionData.condition);
+
+							if (text) {
+								const updatedPipeline = {
+									$match: { _id: { $regex: text, $options: 'i' } },
+								};
+
+								const indexToInsert = pipeline.findIndex((stage) => stage.$group);
+								if (indexToInsert !== -1) {
+									pipeline.splice(indexToInsert + 1, 0, updatedPipeline);
+								}
+							}
+							break;
+
+						default:
+							suggestionData = await this.suggesionModel.findOne({ name: 'Top-5 margins' });
+							pipeline = _.cloneDeep(suggestionData.condition);
+
+							if (text) {
+								const updatedPipeline = {
+									$match: { name: { $regex: text, $options: 'i' } },
+								};
+
+								const indexToInsert = pipeline.findIndex((stage) => stage.$limit);
+								if (indexToInsert !== -1) {
+									pipeline.splice(indexToInsert + 1, 0, updatedPipeline);
+								}
+							}
+							break;
+					}
 				}
+
+				replacements.push({ key: 'audienceId', value: new Types.ObjectId(audienceId) });
 			} else {
 				suggestion.collectionName = DATABASE_COLLECTION.INVENTORY;
 				pipeline = [
@@ -431,7 +536,7 @@ export class ClientSuggestionService {
 					},
 					{
 						$lookup: {
-							from: 'products',
+							from: DATABASE_COLLECTION.PRODUCT,
 							localField: 'productId',
 							foreignField: '_id',
 							as: 'products',
@@ -558,10 +663,11 @@ export class ClientSuggestionService {
 			for (const element of replacements) {
 				updatePipeline(pipeline, element.key, element.value);
 			}
+			console.log(...pipeline);
 			const productList = await this.collectionMap[suggestion.collectionName].aggregate(pipeline);
 			return productList;
 		} catch (error) {
-			console.error(error);
+			console.trace(error);
 			dynamicCatchException(error);
 		}
 	}
