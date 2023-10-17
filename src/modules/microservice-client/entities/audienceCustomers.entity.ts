@@ -32,3 +32,4 @@ export class AudienceCustomer extends Model<IAudienceCustomer> {
 
 export const AudienceCustomerSchema = SchemaFactory.createForClass(AudienceCustomer);
 AudienceCustomerSchema.index({ audienceId: 1, customerId: 1, storeId: 1, campaignId: 1 }, { unique: true });
+AudienceCustomerSchema.index({ audienceId: 1, storeId: 1}, { unique: true });

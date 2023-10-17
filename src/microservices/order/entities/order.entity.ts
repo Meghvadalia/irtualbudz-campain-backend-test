@@ -95,3 +95,4 @@ export class Order extends Model<IOrder> {
 }
 
 export const OrderSchema = SchemaFactory.createForClass(Order);
+OrderSchema.index({ customerId: 1 },{ unique: true })
