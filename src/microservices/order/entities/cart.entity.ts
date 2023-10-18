@@ -91,3 +91,4 @@ export class Cart extends Model<ItemsCart> {
 
 export const CartSchema = SchemaFactory.createForClass(Cart);
 CartSchema.index({ _id: 1 },{ unique: true })
+CartSchema.index({ sku: 1 },{ unique: true })

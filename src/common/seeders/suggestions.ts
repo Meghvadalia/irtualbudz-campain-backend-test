@@ -367,7 +367,7 @@ export const SuggestionList: ISuggestions[] = [
 		display: true,
 	},
 	{
-		name: 'Expiring Products with unique brand',
+		name: Suggestions.EXPIRING_PRODUCTS_UNIQUE_BRAND,
 		isActive: true,
 		isDeleted: false,
 		dateOffset: 60,
@@ -424,7 +424,7 @@ export const SuggestionList: ISuggestions[] = [
 		],
 	},
 	{
-		name: 'Expiring Products with unique category',
+		name: Suggestions.EXPIRING_PRODUCTS_UNIQUE_CATEGORY,
 		isActive: true,
 		isDeleted: false,
 		display: false,
@@ -481,7 +481,7 @@ export const SuggestionList: ISuggestions[] = [
 		],
 	},
 	{
-		name: 'Slow moving items with unique brand',
+		name: Suggestions.SLOW_MOVING_ITEMS_UNIQUE_BRAND,
 		isActive: true,
 		isDeleted: false,
 		collectionName: DATABASE_COLLECTION.ORDER,
@@ -562,7 +562,7 @@ export const SuggestionList: ISuggestions[] = [
 		],
 	},
 	{
-		name: 'Slow moving items with unique category',
+		name: Suggestions.SLOW_MOVING_ITEMS_UNIQUE_CATEGORY,
 		isActive: true,
 		isDeleted: false,
 		collectionName: DATABASE_COLLECTION.ORDER,
@@ -643,7 +643,7 @@ export const SuggestionList: ISuggestions[] = [
 		],
 	},
 	{
-		name: 'Excess Inventory with unique brand',
+		name: Suggestions.EXCESS_INVENTORY_UNIQUE_BRAND,
 		display: false,
 		isActive: true,
 		isDeleted: false,
@@ -704,7 +704,7 @@ export const SuggestionList: ISuggestions[] = [
 		],
 	},
 	{
-		name: 'Excess Inventory with unique category',
+		name: Suggestions.EXCESS_INVENTORY_UNIQUE_CATEGORY,
 		display: false,
 		isActive: true,
 		isDeleted: false,
@@ -765,7 +765,7 @@ export const SuggestionList: ISuggestions[] = [
 		],
 	},
 	{
-		name: 'New Inventory with unique brand',
+		name: Suggestions.NEW_INVENTORY_ITEMS_UNIQUE_BRAND,
 		display: false,
 		isActive: true,
 		isDeleted: false,
@@ -829,7 +829,7 @@ export const SuggestionList: ISuggestions[] = [
 		],
 	},
 	{
-		name: 'New Inventory with unique category',
+		name: Suggestions.New_INVENTORY_ITEMS_UNIQUE_CATEGORY,
 		display: false,
 		isActive: true,
 		isDeleted: false,
@@ -886,7 +886,7 @@ export const SuggestionList: ISuggestions[] = [
 		],
 	},
 	{
-		name: 'Highest profitable Items with unique brand',
+		name: Suggestions.HIGHEST_PROFITABLE_ITEMS_UNIQUE_BRAND,
 		display: false,
 		isActive: true,
 		isDeleted: false,
@@ -940,7 +940,7 @@ export const SuggestionList: ISuggestions[] = [
 		],
 	},
 	{
-		name: 'Highest profitable Items with unique category',
+		name: Suggestions.HIGHEST_PROFITABLE_ITEMS_UNIQUE_CATEGORY,
 		display: false,
 		isActive: true,
 		isDeleted: false,
@@ -973,12 +973,6 @@ export const SuggestionList: ISuggestions[] = [
 			},
 			{
 				$sort: { profit: -1 },
-			},
-			{
-				$skip: '',
-			},
-			{
-				$limit: '',
 			},
 			{
 				$group: {
@@ -1028,7 +1022,7 @@ export const SuggestionList: ISuggestions[] = [
 		collectionName: DATABASE_COLLECTION.AUDIENCE_CUSTOMERS,
 	},
 	{
-		name: 'Top-5 margins',
+		name: Suggestions.TOP_5_MARGINS,
 		display: false,
 		isActive: true,
 		isDeleted: false,
@@ -1042,87 +1036,84 @@ export const SuggestionList: ISuggestions[] = [
 			},
 			{
 				$group: {
-					_id: "$customerId",
-				}
-			},
-			{
-				// Stage 3: Lookup customers in the orders collection
-				$lookup: {
-					from: DATABASE_COLLECTION.ORDER,
-					localField: "_id",
-					foreignField: "customerId",
-					as: "customerOrders"
+					_id: '$customerId',
 				},
 			},
 			{
-				// Stage 4: Unwind the customerOrders array
-				$unwind: "$customerOrders"
+				$lookup: {
+					from: DATABASE_COLLECTION.ORDER,
+					localField: '_id',
+					foreignField: 'customerId',
+					as: 'customerOrders',
+				},
+			},
+			{
+				$unwind: '$customerOrders',
 			},
 			{
 				$lookup: {
 					from: DATABASE_COLLECTION.CART,
-					localField: "customerOrders.itemsInCart",
-					foreignField: "_id",
-					as: "cartItems"
-				}
+					localField: 'customerOrders.itemsInCart',
+					foreignField: '_id',
+					as: 'cartItems',
+				},
 			},
 			{
-				$unwind: "$cartItems"
+				$unwind: '$cartItems',
 			},
 			{
 				$lookup: {
 					from: DATABASE_COLLECTION.INVENTORY,
-					localField: "cartItems.sku",
-					foreignField: "sku",
-					as: "inventoryData"
-				}
+					localField: 'cartItems.sku',
+					foreignField: 'sku',
+					as: 'inventoryData',
+				},
 			},
 			{
-				$unwind: "$inventoryData"
+				$unwind: '$inventoryData',
 			},
 			{
 				$project: {
 					_id: 0,
-					customerId: "$_id",
+					customerId: '$_id',
 					grossProfit: {
-						$subtract: ["$inventoryData.priceInMinorUnits", "$inventoryData.costInMinorUnits"]
+						$subtract: ['$inventoryData.priceInMinorUnits', '$inventoryData.costInMinorUnits'],
 					},
 					productName: '$cartItems.productName',
-					productId: '$inventoryData.productId'
-				}
+					productId: '$inventoryData.productId',
+				},
 			},
 			{
 				$match: {
-					grossProfit: { $ne: null }
-				}
+					grossProfit: { $ne: null },
+				},
 			},
 			{
 				$group: {
-					_id: "$customerId",
-					productName: { $first: "$productName" },
-					grossProfit: { $first: "$grossProfit" },
-					productId:{$first:"$productId"}
-					
-				}
+					_id: '$productName',
+					productName: { $first: '$productName' },
+					grossProfit: { $first: '$grossProfit' },
+					productId: { $first: '$productId' },
+				},
 			},
 			{
 				$sort: {
-					grossProfit: -1
-				}
+					grossProfit: -1,
+				},
 			},
 			{
-				$limit: 5
+				$limit: 5,
 			},
 			{
 				$project: {
-					name: "$productName",
-					_id:"$productId"
-				 }
-			}
+					name: '$productName',
+					_id: '$productId',
+				},
+			},
 		],
 	},
 	{
-		name: 'Top-5 margins with unique brand',
+		name: Suggestions.TOP_5_MARGINS_UNIQUE_BRAND,
 		display: false,
 		isActive: true,
 		isDeleted: false,
@@ -1136,87 +1127,81 @@ export const SuggestionList: ISuggestions[] = [
 			},
 			{
 				$group: {
-					_id: "$customerId",
-				}
-			},
-			{
-				// Stage 3: Lookup customers in the orders collection
-				$lookup: {
-					from: DATABASE_COLLECTION.ORDER,
-					localField: "_id",
-					foreignField: "customerId",
-					as: "customerOrders"
+					_id: '$customerId',
 				},
 			},
 			{
-				// Stage 4: Unwind the customerOrders array
-				$unwind: "$customerOrders"
+				$lookup: {
+					from: DATABASE_COLLECTION.ORDER,
+					localField: '_id',
+					foreignField: 'customerId',
+					as: 'customerOrders',
+				},
+			},
+			{
+				$unwind: '$customerOrders',
 			},
 			{
 				$lookup: {
 					from: DATABASE_COLLECTION.CART,
-					localField: "customerOrders.itemsInCart",
-					foreignField: "_id",
-					as: "cartItems"
-				}
+					localField: 'customerOrders.itemsInCart',
+					foreignField: '_id',
+					as: 'cartItems',
+				},
 			},
 			{
-				$unwind: "$cartItems"
+				$unwind: '$cartItems',
 			},
 			{
 				$lookup: {
 					from: DATABASE_COLLECTION.INVENTORY,
-					localField: "cartItems.sku",
-					foreignField: "sku",
-					as: "inventoryData"
-				}
-			},
-			{
-				$unwind: "$inventoryData"
-			},
-			{
-				$project: {
-					_id: 0,
-					customerId: "$_id",
-					grossProfit: {
-						$subtract: ["$inventoryData.priceInMinorUnits", "$inventoryData.costInMinorUnits"]
-					},
-					name: '$cartItems.title2'
-				}
-			},
-			{
-				// Stage 11: Filter out documents with null grossProfit
-				$match: {
-					grossProfit: { $ne: null }
-				}
-			},
-			{
-				// Stage 14: Group by brand to get distinct brands
-				$group: {
-					_id: "$name",
-					grossProfit: { $first: "$grossProfit" }
+					localField: 'cartItems.sku',
+					foreignField: 'sku',
+					as: 'inventoryData',
 				},
 			},
 			{
-				// Stage 13: Sort by grossProfit in descending order
-				$sort: {
-					grossProfit: -1
-				}
-			},
-			{
-				// Stage 14: Limit the number of results to 5
-				$limit: 5
+				$unwind: '$inventoryData',
 			},
 			{
 				$project: {
 					_id: 0,
-					name: "$_id"
-				 }
-			}
+					customerId: '$_id',
+					grossProfit: {
+						$subtract: ['$inventoryData.priceInMinorUnits', '$inventoryData.costInMinorUnits'],
+					},
+					name: '$cartItems.title2',
+				},
+			},
+			{
+				$match: {
+					grossProfit: { $ne: null },
+				},
+			},
+			{
+				$group: {
+					_id: '$name',
+					grossProfit: { $first: '$grossProfit' },
+				},
+			},
+			{
+				$sort: {
+					grossProfit: -1,
+				},
+			},
+			{
+				$limit: 5,
+			},
+			{
+				$project: {
+					_id: 0,
+					name: '$_id',
+				},
+			},
 		],
 	},
 	{
-		name: 'Top-5 margins with unique category',
+		name: Suggestions.TOP_5_MARGINS_UNIQUE_CATEGORY,
 		display: false,
 		isActive: true,
 		isDeleted: false,
@@ -1230,59 +1215,56 @@ export const SuggestionList: ISuggestions[] = [
 			},
 			{
 				$group: {
-					_id: "$customerId",
-				}
-			},
-			{
-				// Stage 3: Lookup customers in the orders collection
-				$lookup: {
-					from: DATABASE_COLLECTION.ORDER,
-					localField: "_id",
-					foreignField: "customerId",
-					as: "customerOrders"
+					_id: '$customerId',
 				},
 			},
 			{
-				// Stage 4: Unwind the customerOrders array
-				$unwind: "$customerOrders"
+				$lookup: {
+					from: DATABASE_COLLECTION.ORDER,
+					localField: '_id',
+					foreignField: 'customerId',
+					as: 'customerOrders',
+				},
+			},
+			{
+				$unwind: '$customerOrders',
 			},
 			{
 				$lookup: {
 					from: DATABASE_COLLECTION.CART,
-					localField: "customerOrders.itemsInCart",
-					foreignField: "_id",
-					as: "cartItems"
-				}
+					localField: 'customerOrders.itemsInCart',
+					foreignField: '_id',
+					as: 'cartItems',
+				},
 			},
 			{
-				$unwind: "$cartItems"
+				$unwind: '$cartItems',
 			},
 			{
 				$lookup: {
 					from: DATABASE_COLLECTION.INVENTORY,
-					localField: "cartItems.sku",
-					foreignField: "sku",
-					as: "inventoryData"
-				}
+					localField: 'cartItems.sku',
+					foreignField: 'sku',
+					as: 'inventoryData',
+				},
 			},
 			{
-				$unwind: "$inventoryData"
+				$unwind: '$inventoryData',
 			},
 			{
 				$project: {
 					_id: 0,
-					customerId: "$_id",
+					customerId: '$_id',
 					grossProfit: {
-						$subtract: ["$inventoryData.priceInMinorUnits", "$inventoryData.costInMinorUnits"]
+						$subtract: ['$inventoryData.priceInMinorUnits', '$inventoryData.costInMinorUnits'],
 					},
-					name: '$cartItems.category'
-				}
+					name: '$cartItems.category',
+				},
 			},
 			{
-				// Stage 11: Filter out documents with null grossProfit
 				$match: {
-					grossProfit: { $ne: null }
-				}
+					grossProfit: { $ne: null },
+				},
 			},
 			// {
 			// 	// Stage 12: Group by customerId to remove duplicates
@@ -1293,28 +1275,298 @@ export const SuggestionList: ISuggestions[] = [
 			// 	}
 			// },
 			{
-				// Stage 14: Group by brand to get distinct brands
 				$group: {
-					_id: "$name",
-					grossProfit: { $first: "$grossProfit" }
+					_id: '$name',
+					grossProfit: { $first: '$grossProfit' },
 				},
 			},
 			{
-				// Stage 13: Sort by grossProfit in descending order
 				$sort: {
-					grossProfit: -1
-				}
+					grossProfit: -1,
+				},
 			},
 			{
-				// Stage 14: Limit the number of results to 5
-				$limit: 5
+				$limit: 5,
 			},
 			{
 				$project: {
 					_id: 0,
-					name: "$_id"
-				 }
-			}
+					name: '$_id',
+				},
+			},
+		],
+	},
+	{
+		name: Suggestions.BIG_SPENDER_SLOW_MOVING_ITEMS,
+		display: true,
+		isActive: true,
+		isDeleted: false,
+		collectionName: DATABASE_COLLECTION.AUDIENCE_CUSTOMERS,
+	},
+	{
+		name: Suggestions.FREQUENT_FLYER_SLOW_MOVING_ITEMS,
+		display: true,
+		isActive: true,
+		isDeleted: false,
+		collectionName: DATABASE_COLLECTION.AUDIENCE_CUSTOMERS,
+	},
+	{
+		name: Suggestions.GEN_X_SLOW_MOVING_ITEMS,
+		display: true,
+		isActive: true,
+		isDeleted: false,
+		collectionName: DATABASE_COLLECTION.AUDIENCE_CUSTOMERS,
+	},
+	{
+		name: Suggestions.GEN_Z_SLOW_MOVING_ITEMS,
+		display: true,
+		isActive: true,
+		isDeleted: false,
+		collectionName: DATABASE_COLLECTION.AUDIENCE_CUSTOMERS,
+	},
+	{
+		name: Suggestions.SLOW_MOVING_ITEMS_NEW,
+		display: false,
+		isActive: true,
+		isDeleted: false,
+		collectionName: DATABASE_COLLECTION.AUDIENCE_CUSTOMERS,
+		condition: [
+			{
+				$match: {
+					storeId: '',
+					audienceId: '',
+				},
+			},
+			{
+				$lookup: {
+					from: DATABASE_COLLECTION.ORDER,
+					localField: 'customerId',
+					foreignField: 'customerId',
+					as: 'orderData',
+				},
+			},
+			{
+				$unwind: {
+					path: '$orderData',
+				},
+			},
+			{
+				$lookup: {
+					from: DATABASE_COLLECTION.CART,
+					localField: 'orderData.itemsInCart',
+					foreignField: '_id',
+					as: 'cartData',
+				},
+			},
+			{
+				$unwind: {
+					path: '$cartData',
+				},
+			},
+			{
+				$lookup: {
+					from: DATABASE_COLLECTION.INVENTORY,
+					localField: 'cartData.sku',
+					foreignField: 'sku',
+					as: 'inventoryData',
+				},
+			},
+			{
+				$unwind: '$inventoryData',
+			},
+			{
+				$sort: {
+					'cartData.productName': -1,
+				},
+			},
+			{
+				$group: {
+					_id: '$cartData.sku',
+					orderCount: {
+						$sum: 1,
+					},
+					productId: { $first: '$inventoryData.productId' },
+					productName: { $first: '$cartData.productName' },
+				},
+			},
+			{
+				$sort: {
+					orderCount: 1,
+				},
+			},
+			{
+				$project: {
+					name: '$productName',
+					_id: '$productId',
+				},
+			},
+			{
+				$skip: '',
+			},
+			{
+				$limit: '',
+			},
+		],
+	},
+
+	{
+		name: Suggestions.SLOW_MOVING_ITEMS_WITH_UNIQUE_BRAND_NEW,
+		display: false,
+		isActive: true,
+		isDeleted: false,
+		collectionName: DATABASE_COLLECTION.AUDIENCE_CUSTOMERS,
+		condition: [
+			{
+				$match: {
+					storeId: '',
+					audienceId: '',
+				},
+			},
+			{
+				$lookup: {
+					from: DATABASE_COLLECTION.ORDER,
+					localField: 'customerId',
+					foreignField: 'customerId',
+					as: 'orderData',
+				},
+			},
+			{
+				$unwind: {
+					path: '$orderData',
+				},
+			},
+			{
+				$lookup: {
+					from: DATABASE_COLLECTION.CART,
+					localField: 'orderData.itemsInCart',
+					foreignField: '_id',
+					as: 'cartData',
+				},
+			},
+			{
+				$unwind: {
+					path: '$cartData',
+				},
+			},
+			{
+				$sort: {
+					'cartData.title2': -1,
+				},
+			},
+			{
+				$group: {
+					_id: '$cartData.sku',
+					orderCount: {
+						$sum: 1,
+					},
+					brand: { $first: '$cartData.title2' },
+				},
+			},
+			{
+				$sort: {
+					orderCount: 1,
+				},
+			},
+			{
+				$project: {
+					name: '$brand',
+					orderCount: '$orderCount',
+				},
+			},
+			{
+				$group: {
+					_id: '$name',
+				},
+			},
+			{
+				$skip: '',
+			},
+			{
+				$limit: '',
+			},
+			{
+				$project: {
+					name: '$_id',
+					_id: 0,
+				},
+			},
+		],
+	},
+	{
+		name: Suggestions.SLOW_MOVING_ITEMS_WITH_UNIQUE_CATEGORY_NEW,
+		display: false,
+		isActive: true,
+		isDeleted: false,
+		collectionName: DATABASE_COLLECTION.AUDIENCE_CUSTOMERS,
+		condition: [
+			{
+				$match: {
+					audienceId: '',
+					storeId: '',
+				},
+			},
+			{
+				$lookup: {
+					from: DATABASE_COLLECTION.ORDER,
+					localField: 'customerId',
+					foreignField: 'customerId',
+					as: 'orderData',
+				},
+			},
+			{
+				$unwind: {
+					path: '$orderData',
+				},
+			},
+			{
+				$lookup: {
+					from: DATABASE_COLLECTION.CART,
+					localField: 'orderData.itemsInCart',
+					foreignField: '_id',
+					as: 'cartData',
+				},
+			},
+			{
+				$unwind: {
+					path: '$cartData',
+				},
+			},
+			{
+				$sort: {
+					'cartData.category': -1,
+				},
+			},
+			{
+				$group: {
+					_id: '$cartData.sku',
+					orderCount: {
+						$sum: 1,
+					},
+					category: { $first: '$cartData.category' },
+				},
+			},
+			{
+				$sort: {
+					orderCount: 1,
+				},
+			},
+			{
+				$group: {
+					_id: '$category',
+				},
+			},
+			{
+				$project: {
+					name: '$_id',
+					orderCount: '$orderCount',
+				},
+			},
+			{
+				$skip: '',
+			},
+			{
+				$limit: '',
+			},
 		],
 	},
 ];

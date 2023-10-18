@@ -19,7 +19,7 @@ import { AudienceCustomer } from '../entities/audienceCustomers.entity';
 @Injectable()
 export class ClientSuggestionService {
 	constructor(
-		@InjectModel(Suggestions.name) private readonly suggesionModel: Model<Suggestions>,
+		@InjectModel(Suggestions.name) private readonly suggestionModel: Model<Suggestions>,
 		@InjectModel(Order.name) private readonly orderModel: Model<Order>,
 		@InjectModel(Inventory.name) private readonly inventoryModel: Model<Inventory>,
 		@InjectModel(AudienceCustomer.name) private readonly audienceCustomerModel: Model<AudienceCustomer>,
@@ -35,7 +35,7 @@ export class ClientSuggestionService {
 
 	async suggestionList() {
 		try {
-			return await this.suggesionModel.find({ isActive: true, isDeleted: false, display: true }).select(['name']);
+			return await this.suggestionModel.find({ isActive: true, isDeleted: false, display: true }).select(['name']);
 		} catch (error) {
 			console.error(error);
 			dynamicCatchException(error);
@@ -44,14 +44,16 @@ export class ClientSuggestionService {
 
 	async suggestion(storeId: string, id: string, page: number, limit: number, filter: string, text: string) {
 		try {
-			const suggestion = await this.suggesionModel.findOne<ISuggestions>({
+			const suggestion = await this.suggestionModel.findOne<ISuggestions>({
 				_id: new mongoose.Types.ObjectId(id),
 				isActive: true,
 				isDeleted: false,
 			});
+
 			if (!suggestion) {
 				throw new RpcException('No Suggestion found');
 			}
+
 			const currentDate = new Date();
 
 			const fromDateOffset = suggestion.dateOffset < 0 ? suggestion.dateOffset : 0;
@@ -82,7 +84,7 @@ export class ClientSuggestionService {
 
 					switch (filter) {
 						case 'sellable':
-							suggestionData = await this.suggesionModel.findOne({ name: suggestionsList.EXPIRING_PRODUCTS });
+							suggestionData = await this.suggestionModel.findOne({ name: suggestionsList.EXPIRING_PRODUCTS });
 							pipeline = _.cloneDeep(suggestionData.condition);
 
 							const matchCondition = { forSale: true };
@@ -102,7 +104,7 @@ export class ClientSuggestionService {
 
 						case 'brand':
 						case 'category':
-							suggestionData = await this.suggesionModel.findOne({ name: `Expiring Products with unique ${filter}` });
+							suggestionData = await this.suggestionModel.findOne({ name: `Expiring Products with unique ${filter}` });
 							pipeline = _.cloneDeep(suggestionData.condition);
 
 							if (text) {
@@ -118,7 +120,7 @@ export class ClientSuggestionService {
 							break;
 
 						default:
-							suggestionData = await this.suggesionModel.findOne({ name: suggestionsList.EXPIRING_PRODUCTS });
+							suggestionData = await this.suggestionModel.findOne({ name: suggestionsList.EXPIRING_PRODUCTS });
 							pipeline = _.cloneDeep(suggestionData.condition);
 
 							if (text) {
@@ -138,7 +140,7 @@ export class ClientSuggestionService {
 
 					switch (filter) {
 						case 'sellable':
-							suggestionData = await this.suggesionModel.findOne({ name: suggestionsList.SLOW_MOVING_ITEMS });
+							suggestionData = await this.suggestionModel.findOne({ name: suggestionsList.SLOW_MOVING_ITEMS });
 							pipeline = _.cloneDeep(suggestionData.condition);
 
 							if (text) {
@@ -161,7 +163,7 @@ export class ClientSuggestionService {
 							break;
 
 						case 'brand':
-							suggestionData = await this.suggesionModel.findOne({ name: 'Slow moving items with unique brand' });
+							suggestionData = await this.suggestionModel.findOne({ name: suggestionsList.SLOW_MOVING_ITEMS_UNIQUE_BRAND });
 							pipeline = _.cloneDeep(suggestionData.condition);
 
 							if (text) {
@@ -184,7 +186,7 @@ export class ClientSuggestionService {
 							break;
 
 						case 'category':
-							suggestionData = await this.suggesionModel.findOne({ name: 'Slow moving items with unique category' });
+							suggestionData = await this.suggestionModel.findOne({ name: suggestionsList.SLOW_MOVING_ITEMS_UNIQUE_CATEGORY });
 							pipeline = _.cloneDeep(suggestionData.condition);
 
 							if (text) {
@@ -207,7 +209,7 @@ export class ClientSuggestionService {
 							break;
 
 						default:
-							suggestionData = await this.suggesionModel.findOne({ name: suggestionsList.SLOW_MOVING_ITEMS });
+							suggestionData = await this.suggestionModel.findOne({ name: suggestionsList.SLOW_MOVING_ITEMS });
 							pipeline = _.cloneDeep(suggestionData.condition);
 
 							if (text) {
@@ -227,7 +229,6 @@ export class ClientSuggestionService {
 									pipeline.splice(indexToInsert + 1, 0, updatedPipeline);
 								}
 							}
-							console.log(...pipeline);
 							break;
 					}
 				} else if (suggestion.name === suggestionsList.NEW_INVENTORY_ITEM) {
@@ -235,7 +236,7 @@ export class ClientSuggestionService {
 
 					switch (filter) {
 						case 'sellable':
-							suggestionData = await this.suggesionModel.findOne({ name: suggestionsList.NEW_INVENTORY_ITEM });
+							suggestionData = await this.suggestionModel.findOne({ name: suggestionsList.NEW_INVENTORY_ITEM });
 							pipeline = _.cloneDeep(suggestionData.condition);
 
 							const matchCondition = { forSale: true };
@@ -254,7 +255,7 @@ export class ClientSuggestionService {
 							break;
 
 						case 'brand':
-							suggestionData = await this.suggesionModel.findOne({ name: 'New Inventory with unique brand' });
+							suggestionData = await this.suggestionModel.findOne({ name: suggestionsList.NEW_INVENTORY_ITEMS_UNIQUE_BRAND });
 							pipeline = _.cloneDeep(suggestionData.condition);
 
 							if (text) {
@@ -270,7 +271,7 @@ export class ClientSuggestionService {
 							break;
 
 						case 'category':
-							suggestionData = await this.suggesionModel.findOne({ name: 'New Inventory with unique category' });
+							suggestionData = await this.suggestionModel.findOne({ name: suggestionsList.New_INVENTORY_ITEMS_UNIQUE_CATEGORY });
 							pipeline = _.cloneDeep(suggestionData.condition);
 
 							if (text) {
@@ -286,7 +287,7 @@ export class ClientSuggestionService {
 							break;
 
 						default:
-							suggestionData = await this.suggesionModel.findOne({ name: suggestionsList.NEW_INVENTORY_ITEM });
+							suggestionData = await this.suggestionModel.findOne({ name: suggestionsList.NEW_INVENTORY_ITEM });
 							pipeline = _.cloneDeep(suggestionData.condition);
 
 							if (text) {
@@ -306,7 +307,7 @@ export class ClientSuggestionService {
 
 					switch (filter) {
 						case 'sellable':
-							suggestionData = await this.suggesionModel.findOne({ name: suggestionsList.EXCESS_INVENTORY });
+							suggestionData = await this.suggestionModel.findOne({ name: suggestionsList.EXCESS_INVENTORY });
 							pipeline = _.cloneDeep(suggestionData.condition);
 
 							const matchCondition = { sellable: true };
@@ -326,7 +327,7 @@ export class ClientSuggestionService {
 
 						case 'brand':
 						case 'category':
-							suggestionData = await this.suggesionModel.findOne({ name: `Excess Inventory with unique ${filter}` });
+							suggestionData = await this.suggestionModel.findOne({ name: `Excess Inventory with unique ${filter}` });
 							pipeline = _.cloneDeep(suggestionData.condition);
 
 							if (text) {
@@ -349,7 +350,7 @@ export class ClientSuggestionService {
 							break;
 
 						default:
-							suggestionData = await this.suggesionModel.findOne({ name: suggestionsList.EXCESS_INVENTORY });
+							suggestionData = await this.suggestionModel.findOne({ name: suggestionsList.EXCESS_INVENTORY });
 							pipeline = _.cloneDeep(suggestionData.condition);
 
 							if (text) {
@@ -376,7 +377,7 @@ export class ClientSuggestionService {
 
 					switch (filter) {
 						case 'sellable':
-							suggestionData = await this.suggesionModel.findOne({ name: suggestionsList.HIGHEST_PROFITABLE_ITEMS });
+							suggestionData = await this.suggestionModel.findOne({ name: suggestionsList.HIGHEST_PROFITABLE_ITEMS });
 							pipeline = _.cloneDeep(suggestionData.condition);
 
 							const matchCondition = { forSale: true };
@@ -396,7 +397,7 @@ export class ClientSuggestionService {
 
 						case 'brand':
 						case 'category':
-							suggestionData = await this.suggesionModel.findOne({ name: `Highest profitable Items with unique ${filter}` });
+							suggestionData = await this.suggestionModel.findOne({ name: `Highest profitable Items with unique ${filter}` });
 							pipeline = _.cloneDeep(suggestionData.condition);
 
 							if (text) {
@@ -412,7 +413,7 @@ export class ClientSuggestionService {
 							break;
 
 						default:
-							suggestionData = await this.suggesionModel.findOne({ name: suggestionsList.HIGHEST_PROFITABLE_ITEMS });
+							suggestionData = await this.suggestionModel.findOne({ name: suggestionsList.HIGHEST_PROFITABLE_ITEMS });
 							pipeline = _.cloneDeep(suggestionData.condition);
 
 							if (text) {
@@ -435,7 +436,7 @@ export class ClientSuggestionService {
 				) {
 					let suggestionData;
 
-					suggestionData = await this.suggesionModel.findOne({ name: 'Top-5 margins' });
+					suggestionData = await this.suggestionModel.findOne({ name: suggestionsList.TOP_5_MARGINS });
 					pipeline = _.cloneDeep(suggestionData.condition);
 
 					if (suggestion.name === suggestionsList.BIG_SPENDER_TOP_5_MARGINS) {
@@ -456,7 +457,7 @@ export class ClientSuggestionService {
 						case 'sellable':
 							const matchCondition = { 'inventoryData.forSale': true };
 							if (text) {
-								matchCondition['product.productName'] = { $regex: text, $options: 'i' };
+								matchCondition['cartItems.productName'] = { $regex: text, $options: 'i' };
 							}
 
 							const updatedPipeline = {
@@ -477,7 +478,7 @@ export class ClientSuggestionService {
 							break;
 
 						case 'brand':
-							suggestionData = await this.suggesionModel.findOne({ name: 'Top-5 margins with unique brand' });
+							suggestionData = await this.suggestionModel.findOne({ name: suggestionsList.TOP_5_MARGINS_UNIQUE_BRAND });
 							pipeline = _.cloneDeep(suggestionData.condition);
 
 							if (text) {
@@ -485,14 +486,21 @@ export class ClientSuggestionService {
 									$match: { _id: { $regex: text, $options: 'i' } },
 								};
 
-								const indexToInsert = pipeline.findIndex((stage) => stage.$group);
+								let indexToInsert = -1;
+								for (let i = pipeline.length - 1; i >= 0; i--) {
+									if (pipeline[i]['$group'] !== undefined) {
+										indexToInsert = i;
+										break;
+									}
+								}
+
 								if (indexToInsert !== -1) {
 									pipeline.splice(indexToInsert + 1, 0, updatedPipeline);
 								}
 							}
 							break;
 						case 'category':
-							suggestionData = await this.suggesionModel.findOne({ name: 'Top-5 margins with unique category' });
+							suggestionData = await this.suggestionModel.findOne({ name: suggestionsList.TOP_5_MARGINS_UNIQUE_CATEGORY });
 							pipeline = _.cloneDeep(suggestionData.condition);
 
 							if (text) {
@@ -500,7 +508,14 @@ export class ClientSuggestionService {
 									$match: { _id: { $regex: text, $options: 'i' } },
 								};
 
-								const indexToInsert = pipeline.findIndex((stage) => stage.$group);
+								let indexToInsert = -1;
+								for (let i = pipeline.length - 1; i >= 0; i--) {
+									if (pipeline[i]['$group'] !== undefined) {
+										indexToInsert = i;
+										break;
+									}
+								}
+
 								if (indexToInsert !== -1) {
 									pipeline.splice(indexToInsert + 1, 0, updatedPipeline);
 								}
@@ -508,7 +523,7 @@ export class ClientSuggestionService {
 							break;
 
 						default:
-							suggestionData = await this.suggesionModel.findOne({ name: 'Top-5 margins' });
+							suggestionData = await this.suggestionModel.findOne({ name: suggestionsList.TOP_5_MARGINS });
 							pipeline = _.cloneDeep(suggestionData.condition);
 
 							if (text) {
@@ -523,9 +538,109 @@ export class ClientSuggestionService {
 							}
 							break;
 					}
-				}
+					replacements.push({ key: 'audienceId', value: new Types.ObjectId(audienceId) });
+				} else if (
+					suggestion.name === suggestionsList.FREQUENT_FLYER_SLOW_MOVING_ITEMS ||
+					suggestion.name === suggestionsList.BIG_SPENDER_SLOW_MOVING_ITEMS ||
+					suggestion.name === suggestionsList.GEN_X_SLOW_MOVING_ITEMS ||
+					suggestion.name === suggestionsList.GEN_Z_SLOW_MOVING_ITEMS
+				) {
+					let suggestionData;
 
-				replacements.push({ key: 'audienceId', value: new Types.ObjectId(audienceId) });
+					suggestionData = await this.suggestionModel.findOne({ name: suggestionsList.SLOW_MOVING_ITEMS_NEW });
+					pipeline = _.cloneDeep(suggestionData.condition);
+
+					if (suggestion.name === suggestionsList.BIG_SPENDER_SLOW_MOVING_ITEMS) {
+						const audienceDetails = await this.audienceDetailsService.getAudienceIdByName(AudienceName.BIG_SPENDER);
+						audienceId = audienceDetails._id;
+					} else if (suggestion.name === suggestionsList.FREQUENT_FLYER_SLOW_MOVING_ITEMS) {
+						const audienceDetails = await this.audienceDetailsService.getAudienceIdByName(AudienceName.FREQUENT_FLYER);
+						audienceId = audienceDetails._id;
+					} else if (suggestion.name === suggestionsList.GEN_X_SLOW_MOVING_ITEMS) {
+						const audienceDetails = await this.audienceDetailsService.getAudienceIdByName(AudienceName.GENERATION_X);
+						audienceId = audienceDetails._id;
+					} else if (suggestion.name === suggestionsList.GEN_Z_SLOW_MOVING_ITEMS) {
+						const audienceDetails = await this.audienceDetailsService.getAudienceIdByName(AudienceName.GENERATION_Z);
+						audienceId = audienceDetails._id;
+					}
+
+					switch (filter) {
+						case 'sellable':
+							const matchCondition = { 'inventoryData.forSale': true };
+							if (text) {
+								matchCondition['cartData.productName'] = { $regex: text, $options: 'i' };
+							}
+
+							const updatedPipeline = {
+								$match: matchCondition,
+							};
+
+							let indexToInsert = -1;
+							for (let i = pipeline.length - 1; i >= 0; i--) {
+								if (pipeline[i]['$unwind'] !== undefined) {
+									indexToInsert = i;
+									break;
+								}
+							}
+
+							if (indexToInsert !== -1) {
+								pipeline.splice(indexToInsert + 1, 0, updatedPipeline);
+							}
+							break;
+
+						case 'brand':
+							suggestionData = await this.suggestionModel.findOne({
+								name: suggestionsList.SLOW_MOVING_ITEMS_WITH_UNIQUE_BRAND_NEW,
+							});
+							pipeline = _.cloneDeep(suggestionData.condition);
+
+							if (text) {
+								const updatedPipeline = {
+									$match: { name: { $regex: text, $options: 'i' } },
+								};
+
+								const indexToInsert = pipeline.findIndex((stage) => stage.$project);
+								if (indexToInsert !== -1) {
+									pipeline.splice(indexToInsert + 1, 0, updatedPipeline);
+								}
+							}
+							break;
+						case 'category':
+							suggestionData = await this.suggestionModel.findOne({
+								name: suggestionsList.SLOW_MOVING_ITEMS_WITH_UNIQUE_CATEGORY_NEW,
+							});
+							pipeline = _.cloneDeep(suggestionData.condition);
+
+							if (text) {
+								const updatedPipeline = {
+									$match: { name: { $regex: text, $options: 'i' } },
+								};
+
+								const indexToInsert = pipeline.findIndex((stage) => stage.$project);
+								if (indexToInsert !== -1) {
+									pipeline.splice(indexToInsert + 1, 0, updatedPipeline);
+								}
+							}
+							break;
+
+						default:
+							suggestionData = await this.suggestionModel.findOne({ name: suggestionsList.SLOW_MOVING_ITEMS_NEW });
+							pipeline = _.cloneDeep(suggestionData.condition);
+
+							if (text) {
+								const updatedPipeline = {
+									$match: { name: { $regex: text, $options: 'i' } },
+								};
+
+								const indexToInsert = pipeline.findIndex((stage) => stage.$limit);
+								if (indexToInsert !== -1) {
+									pipeline.splice(indexToInsert + 1, 0, updatedPipeline);
+								}
+								break;
+							}
+					}
+					replacements.push({ key: 'audienceId', value: new Types.ObjectId(audienceId) });
+				}
 			} else {
 				suggestion.collectionName = DATABASE_COLLECTION.INVENTORY;
 				pipeline = [
@@ -663,7 +778,6 @@ export class ClientSuggestionService {
 			for (const element of replacements) {
 				updatePipeline(pipeline, element.key, element.value);
 			}
-			console.log(...pipeline);
 			const productList = await this.collectionMap[suggestion.collectionName].aggregate(pipeline);
 			return productList;
 		} catch (error) {

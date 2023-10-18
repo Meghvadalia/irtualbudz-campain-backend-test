@@ -95,4 +95,5 @@ export class Order extends Model<IOrder> {
 }
 
 export const OrderSchema = SchemaFactory.createForClass(Order);
-OrderSchema.index({ customerId: 1 },{ unique: true })
+OrderSchema.index({ customerId: 1 }, { unique: true })
+OrderSchema.index({ itemsInCart: 1 }, { unique: true })

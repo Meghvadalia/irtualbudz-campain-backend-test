@@ -62,3 +62,4 @@ export class Inventory extends Model<IInventory> {
 export const InventorySchema = SchemaFactory.createForClass(Inventory);
 InventorySchema.index({ posProductId: 1, storeId: 1 }, { unique: true });
 InventorySchema.index({ sku: 1 },{ unique: true })
+InventorySchema.index({ priceInMinorUnits: 1, costInMinorUnits: 1 },{ unique: true })
