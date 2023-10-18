@@ -46,7 +46,7 @@ export enum AudienceName {
 	VALUE_SHOPPER = 'Value Shopper',
 	DABBA_DABBA_DO = 'Dabba Dabba Do',
 	JUST_EAT_ALL = 'Just Eat All',
-	GENERATION_Z = 'Generation Z',
+	GENERATION_Z = 'Generation Z 21+',
 	GENERATION_X = 'Generation X',
 	MILLENNIAL = 'Millennial',
 	FLOWER_POWER = 'Flower Power',
