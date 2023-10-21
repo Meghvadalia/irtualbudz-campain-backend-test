@@ -996,7 +996,7 @@ export class ClientOrderService {
 							$sum: 1,
 						},
 						totalSpending: {
-							$sum: '$totals.finalTotal',
+							$avg: '$totals.finalTotal',
 						},
 					},
 				},
