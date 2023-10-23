@@ -1,6 +1,6 @@
 import { Model } from 'mongoose';
 
-export const pagination = (data: any, page: number = 1, perPage: number = 10) => {
+export const pagination = (data: any, page = 1, perPage = 10) => {
 	const startIndex = (+page - 1) * +perPage;
 	const endIndex = +startIndex + +perPage;
 

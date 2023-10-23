@@ -357,7 +357,7 @@ export class ClientAudienceCustomerService {
 		];
 
 		const result = await this.orderModel.aggregate(pipeline);
-		let name: string = '';
+		let name = '';
 		const audienceIdMap: { [key: string]: Types.ObjectId } = {};
 
 		const uniqueCategories = [...new Set(result.map((item) => item.purchaseCategory))];

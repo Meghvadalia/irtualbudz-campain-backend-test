@@ -38,7 +38,7 @@ export function formatValidationErrors(errors: ValidationError[]): string {
 
 export function sendSuccess<T>(
 	data: T,
-	message: string = 'Success',
+	message = 'Success',
 	statusCode: number = HttpStatus.OK
 ): ApiResponse<T> {
 	return {

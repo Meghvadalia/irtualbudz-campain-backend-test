@@ -27,14 +27,24 @@ const logger = winston.createLogger({
 @Injectable()
 export class LoggingMiddleware implements NestMiddleware {
 	use(req: Request, res: Response, next: NextFunction) {
+		const { method, originalUrl, body } = req;
+		const startTime = Date.now();
+
 		res.on('finish', () => {
-			const { method, originalUrl, body } = req;
 			const { statusCode } = res;
+			const endTime = Date.now();
+			const responseTime = endTime - startTime;
+
 			const logMessage = `Method: ${method} | URL: ${originalUrl} | Body: ${JSON.stringify(
 				body
-			)} | Status: ${statusCode}`;
+			)} | Status: ${statusCode} | Response Time: ${responseTime}ms`;
 			logger.info(logMessage);
 		});
+
+		res.on('error', (error) => {
+			logger.error(`Error: ${error.message}`);
+		});
+
 		next();
 	}
 }
