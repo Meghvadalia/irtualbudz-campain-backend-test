@@ -11,14 +11,18 @@ import { ISession } from '../interfaces/session.interface';
 })
 @ObjectType()
 export class Session extends Model<ISession> {
-	@Prop({ required: true, type: mongoose.Schema.Types.ObjectId, ref: DATABASE_COLLECTION.USER })
-	userId: string;
+	@Prop({
+		required: true,
+		type: mongoose.Schema.Types.ObjectId,
+		ref: DATABASE_COLLECTION.USER,
+	})
+		userId: string;
 
 	@Prop({ required: true })
-	type: USER_TYPE;
+		type: USER_TYPE;
 
 	@Prop({ type: Boolean, default: true })
-	status: boolean;
+		status: boolean;
 }
 
 export const SessionSchema = SchemaFactory.createForClass(Session);

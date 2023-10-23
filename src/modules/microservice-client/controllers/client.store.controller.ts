@@ -11,7 +11,13 @@ export class ClientStoreController {
 
 	@Get('list')
 	@UseGuards(RolesGuard)
-	@Roles(USER_TYPE.SUPER_ADMIN, USER_TYPE.ADMIN, USER_TYPE.COMPANY_ADMIN, USER_TYPE.STORE_ADMIN, USER_TYPE.MANAGER)
+	@Roles(
+		USER_TYPE.SUPER_ADMIN,
+		USER_TYPE.ADMIN,
+		USER_TYPE.COMPANY_ADMIN,
+		USER_TYPE.STORE_ADMIN,
+		USER_TYPE.MANAGER
+	)
 	async storeList(@Req() req: Request) {
 		try {
 			const storeList = await this.clientStoreService.getStores(req);
@@ -24,7 +30,13 @@ export class ClientStoreController {
 
 	@Post('update/:posName')
 	@UseGuards(RolesGuard)
-	@Roles(USER_TYPE.SUPER_ADMIN, USER_TYPE.ADMIN, USER_TYPE.COMPANY_ADMIN, USER_TYPE.STORE_ADMIN, USER_TYPE.MANAGER)
+	@Roles(
+		USER_TYPE.SUPER_ADMIN,
+		USER_TYPE.ADMIN,
+		USER_TYPE.COMPANY_ADMIN,
+		USER_TYPE.STORE_ADMIN,
+		USER_TYPE.MANAGER
+	)
 	async updateStore(@Param('posName') posName: string) {
 		try {
 			const storeList = await this.clientStoreService.updateStoreData(posName);

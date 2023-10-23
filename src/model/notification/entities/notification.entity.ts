@@ -11,33 +11,32 @@ import { INOTIFICATION } from '../interface/notification.interface';
 })
 @ObjectType()
 export class Notification extends Model<INOTIFICATION> {
-	@Prop({ trim: true, required: true})
-	title: String;
+	@Prop({ trim: true, required: true })
+		title: string;
 
 	@Prop({ default: false })
-	isDeleted: boolean;
+		isDeleted: boolean;
 
 	@Prop({ default: true })
-	isRead: boolean;
+		isRead: boolean;
 
-	@Prop({ trim: true, required: true})
-	message: String;
+	@Prop({ trim: true, required: true })
+		message: string;
 
 	@Prop({
 		type: mongoose.Schema.Types.ObjectId,
 		ref: DATABASE_COLLECTION.USER,
 	})
-	userId: Types.ObjectId;
-	
+		userId: Types.ObjectId;
+
 	@Prop({ required: true, ref: DATABASE_COLLECTION.STORES, type: mongoose.Schema.Types.ObjectId })
-	storeId: Types.ObjectId;
+		storeId: Types.ObjectId;
 
 	@Prop({ type: Array })
-	notificationData:Object
+		notificationData: object;
 
 	@Prop({})
-	notificationType:string
-
+		notificationType: string;
 }
 
 export const NotificationSchema = SchemaFactory.createForClass(Notification);

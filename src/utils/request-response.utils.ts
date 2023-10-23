@@ -49,10 +49,7 @@ export function sendSuccess<T>(
 	};
 }
 
-export function sendError<T>(
-	message: string,
-	statusCode: number
-): ApiResponse<T> {
+export function sendError<T>(message: string, statusCode: number): ApiResponse<T> {
 	return {
 		status: 'error',
 		statusCode,
@@ -74,13 +71,9 @@ export class AllExceptionsFilter extends BaseRpcExceptionFilter {
 		const ctx = host.switchToHttp();
 		const response = ctx.getResponse<Response>();
 		const status =
-			exception instanceof HttpException
-				? exception.getStatus()
-				: HttpStatus.INTERNAL_SERVER_ERROR;
+			exception instanceof HttpException ? exception.getStatus() : HttpStatus.INTERNAL_SERVER_ERROR;
 		const message =
-			exception instanceof HttpException
-				? exception.message
-				: 'Internal Server Error';
+			exception instanceof HttpException ? exception.message : 'Internal Server Error';
 
 		response.status(status).json(sendError(message, status));
 		return super.catch(exception, host);

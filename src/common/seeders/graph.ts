@@ -689,7 +689,11 @@ export const graphData = [
 			},
 			{
 				$match: {
-					$or: [{ 'carts.title2': { $in: [] } }, { 'carts.category': { $in: [] } }, { 'carts.productName': { $in: [] } }],
+					$or: [
+						{ 'carts.title2': { $in: [] } },
+						{ 'carts.category': { $in: [] } },
+						{ 'carts.productName': { $in: [] } },
+					],
 				},
 			},
 			{

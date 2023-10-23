@@ -31,7 +31,14 @@ export class ClientSuggestionController {
 		@Query('text') text: string
 	) {
 		try {
-			const suggestion = await this.clientSuggestionService.suggestion(storeId, id, page, limit, filter, text);
+			const suggestion = await this.clientSuggestionService.suggestion(
+				storeId,
+				id,
+				page,
+				limit,
+				filter,
+				text
+			);
 			return sendSuccess(suggestion);
 		} catch (error) {
 			console.error(error.message);

@@ -17,7 +17,7 @@ export class RedisService {
 		return this.redisClient;
 	}
 
-	async setValue(key: string, value: {}): Promise<void> {
+	async setValue(key: string, value: object): Promise<void> {
 		await this.redisClient.hset(this.sessionName, key, JSON.stringify(value));
 	}
 

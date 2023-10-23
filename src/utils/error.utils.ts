@@ -68,48 +68,48 @@ export function throwUnsupportedMediaTypeException(message): void {
 }
 
 export function dynamicCatchException(error) {
-	console.log(error.name)
-	if (error.name === "NotFoundException") {
+	console.log(error.name);
+	if (error.name === 'NotFoundException') {
 		// Handle NotFoundException (404) here
 		// For example, return a 404 response or log the error
 		throwNotFoundException(error);
-	} else if (error.name === "ValidationError") {
+	} else if (error.name === 'ValidationError') {
 		// Handle BadRequestException (400) here
 		// For example, return a 400 response or log the error
 		throwBadRequestException(error);
-	} else if (error.name === "UnauthorizedException") {
+	} else if (error.name === 'UnauthorizedException') {
 		// Handle UnauthorizedException (401) here
 		// For example, return a 401 response or log the error
 		throwUnauthorizedException(error);
-	} else if (error.name === "ForbiddenException") {
+	} else if (error.name === 'ForbiddenException') {
 		// Handle ForbiddenException (403) here
 		// For example, return a 403 response or log the error
 		throwForbiddenException(error);
-	} else if (error.name === "InternalServerErrorException") {
+	} else if (error.name === 'InternalServerErrorException') {
 		// Handle InternalServerErrorException (500) here
 		// For example, return a 500 response or log the error
 		throwInternalServerErrorException(error);
-	} else if (error.name === "MethodNotAllowedException") {
+	} else if (error.name === 'MethodNotAllowedException') {
 		// Handle MethodNotAllowedException (405) here
 		// For example, return a 405 response or log the error
 		throwMethodNotAllowedException(error);
-	} else if (error.name === "NotAcceptableException") {
+	} else if (error.name === 'NotAcceptableException') {
 		// Handle NotAcceptableException (406) here
 		// For example, return a 406 response or log the error
 		throwNotAcceptableException(error);
-	} else if (error.name === "ConflictException") {
+	} else if (error.name === 'ConflictException') {
 		// Handle ConflictException (409) here
 		// For example, return a 409 response or log the error
 		throwConflictException(error);
-	} else if (error.name === "GoneException") {
+	} else if (error.name === 'GoneException') {
 		// Handle GoneException (410) here
 		// For example, return a 410 response or log the error
 		throwGoneException(error);
-	} else if (error.name === "PayloadTooLargeException") {
+	} else if (error.name === 'PayloadTooLargeException') {
 		// Handle PayloadTooLargeException (413) here
 		// For example, return a 413 response or log the error
 		throwPayloadTooLargeException(error);
-	} else if (error.name === "UnsupportedMediaTypeException") {
+	} else if (error.name === 'UnsupportedMediaTypeException') {
 		// Handle UnsupportedMediaTypeException (415) here
 		// For example, return a 415 response or log the error
 		throwUnsupportedMediaTypeException(error);
@@ -118,5 +118,4 @@ export function dynamicCatchException(error) {
 		// For example, return a generic 500 response or log the error
 		throwInternalServerErrorException(error);
 	}
-	
 }

@@ -12,7 +12,7 @@ export class ClientChannelService {
 
 	async getAllChannels(): Promise<IChannel[]> {
 		try {
-			let channelList = await this.channelModel.find<IChannel>({}, { name: 1, _id: 1 });
+			const channelList = await this.channelModel.find<IChannel>({}, { name: 1, _id: 1 });
 			if (channelList.length == 0) {
 				throwNotFoundException('Channel not found.');
 			} else {

@@ -13,31 +13,41 @@ import { DATABASE_COLLECTION } from 'src/common/constants';
 @ObjectType()
 export class User extends Model<IUser> {
 	@Prop({ required: true, unique: true, trim: true })
-	email: string;
+		email: string;
 
 	@Prop({ required: true })
-	password: string;
+		password: string;
 
 	@Prop({ trim: true })
-	name: string;
+		name: string;
 
 	@Prop({ trim: true })
-	phone: string;
+		phone: string;
 
 	@Prop({ required: true })
-	type: USER_TYPE;
+		type: USER_TYPE;
 
-	@Prop({ trim: true, default: '', type: Types.ObjectId, ref: DATABASE_COLLECTION.COMPANIES })
-	companyId: string;
+	@Prop({
+		trim: true,
+		default: '',
+		type: Types.ObjectId,
+		ref: DATABASE_COLLECTION.COMPANIES,
+	})
+		companyId: string;
 
-	@Prop({ trim: true, default: '', type: Types.ObjectId, ref: DATABASE_COLLECTION.STORES })
-	storeId: string;
+	@Prop({
+		trim: true,
+		default: '',
+		type: Types.ObjectId,
+		ref: DATABASE_COLLECTION.STORES,
+	})
+		storeId: string;
 
 	@Prop({ default: true, type: Boolean })
-	isActive: boolean;
+		isActive: boolean;
 
 	@Prop({ default: false, type: Boolean })
-	isDeleted: boolean;
+		isDeleted: boolean;
 }
 
 export const UserSchema = SchemaFactory.createForClass(User);

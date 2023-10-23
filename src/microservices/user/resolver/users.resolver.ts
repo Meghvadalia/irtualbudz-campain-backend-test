@@ -17,7 +17,10 @@ export class UsersResolver {
 	findOne(@Args('id', { type: () => Int }) id: number) {}
 
 	@Mutation(() => User)
-	updateUser(@Args('id', { type: () => Int }) id: number, @Args('updateUserInput') updateUserInput: UserDto) {}
+	updateUser(
+		@Args('id', { type: () => Int }) id: number,
+		@Args('updateUserInput') updateUserInput: UserDto
+	) {}
 
 	@Mutation(() => User)
 	removeUser(@Args('userId', { type: () => Int }) userId: number) {}

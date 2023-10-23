@@ -14,7 +14,12 @@ import { Cart, CartSchema } from 'src/microservices/order/entities/cart.entity';
 import { Product, ProductSchema } from 'src/microservices/inventory/entities/product.entity';
 import { CustomerModule } from 'src/microservices/customers/customer.module';
 import { OrderModule } from 'src/microservices/order';
-import { Inventory, InventoryModule, InventorySchema, InventoryService } from 'src/microservices/inventory';
+import {
+	Inventory,
+	InventoryModule,
+	InventorySchema,
+	InventoryService,
+} from 'src/microservices/inventory';
 import { UsersModule } from 'src/microservices/user/users.module';
 import { ClientCustomerService } from './services/client.customer.service';
 import { Customer, CustomerSchema } from 'src/microservices/customers/entities/customer.entity';
@@ -44,7 +49,10 @@ import { Channel, ChannelSchema } from 'src/model/channels/entities/channel.enti
 import { ClientGoalsController } from './controllers/client.goals.controller';
 import { ClientGoalsService } from './services/client.goals.service';
 import { ClientCampaignTypeService } from './services/client.campaignTypes.service';
-import { CampaignTypes, CampaignTypesSchema } from 'src/model/campaignTypes/entities/campaignTypes.entity';
+import {
+	CampaignTypes,
+	CampaignTypesSchema,
+} from 'src/model/campaignTypes/entities/campaignTypes.entity';
 import { ClientCampaignTypeController } from './controllers/client.campaignTypes.controller';
 import { Action, ActionSchema } from 'src/model/actions/entities/actions.entity';
 import { ClientActionController } from './controllers/client.action.controller';
@@ -57,10 +65,16 @@ import { ClientSuggestionService } from './services/client.suggestion.service';
 import { Graph, GraphSchema } from 'src/model/graph/entities/graph.entity';
 import { ClientSuggestionController } from './controllers/client.suggestion.controller';
 import { ClientGraphController } from './controllers/client.graph.controller';
-import { CampaignAsset, CampaignAssetsSchema } from 'src/model/campaignAssets/entities/campaignAsset.entity';
+import {
+	CampaignAsset,
+	CampaignAssetsSchema,
+} from 'src/model/campaignAssets/entities/campaignAsset.entity';
 import { ClientNotificationController } from './controllers/client.notification.controller';
 import { ClientNotificationService } from './services/client.notification.service';
-import { NotificationSchema, Notification } from 'src/model/notification/entities/notification.entity';
+import {
+	NotificationSchema,
+	Notification,
+} from 'src/model/notification/entities/notification.entity';
 import { Kafka } from 'kafkajs';
 import { CampaignProducer } from '../kafka/producers/campaign.producer';
 

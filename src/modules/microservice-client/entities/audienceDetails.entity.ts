@@ -6,19 +6,19 @@ import { IAudienceDetails } from '../interfaces/audienceDetails.interface';
 @Schema({ collection: DATABASE_COLLECTION.AUDIENCE_DETAIL, timestamps: true })
 export class AudienceDetail extends Model<IAudienceDetails> {
 	@Prop({ required: true })
-	name: GenerationGroup;
+		name: GenerationGroup;
 
 	@Prop()
-	audienceDescription: String;
+		audienceDescription: string;
 
 	@Prop({ default: true })
-	isActive: Boolean;
+		isActive: boolean;
 
 	@Prop({ default: false })
-	isDeleted: Boolean;
+		isDeleted: boolean;
 
 	@Prop({ enum: AudienceType })
-	type: AudienceType;
+		type: AudienceType;
 }
 
 export const AudienceDetailSchema = SchemaFactory.createForClass(AudienceDetail);

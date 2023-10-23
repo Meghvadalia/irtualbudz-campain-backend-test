@@ -6,7 +6,10 @@ import { dynamicCatchException } from 'src/utils/error.utils';
 
 @Injectable()
 export class ClientCampaignTypeService {
-	constructor(@InjectModel(CampaignTypes.name) private readonly campaignTypesModel: Model<CampaignTypes>) {}
+	constructor(
+		@InjectModel(CampaignTypes.name)
+		private readonly campaignTypesModel: Model<CampaignTypes>
+	) {}
 
 	async getCampaignTypes() {
 		try {

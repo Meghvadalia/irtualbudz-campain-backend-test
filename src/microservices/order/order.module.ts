@@ -10,8 +10,14 @@ import { Company, CompanySchema } from 'src/model/company/entities/company.entit
 import { POS, POSSchema } from 'src/model/pos/entities/pos.entity';
 import { Store, StoreSchema } from 'src/model/store/entities/store.entity';
 import { Customer, CustomerModule, CustomerSchema } from '../customers';
-import { AudienceCustomer, AudienceCustomerSchema } from 'src/modules/microservice-client/entities/audienceCustomers.entity';
-import { AudienceDetail, AudienceDetailSchema } from 'src/modules/microservice-client/entities/audienceDetails.entity';
+import {
+	AudienceCustomer,
+	AudienceCustomerSchema,
+} from 'src/modules/microservice-client/entities/audienceCustomers.entity';
+import {
+	AudienceDetail,
+	AudienceDetailSchema,
+} from 'src/modules/microservice-client/entities/audienceDetails.entity';
 import { AudienceDetailsService } from 'src/modules/microservice-client/services/client.audienceDetail.service';
 import { Product, ProductSchema } from '../inventory/entities/product.entity';
 

@@ -17,7 +17,10 @@ import { KAFKA_CAMPAIGN_EVENT_TYPE, UPLOAD_DIRECTORY } from 'src/common/constant
 import { CampaignAsset } from 'src/model/campaignAssets/entities/campaignAsset.entity';
 import { Product } from 'src/microservices/inventory';
 import { Suggestions } from 'src/model/suggestions/entities/suggestions.entity';
-import { ICampaignAsset, ICampaignAssetFiles } from 'src/model/campaignAssets/interface/campaignAsset.interface';
+import {
+	ICampaignAsset,
+	ICampaignAssetFiles,
+} from 'src/model/campaignAssets/interface/campaignAsset.interface';
 import * as fs from 'fs';
 import { dynamicCatchException, throwNotFoundException } from 'src/utils/error.utils';
 import { ClientAudienceCustomerService } from './client.audienceCustomer.service';
@@ -33,9 +36,11 @@ export class ClientCampaignService {
 		@InjectModel(Goals.name) private readonly goalsModel: Model<Goals>,
 		// @InjectModel(CampaignTypes.name) private readonly campaignTypeModel: Model<CampaignTypes>,
 		@InjectModel(Channel.name) private readonly channelModel: Model<Channel>,
-		@InjectModel(AudienceDetail.name) private readonly audienceModel: Model<AudienceDetail>,
+		@InjectModel(AudienceDetail.name)
+		private readonly audienceModel: Model<AudienceDetail>,
 		@InjectModel(Action.name) private readonly actionModel: Model<Action>,
-		@InjectModel(CampaignAsset.name) private readonly campaignAssetModel: Model<CampaignAsset>,
+		@InjectModel(CampaignAsset.name)
+		private readonly campaignAssetModel: Model<CampaignAsset>,
 		@InjectModel(Product.name) private readonly productModel: Model<Product>,
 		@InjectModel(Suggestions.name) private readonly suggestionModel: Model<Suggestions>,
 		private readonly userService: UsersService,
@@ -43,7 +48,7 @@ export class ClientCampaignService {
 		private readonly audienceService: ClientAudienceCustomerService,
 		private readonly campaignProducer: CampaignProducer,
 		private readonly clientNotificationService: ClientNotificationService
-	) { }
+	) {}
 
 	async addCampaign(data: Partial<ICampaign>, files) {
 		const directory = path.join(process.cwd(), 'public', UPLOAD_DIRECTORY.CAMPAIGN);
@@ -74,7 +79,11 @@ export class ClientCampaignService {
 			const audienceIds = Array.isArray(data.audienceId) ? data.audienceId : [data.audienceId];
 
 			for (const audienceId of audienceIds) {
-				this.audienceService.addTargetAudience(audienceId, campaign._id as unknown as string, data.storeId.toString());
+				this.audienceService.addTargetAudience(
+					audienceId,
+					campaign._id as unknown as string,
+					data.storeId.toString()
+				);
 			}
 		});
 
@@ -108,7 +117,11 @@ export class ClientCampaignService {
 	}
 
 	private async updateCampaignStatus(campaignId: string, status: string) {
-		return this.campaignModel.findByIdAndUpdate(campaignId, { $set: { campaignStatus: status } }, { new: true });
+		return this.campaignModel.findByIdAndUpdate(
+			campaignId,
+			{ $set: { campaignStatus: status } },
+			{ new: true }
+		);
 	}
 
 	async campaignList(user, page: number, limit: number, storeId?: string, name?: string) {
@@ -136,13 +149,15 @@ export class ClientCampaignService {
 				campaignList = await this.populateCampaignData(userData.storeId, name);
 			}
 
-			if (campaignList.length === 0) throw new NotFoundException(`Campaign list not found`);
+			if (campaignList.length === 0) throw new NotFoundException('Campaign list not found');
 
 			for (const campaign of campaignList) {
 				const populatedSortItems = [];
 
 				for (const item of campaign.sortItem) {
-					const suggestion = await this.suggestionModel.findById(item.suggestionId).select(['name']);
+					const suggestion = await this.suggestionModel
+						.findById(item.suggestionId)
+						.select(['name']);
 					const sortByArray = [];
 
 					for (const sort of item.sortBy) {
@@ -213,7 +228,9 @@ export class ClientCampaignService {
 
 	async getCampaign(campaignId: Types.ObjectId) {
 		try {
-			const campaigns: ICampaign[] = await this.campaignModel.findOne({ _id: campaignId });
+			const campaigns: ICampaign[] = await this.campaignModel.findOne({
+				_id: campaignId,
+			});
 			return campaigns;
 		} catch (error) {
 			dynamicCatchException(error);
@@ -246,7 +263,11 @@ export class ClientCampaignService {
 
 			const campaignAsset = await this.campaignAssetModel
 				.find({ campaignId })
-				.populate({ path: 'channelId', select: 'name', model: this.channelModel })
+				.populate({
+					path: 'channelId',
+					select: 'name',
+					model: this.channelModel,
+				})
 				.select(['-createdAt', '-__v', '-updatedAt', '-campaignId']);
 
 			const populatedSortItems = [];
@@ -306,32 +327,35 @@ export class ClientCampaignService {
 				isActive: true,
 			}));
 
-			let asset = await this.campaignAssetModel.findOne({ campaignId, channelId });
+			let asset = await this.campaignAssetModel.findOne({
+				campaignId,
+				channelId,
+			});
 			if (asset) {
 				asset.files = [...asset.files, ...assetFiles];
 				await asset.save();
-				let campaignData = await this.campaignModel.findById(campaignId)
+				const campaignData = await this.campaignModel.findById(campaignId);
 				await this.clientNotificationService.createSingleNotificationForStore(
 					campaignData.storeId,
 					`New asset uploaded in ${campaignData.campaignName} campaign`,
 					`New asset in ${campaignData.campaignName}`,
 					{ campaignId: campaignData._id },
 					NotificationType.NewAsset
-				)
+				);
 			} else {
 				const campaignAssetWithFiles = {
 					...data,
 					files: assetFiles,
 				};
 				asset = await this.campaignAssetModel.create(campaignAssetWithFiles);
-				let campaignData = await this.campaignModel.findById(campaignId)
+				const campaignData = await this.campaignModel.findById(campaignId);
 				await this.clientNotificationService.createSingleNotificationForStore(
 					campaignData.storeId,
 					`New asset uploaded in ${campaignData.campaignName} campaign`,
 					`New asset in ${campaignData.campaignName}`,
 					{ campaignId: campaignData._id },
 					NotificationType.NewAsset
-				)
+				);
 			}
 
 			return asset;
@@ -352,7 +376,9 @@ export class ClientCampaignService {
 
 			if (!asset) throw new Error('File not found');
 
-			const fileToDelete: ICampaignAssetFiles = asset.files?.find((file) => file._id.toString() === id);
+			const fileToDelete: ICampaignAssetFiles = asset.files?.find(
+				(file) => file._id.toString() === id
+			);
 			if (fileToDelete) {
 				const filePath = fileToDelete.filePath;
 				const updatedFilePath = filePath.startsWith('/') ? filePath.substring(1) : filePath;
@@ -389,8 +415,16 @@ export class ClientCampaignService {
 		try {
 			const campaignAssets = await this.campaignAssetModel
 				.find({ campaignId: new mongoose.Types.ObjectId(id) })
-				.populate({ path: 'campaignId', select: 'campaignName', model: this.campaignModel })
-				.populate({ path: 'channelId', select: 'name', model: this.channelModel })
+				.populate({
+					path: 'campaignId',
+					select: 'campaignName',
+					model: this.campaignModel,
+				})
+				.populate({
+					path: 'channelId',
+					select: 'name',
+					model: this.channelModel,
+				})
 				.select(['-createdAt', '-updatedAt', '-__v']);
 
 			return campaignAssets;
@@ -401,7 +435,9 @@ export class ClientCampaignService {
 
 	async removeCampaign(campaignId: Types.ObjectId) {
 		try {
-			const campaigns = await this.campaignModel.findByIdAndRemove({ _id: campaignId });
+			const campaigns = await this.campaignModel.findByIdAndRemove({
+				_id: campaignId,
+			});
 			return campaigns;
 		} catch (error) {
 			dynamicCatchException(error);

@@ -6,25 +6,25 @@ import { ISuggestions } from '../interfaces/suggestions.interface';
 @Schema({ collection: DATABASE_COLLECTION.SUGGESTIONS, timestamps: true })
 export class Suggestions extends Model<ISuggestions> {
 	@Prop({ required: true, unique: true, trim: true })
-	name: string;
+		name: string;
 
 	@Prop({ trim: true, type: mongoose.Schema.Types.Mixed })
-	condition: any;
+		condition: any;
 
 	@Prop({ type: mongoose.Schema.Types.Number })
-	dateOffset: number;
+		dateOffset: number;
 
 	@Prop({ type: mongoose.Schema.Types.String })
-	collectionName: string;
+		collectionName: string;
 
 	@Prop({ type: mongoose.Schema.Types.Boolean })
-	display: boolean;
+		display: boolean;
 
 	@Prop({ default: true })
-	isActive: boolean;
+		isActive: boolean;
 
 	@Prop({ default: false })
-	isDeleted: boolean;
+		isDeleted: boolean;
 }
 
 export const SuggestionsSchema = SchemaFactory.createForClass(Suggestions);

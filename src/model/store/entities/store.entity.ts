@@ -8,17 +8,17 @@ import { DATABASE_COLLECTION } from 'src/common/constants';
 @Schema({ collection: DATABASE_COLLECTION.STORES, timestamps: true })
 export class Store extends Model<IStore> {
 	@Prop({ required: true, type: Object })
-	location: ILocation;
+		location: ILocation;
 
 	@Prop()
-	locationName: string;
+		locationName: string;
 
 	@Prop({
 		type: Types.ObjectId,
 		ref: DATABASE_COLLECTION.COMPANIES,
 		required: true,
 	})
-	companyId: Types.ObjectId;
+		companyId: Types.ObjectId;
 
 	@Prop({
 		type: [
@@ -29,31 +29,31 @@ export class Store extends Model<IStore> {
 			},
 		],
 	})
-	hoursOfOperation: IhoursOfOperation[];
+		hoursOfOperation: IhoursOfOperation[];
 
 	@Prop()
-	timeZone: string;
+		timeZone: string;
 
 	@Prop({ type: mongoose.Schema.Types.Array })
-	address: IAddress;
+		address: IAddress;
 
 	@Prop()
-	phonenumber: string;
+		phonenumber: string;
 
 	@Prop()
-	website: string;
+		website: string;
 
 	@Prop()
-	email: string;
+		email: string;
 
 	@Prop()
-	licenseType: string[];
+		licenseType: string[];
 
 	@Prop({ default: false })
-	isDeleted: boolean;
+		isDeleted: boolean;
 
 	@Prop({ default: true })
-	isActive: boolean;
+		isActive: boolean;
 }
 
 export const StoreSchema = SchemaFactory.createForClass(Store);

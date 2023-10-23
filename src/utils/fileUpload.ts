@@ -10,7 +10,7 @@ export const createDirectoryIfNotExists = async (directoryPath: string) => {
 export const uploadFiles = async (files, destinationDir: string) => {
 	const filePaths: string[] = [];
 
-	let keyword = 'public/';
+	const keyword = 'public/';
 	let result: string;
 	const index = destinationDir.indexOf(keyword);
 
@@ -22,7 +22,9 @@ export const uploadFiles = async (files, destinationDir: string) => {
 
 	for (const file of files) {
 		const fileNameWithoutExtension = file.originalname.split('.').slice(0, -1).join('.');
-		const fileNameWithTimestamp = `${fileNameWithoutExtension}_${Date.now()}.${file.originalname.split('.').pop()}`;
+		const fileNameWithTimestamp = `${fileNameWithoutExtension}_${Date.now()}.${file.originalname
+			.split('.')
+			.pop()}`;
 		const fileNameWithUnderscores = fileNameWithTimestamp.replace(/ /g, '_');
 
 		const fileDestination = path.join(destinationDir, fileNameWithUnderscores);

@@ -6,7 +6,10 @@ import { dynamicCatchException } from 'src/utils/error.utils';
 
 @Injectable()
 export class AudienceDetailsService {
-	constructor(@InjectModel(AudienceDetail.name) private audienceDetailsModel: Model<AudienceDetail>) {}
+	constructor(
+		@InjectModel(AudienceDetail.name)
+		private audienceDetailsModel: Model<AudienceDetail>
+	) {}
 
 	async getAudienceIdByName(name: string) {
 		try {
@@ -19,7 +22,9 @@ export class AudienceDetailsService {
 
 	async getAudienceDetailById(id: string) {
 		try {
-			const audienceId = await this.audienceDetailsModel.findById<AudienceDetail>({ _id: new Types.ObjectId(id) });
+			const audienceId = await this.audienceDetailsModel.findById<AudienceDetail>({
+				_id: new Types.ObjectId(id),
+			});
 			return audienceId;
 		} catch (error) {
 			dynamicCatchException(error);

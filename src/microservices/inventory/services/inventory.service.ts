@@ -27,12 +27,10 @@ export class InventoryService {
 	async seedInventory(posName: string): Promise<void> {
 		try {
 			const posData = await this.posModel.findOne({ name: posName });
-			const flowhubCompaniesList = await this.companyModel.find<ICompany>(
-				{
-					isActive: true,
-					posId: posData._id,
-				}
-			);
+			const flowhubCompaniesList = await this.companyModel.find<ICompany>({
+				isActive: true,
+				posId: posData._id,
+			});
 
 			for (const company of flowhubCompaniesList) {
 				const locations = await this.storeModel.find({
@@ -53,13 +51,9 @@ export class InventoryService {
 				});
 
 				const inventoryResponses = await Promise.all(
-					inventoryOptions.map(({ options }) =>
-						axios.request(options)
-					)
+					inventoryOptions.map(({ options }) => axios.request(options))
 				);
-				const inventoryDataArray = inventoryResponses.flatMap(
-					({ data }) => data.data
-				);
+				const inventoryDataArray = inventoryResponses.flatMap(({ data }) => data.data);
 
 				const productMap = new Map();
 
@@ -69,34 +63,32 @@ export class InventoryService {
 						company._id,
 						posData._id
 					);
-					const savedProduct =
-						await this.productModel.findOneAndUpdate(
-							{
-								posProductId: productData.productId,
-								companyId: company._id,
-							},
-							transformedProductData,
-							{ upsert: true, new: true }
-						);
+					const savedProduct = await this.productModel.findOneAndUpdate(
+						{
+							posProductId: productData.productId,
+							companyId: company._id,
+						},
+						transformedProductData,
+						{ upsert: true, new: true }
+					);
 					productMap.set(productData.productId, savedProduct._id);
 				}
 
-				const inventoryDataToSaveArray = inventoryDataArray.map(
-					(inventoryData) =>
-						this.transformInventoryData(
-							inventoryData,
-							productMap.get(inventoryData.productId),
-							company._id,
-							posData._id,
-							locations
-						)
+				const inventoryDataToSaveArray = inventoryDataArray.map((inventoryData) =>
+					this.transformInventoryData(
+						inventoryData,
+						productMap.get(inventoryData.productId),
+						company._id,
+						posData._id,
+						locations
+					)
 				);
 
 				await this.updateOrCreateInventory(inventoryDataToSaveArray);
 			}
 		} catch (error) {
 			console.error('GRPC METHOD', error);
-			dynamicCatchException(error)
+			dynamicCatchException(error);
 		}
 	}
 
@@ -168,14 +160,10 @@ export class InventoryService {
 					},
 				};
 
-				const { data: productsData } = await axios.request(
-					productOptions
-				);
-				const storeData: IStore = await this.storeModel.findOne<IStore>(
-					{
-						companyId: company._id,
-					}
-				);
+				const { data: productsData } = await axios.request(productOptions);
+				const storeData: IStore = await this.storeModel.findOne<IStore>({
+					companyId: company._id,
+				});
 
 				const productArray: IProduct[] = [];
 
@@ -215,13 +203,9 @@ export class InventoryService {
 						},
 					});
 				}
-				const insertedProducts = await this.productModel.insertMany(
-					productArray
-				);
+				const insertedProducts = await this.productModel.insertMany(productArray);
 
-				const { data: inventoryData } = await axios.request(
-					inventoryOptions
-				);
+				const { data: inventoryData } = await axios.request(inventoryOptions);
 
 				const inventoryArray: IInventory[] = [];
 
@@ -240,9 +224,7 @@ export class InventoryService {
 						productUpdatedAt: d.lastModifiedDateUtc,
 						storeId: storeData._id,
 						locationName: storeData.location.locationName,
-						productId: matchingProduct
-							? (matchingProduct._id as string)
-							: '',
+						productId: matchingProduct ? (matchingProduct._id as string) : '',
 						extraDetails: {
 							inventoryUnitOfMeasure: d.unitWeightUnit,
 							inventoryUnitOfMeasureToGramsMultiplier: 1,
@@ -260,7 +242,7 @@ export class InventoryService {
 			}
 		} catch (error) {
 			console.error('Failed to seed inventory data:', error.message);
-			dynamicCatchException(error)
+			dynamicCatchException(error);
 		}
 	}
 
@@ -286,19 +268,12 @@ export class InventoryService {
 				weightTierInformation: productData.weightTierInformation,
 				cannabinoidInformation: productData.cannabinoidInformation,
 				productUnitOfMeasure: productData.productUnitOfMeasure,
-				productUnitOfMeasureToGramsMultiplier:
-					productData.productUnitOfMeasureToGramsMultiplier,
+				productUnitOfMeasureToGramsMultiplier: productData.productUnitOfMeasureToGramsMultiplier,
 			},
 		};
 	}
 
-	transformInventoryData(
-		inventoryData,
-		product,
-		companyId,
-		posId,
-		locations
-	): IInventory {
+	transformInventoryData(inventoryData, product, companyId, posId, locations): IInventory {
 		const location = locations.find(
 			({ location }) => location.locationId === inventoryData.locationId
 		);
@@ -359,9 +334,7 @@ export class InventoryService {
 
 		for (const duplicate of duplicateInventoryItems) {
 			const [keepId, ...deleteIds] = duplicate.ids;
-			await this.inventoryModel
-				.deleteMany({ _id: { $in: deleteIds } })
-				.exec();
+			await this.inventoryModel.deleteMany({ _id: { $in: deleteIds } }).exec();
 		}
 	}
 }

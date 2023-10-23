@@ -28,17 +28,19 @@ export class ClientCompanyService {
 				return company;
 			}
 		} catch (error) {
-			dynamicCatchException(error)
+			dynamicCatchException(error);
 		}
 	}
 
 	async company(id: string): Promise<ICompany | null> {
 		try {
-			const company = await this.companyModel.findById(id).select(['-updatedAt', '-createdAt', '-__v']);
+			const company = await this.companyModel
+				.findById(id)
+				.select(['-updatedAt', '-createdAt', '-__v']);
 			if (!company) throwNotFoundException('Company not found.');
 			return company;
 		} catch (error) {
-			dynamicCatchException(error)
+			dynamicCatchException(error);
 		}
 	}
 }

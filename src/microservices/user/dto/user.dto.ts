@@ -18,10 +18,14 @@ export class UserDto implements IUser {
 	@Field(() => String, { description: 'User type' })
 	readonly type: string;
 
-	@Field(() => String, { description: 'Id of a company(for COMPANY_ADMIN users)' })
+	@Field(() => String, {
+		description: 'Id of a company(for COMPANY_ADMIN users)',
+	})
 	readonly companyId?: string;
 
-	@Field(() => String, { description: 'Id of a store(for STORE_ADMIN and MANAGER users)' })
+	@Field(() => String, {
+		description: 'Id of a store(for STORE_ADMIN and MANAGER users)',
+	})
 	readonly storeId?: string;
 }
 

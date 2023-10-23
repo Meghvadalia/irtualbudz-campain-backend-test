@@ -6,13 +6,13 @@ import { ChannelTypes, IChannel } from '../interface/channel.interface';
 @Schema({ collection: DATABASE_COLLECTION.CHANNELS, timestamps: true })
 export class Channel extends Model<IChannel> {
 	@Prop({ required: true, trim: true, unique: true })
-	name: ChannelTypes;
+		name: ChannelTypes;
 
 	@Prop({ default: true })
-	isActive: boolean;
+		isActive: boolean;
 
 	@Prop({ default: false })
-	isDeleted: boolean;
+		isDeleted: boolean;
 }
 
 export const ChannelSchema = SchemaFactory.createForClass(Channel);

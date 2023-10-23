@@ -7,23 +7,23 @@ import { ACTIONS } from 'src/common/seeders/actions';
 @Schema({ collection: DATABASE_COLLECTION.ACTIONS, timestamps: true })
 export class Action extends Model<IAction> {
 	@Prop({ required: true, trim: true })
-	name: ACTIONS;
+		name: ACTIONS;
 
 	@Prop({ default: true })
-	isActive: boolean;
+		isActive: boolean;
 
 	@Prop({ default: false })
-	isDeleted: boolean;
+		isDeleted: boolean;
 
 	@Prop({
 		type: Types.ObjectId,
 		ref: DATABASE_COLLECTION.GRAPH,
 		default: null,
 	})
-	graphId: Types.ObjectId;
+		graphId: Types.ObjectId;
 
 	@Prop({ default: false })
-	isTrackable: boolean;
+		isTrackable: boolean;
 }
 
 export const ActionSchema = SchemaFactory.createForClass(Action);

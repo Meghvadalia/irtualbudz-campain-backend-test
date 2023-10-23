@@ -15,7 +15,12 @@ export const pagination = (data: any, page: number = 1, perPage: number = 10) =>
 	};
 };
 
-export const paginateWithNextHit = async (model: Model<any>, aggPipe: any, limit: number, page: number) => {
+export const paginateWithNextHit = async (
+	model: Model<any>,
+	aggPipe: any,
+	limit: number,
+	page: number
+) => {
 	if (limit) {
 		limit = Math.abs(limit);
 		if (limit > 100) {
@@ -50,8 +55,10 @@ export const paginateWithNextHit = async (model: Model<any>, aggPipe: any, limit
 	}
 
 	return {
-		count: result[0]['metadata'] && result[0]['metadata'][0] ? result[0]['metadata'][0]['total'] : 0,
-		page: result[0]['metadata'] && result[0]['metadata'][0] ? result[0]['metadata'][0]['page'] : page,
+		count:
+			result[0]['metadata'] && result[0]['metadata'][0] ? result[0]['metadata'][0]['total'] : 0,
+		page:
+			result[0]['metadata'] && result[0]['metadata'][0] ? result[0]['metadata'][0]['page'] : page,
 		totalPage: total_page,
 		hasNextPage: next_hit,
 		limit,

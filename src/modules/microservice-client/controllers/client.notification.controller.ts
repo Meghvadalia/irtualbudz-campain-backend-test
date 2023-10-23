@@ -12,13 +12,27 @@ export class ClientNotificationController {
 
 	@Get('list')
 	@UseGuards(RolesGuard)
-	@Roles(USER_TYPE.SUPER_ADMIN, USER_TYPE.ADMIN, USER_TYPE.COMPANY_ADMIN, USER_TYPE.STORE_ADMIN, USER_TYPE.MANAGER)
-	async listNotification(@Req() req: Request, @Query('page') page: number, @Query('limit') limit: number) {
+	@Roles(
+		USER_TYPE.SUPER_ADMIN,
+		USER_TYPE.ADMIN,
+		USER_TYPE.COMPANY_ADMIN,
+		USER_TYPE.STORE_ADMIN,
+		USER_TYPE.MANAGER
+	)
+	async listNotification(
+		@Req() req: Request,
+		@Query('page') page: number,
+		@Query('limit') limit: number
+	) {
 		try {
 			// @ts-ignore
 			const user = req.user;
 			console.log(user);
-			const notification = await this.clientNotificationService.listAllNotification(user, page, limit);
+			const notification = await this.clientNotificationService.listAllNotification(
+				user,
+				page,
+				limit
+			);
 			return sendSuccess(notification);
 		} catch (error) {
 			console.error(error.message);
@@ -33,9 +47,11 @@ export class ClientNotificationController {
 	async seedNotifications() {
 		try {
 			const notification = await this.clientNotificationService.getNotificationArrayList();
-			let notificationList = notification.filter((obj) => obj !== null && obj !== undefined);
+			const notificationList = notification.filter((obj) => obj !== null && obj !== undefined);
 			if (notificationList.length > 0) {
-				return sendSuccess(await this.clientNotificationService.insertStoreWiseNotification(notificationList));
+				return sendSuccess(
+					await this.clientNotificationService.insertStoreWiseNotification(notificationList)
+				);
 			}
 		} catch (error) {
 			console.error(error.message);
@@ -45,11 +61,16 @@ export class ClientNotificationController {
 
 	@Post('migration')
 	@UseGuards(RolesGuard)
-	@Roles(USER_TYPE.SUPER_ADMIN, USER_TYPE.ADMIN, USER_TYPE.COMPANY_ADMIN, USER_TYPE.STORE_ADMIN, USER_TYPE.MANAGER)
+	@Roles(
+		USER_TYPE.SUPER_ADMIN,
+		USER_TYPE.ADMIN,
+		USER_TYPE.COMPANY_ADMIN,
+		USER_TYPE.STORE_ADMIN,
+		USER_TYPE.MANAGER
+	)
 	async seedNotificationsMigtation() {
 		try {
 			const notification = await this.clientNotificationService.migrationScriptForNotification();
-			
 		} catch (error) {
 			console.error(error.message);
 			return sendError(error.message, error.status);

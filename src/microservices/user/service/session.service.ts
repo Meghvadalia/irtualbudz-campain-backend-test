@@ -33,7 +33,9 @@ export class SessionService {
 		};
 		const refreshToken = this.jwtService.generateRefreshToken(refreshTokenPayload);
 
-		await this.redisService.setValue(result.userId, { user: { userId, type: result.type } });
+		await this.redisService.setValue(result.userId, {
+			user: { userId, type: result.type },
+		});
 		return { token, refreshToken };
 	}
 

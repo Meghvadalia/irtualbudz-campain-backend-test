@@ -22,7 +22,12 @@ import { Customer, CustomerService } from 'src/microservices/customers';
 import { Product } from 'src/microservices/inventory';
 import { CUSTOMER_TYPE, orderType } from '../constant/order.constant';
 import * as _ from 'lodash';
-import { ICartItemFlowhub, IOrderFlowHubInterface, ITaxFlowhub, IDutchieOrderInterface } from 'src/common/interface';
+import {
+	ICartItemFlowhub,
+	IOrderFlowHubInterface,
+	ITaxFlowhub,
+	IDutchieOrderInterface,
+} from 'src/common/interface';
 
 @Injectable()
 export class OrderService {
@@ -123,7 +128,15 @@ export class OrderService {
 		}
 	}
 
-	async seedOrders(startDate: Date, endDate: Date, key: string, clientId: string, importId: string, companyId: string, posData) {
+	async seedOrders(
+		startDate: Date,
+		endDate: Date,
+		key: string,
+		clientId: string,
+		importId: string,
+		companyId: string,
+		posData
+	) {
 		try {
 			const storeData = await this.storeModel.findOne({
 				'location.importId': importId,
@@ -266,7 +279,13 @@ export class OrderService {
 			throw error;
 		}
 	}
-	async processOrderBatch(orders: any, page: number, posId: string, companyId: string, storeId: string) {
+	async processOrderBatch(
+		orders: any,
+		page: number,
+		posId: string,
+		companyId: string,
+		storeId: string
+	) {
 		try {
 			console.log('====================================');
 			console.log('Processing Order Batch number', page);
@@ -292,16 +311,23 @@ export class OrderService {
 			console.log('====================================');
 			const distinctStaff = temp.reduce((accumulator, current) => {
 				const existingStaff = accumulator.find(
-					(staff) => staff.staffName === current.staffName && staff.locationId === current.locationId
+					(staff) =>
+						staff.staffName === current.staffName && staff.locationId === current.locationId
 				);
 				if (!existingStaff) accumulator.push(current);
 				return accumulator;
 			}, []);
 
-			const staffData = await Promise.all(distinctStaff.map((staff: IStaff) => this.addStaff(staff, storeId)));
+			const staffData = await Promise.all(
+				distinctStaff.map((staff: IStaff) => this.addStaff(staff, storeId))
+			);
 
 			const itemPromises = orders.map((order) =>
-				this.addItemsToCart(order.itemsInCart, storeId, order._id ? order._id.toString() : order.id.toString())
+				this.addItemsToCart(
+					order.itemsInCart,
+					storeId,
+					order._id ? order._id.toString() : order.id.toString()
+				)
 			);
 
 			const cart = await Promise.all(itemPromises);
@@ -322,7 +348,7 @@ export class OrderService {
 				const customer = customers.find((c) => c.posCustomerId === order.customerId);
 				order.customerId = customer ? customer._id : order.customerId;
 
-				let objectIdStoreId = new Types.ObjectId(storeId);
+				const objectIdStoreId = new Types.ObjectId(storeId);
 				if (customer && !customer.storeId.includes(objectIdStoreId)) {
 					customer.storeId.push(objectIdStoreId);
 					this.customerModel.updateOne(
@@ -377,12 +403,18 @@ export class OrderService {
 			}
 
 			if (audienceName !== '') {
-				const { _id: audienceId } = await this.audienceDetailsService.getAudienceIdByName(audienceName);
+				const { _id: audienceId } = await this.audienceDetailsService.getAudienceIdByName(
+					audienceName
+				);
 
 				try {
 					this.addCustomerToAudience(audienceId, customer._id as unknown as string, storeId);
 				} catch (error) {
-					if (error.code === 11000 && error.keyPattern.audienceId === 1 && error.keyPattern.customerId === 1) {
+					if (
+						error.code === 11000 &&
+						error.keyPattern.audienceId === 1 &&
+						error.keyPattern.customerId === 1
+					) {
 						console.error('Duplicate key violation:', error.message);
 					} else {
 						throw error;
@@ -440,7 +472,14 @@ export class OrderService {
 
 			let currentDate: Date = new Date(),
 				fromDate: Date,
-				toDate = new Date(currentDate.getFullYear(), currentDate.getMonth(), currentDate.getDate(), 0, 0, 0);
+				toDate = new Date(
+					currentDate.getFullYear(),
+					currentDate.getMonth(),
+					currentDate.getDate(),
+					0,
+					0,
+					0
+				);
 			let storeData: IStore;
 			for (const company of companyData) {
 				storeData = await this.storeModel.findOne({
@@ -481,7 +520,14 @@ export class OrderService {
 						},
 					};
 				} else {
-					fromDate = new Date(currentDate.getFullYear(), currentDate.getMonth(), currentDate.getDate() - 1, 0, 0, 0);
+					fromDate = new Date(
+						currentDate.getFullYear(),
+						currentDate.getMonth(),
+						currentDate.getDate() - 1,
+						0,
+						0,
+						0
+					);
 					orderOptions = {
 						url: `${
 							posData.liveUrl
@@ -496,14 +542,15 @@ export class OrderService {
 				const { data } = await axios.request(orderOptions);
 
 				let paymentType: string;
-				const isRetail = (iDutchieOrder: IDutchieOrderInterface) => iDutchieOrder.transactionType === 'Retail';
+				const isRetail = (iDutchieOrder: IDutchieOrderInterface) =>
+					iDutchieOrder.transactionType === 'Retail';
 
 				const processChunk = async (chunk: IDutchieOrderInterface[], page) => {
 					try {
 						console.log('====================================');
 						console.log('Chunk Length', chunk.length);
 						console.log('====================================');
-						let ordersArray: IOrderFlowHubInterface[] = [];
+						const ordersArray: IOrderFlowHubInterface[] = [];
 						const retailOrders: IDutchieOrderInterface[] = chunk.filter(isRetail);
 						console.log('====================================');
 						console.log('retailOrders Length', retailOrders.length);
@@ -519,9 +566,9 @@ export class OrderService {
 							} else {
 								paymentType = 'debit';
 							}
-							let itemDiscounts: ItemDiscounts[] = [];
-							let taxArray: ITaxFlowhub[] = [];
-							let cartItemsArray: ICartItemFlowhub[] = [];
+							const itemDiscounts: ItemDiscounts[] = [];
+							const taxArray: ITaxFlowhub[] = [];
+							const cartItemsArray: ICartItemFlowhub[] = [];
 							for (const cartItem of element.items) {
 								const product = await this.productModel.findOne({
 									posProductId: cartItem.productId,
@@ -579,7 +626,10 @@ export class OrderService {
 								createdAt: new Date(element.checkInDate).toISOString(),
 								customerId: element.customerId.toString(),
 								currentPoints: element.loyaltyEarned,
-								customerType: element.customerTypeId === 2 ? CUSTOMER_TYPE.recCustomer : CUSTOMER_TYPE.medCustomer,
+								customerType:
+									element.customerTypeId === 2
+										? CUSTOMER_TYPE.recCustomer
+										: CUSTOMER_TYPE.medCustomer,
 								name: element.completedByUser,
 								locationId: storeData.location.locationId,
 								locationName: storeData.locationName,
@@ -667,7 +717,7 @@ export class OrderService {
 				const storeData: IStore = await this.storeModel.findOne({
 					companyId: company._id,
 				});
-				let staffArray: IStaff[] = [];
+				const staffArray: IStaff[] = [];
 
 				for (const d of data) {
 					const staffExists = await this.staffModel.findOne({

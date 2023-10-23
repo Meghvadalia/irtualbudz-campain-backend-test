@@ -30,7 +30,9 @@ export class LoggingMiddleware implements NestMiddleware {
 		res.on('finish', () => {
 			const { method, originalUrl, body } = req;
 			const { statusCode } = res;
-			const logMessage = `Method: ${method} | URL: ${originalUrl} | Body: ${JSON.stringify(body)} | Status: ${statusCode}`;
+			const logMessage = `Method: ${method} | URL: ${originalUrl} | Body: ${JSON.stringify(
+				body
+			)} | Status: ${statusCode}`;
 			logger.info(logMessage);
 		});
 		next();

@@ -23,14 +23,21 @@ export class FlowhubController {
 	}
 
 	@Get('seed-company-wise/:companyId')
-	async seedCompanyWiseDate(@Param('companyId') companyId: string, @Query() query: { fromDate: string; toDate: string }) {
+	async seedCompanyWiseDate(
+		@Param('companyId') companyId: string,
+		@Query() query: { fromDate: string; toDate: string }
+	) {
 		try {
-			let fromDate = new Date(query.fromDate);
+			const fromDate = new Date(query.fromDate);
 			fromDate.setDate(fromDate.getDate() - 1);
 			fromDate.setHours(0, 0, 0, 0);
 			const toDate = new Date(query.toDate);
 			toDate.setHours(0, 0, 0, 0);
-			await this.orderService.syncCompanyWiseStoreData(fromDate, toDate, new mongoose.Types.ObjectId(companyId));
+			await this.orderService.syncCompanyWiseStoreData(
+				fromDate,
+				toDate,
+				new mongoose.Types.ObjectId(companyId)
+			);
 			return sendSuccess({ message: 'Data Synced' });
 		} catch (error) {
 			console.error(error);

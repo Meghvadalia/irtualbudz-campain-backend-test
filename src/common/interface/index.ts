@@ -227,6 +227,6 @@ export interface IDutchieOrderInterface {
 }
 
 export interface IReplacements {
-	key: string,
-	value: any
+	key: string;
+	value: any;
 }

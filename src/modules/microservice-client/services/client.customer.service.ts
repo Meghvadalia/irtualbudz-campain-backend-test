@@ -39,7 +39,10 @@ export class ClientCustomerService {
 							{
 								$match: {
 									$expr: {
-										$or: [{ $eq: ['$_id', '$$customerId'] }, { $eq: ['$posCustomerId', '$$customerId'] }],
+										$or: [
+											{ $eq: ['$_id', '$$customerId'] },
+											{ $eq: ['$posCustomerId', '$$customerId'] },
+										],
 									},
 								},
 							},

@@ -32,7 +32,7 @@ export class CustomerService {
 			const date = new Date();
 			let fromDate, toDate;
 			let options: AxiosRequestConfig;
-			let customerDataArray: ICustomer[] = [];
+			const customerDataArray: ICustomer[] = [];
 
 			for (const company of companiesList) {
 				let page = 1;
@@ -43,8 +43,12 @@ export class CustomerService {
 				});
 
 				if (customer) {
-					fromDate = new Date(date.getFullYear(), date.getMonth(), date.getDate() - 1, 0, 0, 0).toISOString().split('T')[0];
-					toDate = new Date(date.getFullYear(), date.getMonth(), date.getDate(), 0, 0, 0).toISOString().split('T')[0];
+					fromDate = new Date(date.getFullYear(), date.getMonth(), date.getDate() - 1, 0, 0, 0)
+						.toISOString()
+						.split('T')[0];
+					toDate = new Date(date.getFullYear(), date.getMonth(), date.getDate(), 0, 0, 0)
+						.toISOString()
+						.split('T')[0];
 					console.log('Seeding data for the previous day');
 					options = {
 						method: 'get',
@@ -177,7 +181,7 @@ export class CustomerService {
 
 				const customersArray: ICustomer[] = [];
 
-				for (let customer of data)
+				for (const customer of data)
 					customersArray.push({
 						birthDate: customer.dateOfBirth,
 						city: customer.city,
@@ -190,7 +194,10 @@ export class CustomerService {
 						streetAddress1: customer.address1,
 						streetAddress2: customer.address2,
 						zip: customer.postalCode,
-						type: customer.customerType === 'Recreational' ? CustomerType.recCustomer : CustomerType.medCustomer,
+						type:
+							customer.customerType === 'Recreational'
+								? CustomerType.recCustomer
+								: CustomerType.medCustomer,
 						POSId: posData._id,
 						companyId: company._id,
 						loyaltyPoints: 0,

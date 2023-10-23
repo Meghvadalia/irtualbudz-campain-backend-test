@@ -50,7 +50,7 @@ export class ClientStoreService {
 				};
 				const { data } = await axios.request(options);
 				const storeData = data.data;
-				let storeArea: Array<IStore> = [];
+				const storeArea: Array<IStore> = [];
 				for (let index = 0; index < storeData.length; index++) {
 					const element: IStoreResponseFlowHub = storeData[index];
 
@@ -175,7 +175,10 @@ export class ClientStoreService {
 					});
 
 					if (existingStore) {
-						await this.storeModel.findByIdAndUpdate({ _id: existingStore._id }, { locationName: element.locationName });
+						await this.storeModel.findByIdAndUpdate(
+							{ _id: existingStore._id },
+							{ locationName: element.locationName }
+						);
 						console.log(element.locationName);
 					}
 				}

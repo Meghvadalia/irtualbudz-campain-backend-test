@@ -6,13 +6,13 @@ import { ICampaignType } from '../interface/campaignTypes.interface';
 @Schema({ collection: DATABASE_COLLECTION.CAMPAIGN_TYPES, timestamps: true })
 export class CampaignTypes extends Model<ICampaignType> {
 	@Prop({ required: true, trim: true })
-	name: string;
+		name: string;
 
 	@Prop({ default: true })
-	isActive: boolean;
+		isActive: boolean;
 
 	@Prop({ default: false })
-	isDeleted: boolean;
+		isDeleted: boolean;
 }
 
 export const CampaignTypesSchema = SchemaFactory.createForClass(CampaignTypes);

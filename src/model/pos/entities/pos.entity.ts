@@ -12,22 +12,22 @@ import { DATABASE_COLLECTION } from 'src/common/constants';
 @ObjectType()
 export class POS extends Model<IPOS> {
 	@Prop({ trim: true, required: true, unique: true })
-	name: String;
+		name: string;
 
 	@Prop({ trim: true, required: true })
-	liveUrl: String;
+		liveUrl: string;
 
 	@Prop({ trim: true })
-	stagingUrl: String;
+		stagingUrl: string;
 
 	@Prop({ trim: true })
-	documentationUrl: String;
+		documentationUrl: string;
 
 	@Prop({ default: false })
-	isDeleted: boolean;
+		isDeleted: boolean;
 
 	@Prop({ default: true })
-	isActive: boolean;
+		isActive: boolean;
 }
 
 export const POSSchema = SchemaFactory.createForClass(POS);

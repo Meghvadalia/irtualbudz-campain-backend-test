@@ -9,7 +9,10 @@ export class CampaignConsumer implements OnModuleInit {
 	private readonly campaignTopic = CAMPAIGN_TOPIC.campaignTopic;
 	private readonly groupId = CAMPAIGN_TOPIC.campaignGroup;
 
-	constructor(private readonly kafka: Kafka, private readonly campaignService: ClientCampaignService) {
+	constructor(
+		private readonly kafka: Kafka,
+		private readonly campaignService: ClientCampaignService
+	) {
 		this.consumer = this.kafka.consumer({ groupId: this.groupId });
 	}
 
@@ -30,7 +33,9 @@ export class CampaignConsumer implements OnModuleInit {
 				eachMessage: async ({ topic, partition, message }: EachMessagePayload) => {
 					try {
 						const campaignMessage = JSON.parse(message.value.toString());
-						console.log(`Received campaign message: ${JSON.stringify(campaignMessage)}, ${topic}.${partition}`);
+						console.log(
+							`Received campaign message: ${JSON.stringify(campaignMessage)}, ${topic}.${partition}`
+						);
 
 						const { campaignId, startDate, endDate, eventType } = campaignMessage;
 						const campaignStartDate = new Date(startDate);

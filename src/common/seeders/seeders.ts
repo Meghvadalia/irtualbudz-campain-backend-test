@@ -211,7 +211,7 @@ export class SeederService {
 	async seedGoals() {
 		try {
 			for (const goal of goalsData) {
-				let graphId: any = await this.graphModel.findOne({
+				const graphId: any = await this.graphModel.findOne({
 					name: goal.name,
 				});
 
@@ -263,7 +263,9 @@ export class SeederService {
 			const channelNames = Object.values(Channels);
 
 			for (const channelName of channelNames) {
-				const channelExists = await this.channelModel.findOne<IChannel>({ name: channelName });
+				const channelExists = await this.channelModel.findOne<IChannel>({
+					name: channelName,
+				});
 
 				if (!channelExists) {
 					await this.channelModel.create({ name: channelName });
@@ -302,10 +304,12 @@ export class SeederService {
 			const bulkOperations = [];
 
 			for (const action of actionsList) {
-				let graphId = await this.graphModel.findOne({
+				const graphId = await this.graphModel.findOne({
 					name: action.name,
 				});
-				let existingAction = await this.actionsModel.findOne({ name: action.name });
+				const existingAction = await this.actionsModel.findOne({
+					name: action.name,
+				});
 				const update = {
 					name: action.name,
 					isActive: action.isActive,

@@ -30,7 +30,7 @@ export class ClientCampaignController {
 	@UseInterceptors(FilesInterceptor('files', FILE_UPLOAD_LIMIT))
 	async createCampaign(@Body() data, @UploadedFiles() files: Express.Multer.File[]) {
 		try {
-			let campaignData = await this.clientCampaignService.addCampaign(data, files);
+			const campaignData = await this.clientCampaignService.addCampaign(data, files);
 			return sendSuccess(campaignData);
 		} catch (error) {
 			console.error(error);
@@ -40,7 +40,13 @@ export class ClientCampaignController {
 
 	@Get('list')
 	@UseGuards(RolesGuard)
-	@Roles(USER_TYPE.COMPANY_ADMIN, USER_TYPE.STORE_ADMIN, USER_TYPE.MANAGER, USER_TYPE.SUPER_ADMIN, USER_TYPE.ADMIN)
+	@Roles(
+		USER_TYPE.COMPANY_ADMIN,
+		USER_TYPE.STORE_ADMIN,
+		USER_TYPE.MANAGER,
+		USER_TYPE.SUPER_ADMIN,
+		USER_TYPE.ADMIN
+	)
 	async getCampaignList(
 		@Req() req: Request,
 		@Query('storeId') storeId: string,
@@ -51,7 +57,13 @@ export class ClientCampaignController {
 		try {
 			// @ts-ignore
 			const user = req.user;
-			const campaignList = await this.clientCampaignService.campaignList(user, page, limit, storeId, name);
+			const campaignList = await this.clientCampaignService.campaignList(
+				user,
+				page,
+				limit,
+				storeId,
+				name
+			);
 			return sendSuccess(campaignList);
 		} catch (error) {
 			console.error(error.message);
@@ -61,7 +73,13 @@ export class ClientCampaignController {
 
 	@Get('detail/:campaignId')
 	@UseGuards(RolesGuard)
-	@Roles(USER_TYPE.COMPANY_ADMIN, USER_TYPE.STORE_ADMIN, USER_TYPE.MANAGER, USER_TYPE.SUPER_ADMIN, USER_TYPE.ADMIN)
+	@Roles(
+		USER_TYPE.COMPANY_ADMIN,
+		USER_TYPE.STORE_ADMIN,
+		USER_TYPE.MANAGER,
+		USER_TYPE.SUPER_ADMIN,
+		USER_TYPE.ADMIN
+	)
 	async getCampaignDetails(@Param('campaignId') campaignId: string) {
 		try {
 			const campaignObjectId = new mongoose.Types.ObjectId(campaignId);
@@ -75,7 +93,13 @@ export class ClientCampaignController {
 
 	@Post('asset/upload')
 	@UseGuards(RolesGuard)
-	@Roles(USER_TYPE.SUPER_ADMIN, USER_TYPE.ADMIN, USER_TYPE.COMPANY_ADMIN, USER_TYPE.STORE_ADMIN, USER_TYPE.MANAGER)
+	@Roles(
+		USER_TYPE.SUPER_ADMIN,
+		USER_TYPE.ADMIN,
+		USER_TYPE.COMPANY_ADMIN,
+		USER_TYPE.STORE_ADMIN,
+		USER_TYPE.MANAGER
+	)
 	@UseInterceptors(FilesInterceptor('files', FILE_UPLOAD_LIMIT))
 	async createCampaignAssets(@Body() data, @UploadedFiles() files: Express.Multer.File[]) {
 		try {
@@ -115,7 +139,13 @@ export class ClientCampaignController {
 
 	@Delete('remove/:campaignId')
 	@UseGuards(RolesGuard)
-	@Roles(USER_TYPE.COMPANY_ADMIN, USER_TYPE.STORE_ADMIN, USER_TYPE.MANAGER, USER_TYPE.SUPER_ADMIN, USER_TYPE.ADMIN)
+	@Roles(
+		USER_TYPE.COMPANY_ADMIN,
+		USER_TYPE.STORE_ADMIN,
+		USER_TYPE.MANAGER,
+		USER_TYPE.SUPER_ADMIN,
+		USER_TYPE.ADMIN
+	)
 	async removeCampaignDetails(@Param('campaignId') campaignId: string) {
 		try {
 			const campaignObjectId = new mongoose.Types.ObjectId(campaignId);

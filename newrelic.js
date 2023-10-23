@@ -20,7 +20,7 @@ exports.config = {
   },
   application_logging: {
     forwarding: {
-      enabled: true
+      enabled: true,
     },
     // local_decorating: {
     //   enabled: true

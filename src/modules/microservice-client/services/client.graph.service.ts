@@ -24,7 +24,11 @@ export class ClientGraphService {
 			console.log('Total ' + graphData.length + ' graph updates');
 			for (let index = 0; index < graphData.length; index++) {
 				const element = graphData[index];
-				await this.graphModel.updateOne({ name: element.name }, { condition: element.condition }, { axes: element.axes });
+				await this.graphModel.updateOne(
+					{ name: element.name },
+					{ condition: element.condition },
+					{ axes: element.axes }
+				);
 				console.log(element.name + ' Updated');
 			}
 		} catch (error) {

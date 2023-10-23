@@ -12,16 +12,16 @@ import { DATABASE_COLLECTION } from 'src/common/constants';
 @ObjectType()
 export class Graph extends Model<IGraph> {
 	@Prop({ trim: true, required: true, unique: true })
-	name: String;
+		name: string;
 
 	@Prop({ trim: true, required: true })
-	condition: Array<IGraph>;
-	
-	@Prop({ trim: true})
-	axes: Array<iAxes>;
+		condition: Array<IGraph>;
 
-	@Prop({default: false})
-	isTrackable: boolean;
+	@Prop({ trim: true })
+		axes: Array<iAxes>;
+
+	@Prop({ default: false })
+		isTrackable: boolean;
 }
 
 export const GraphSchema = SchemaFactory.createForClass(Graph);

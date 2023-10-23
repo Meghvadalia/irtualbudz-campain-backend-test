@@ -12,23 +12,23 @@ import { IGOALS } from '../interface/goals.interface';
 @ObjectType()
 export class Goals extends Model<IGOALS> {
 	@Prop({ trim: true, required: true, unique: true })
-	name: String;
+		name: string;
 
 	@Prop({ default: false })
-	isDeleted: boolean;
+		isDeleted: boolean;
 
 	@Prop({ default: true })
-	isActive: boolean;
+		isActive: boolean;
 
 	@Prop({
 		type: Types.ObjectId,
 		ref: DATABASE_COLLECTION.GRAPH,
 		default: null,
 	})
-	graphId: Types.ObjectId;
+		graphId: Types.ObjectId;
 
 	@Prop({ default: false })
-	isTrackable: boolean;
+		isTrackable: boolean;
 }
 
 export const GoalsSchema = SchemaFactory.createForClass(Goals);

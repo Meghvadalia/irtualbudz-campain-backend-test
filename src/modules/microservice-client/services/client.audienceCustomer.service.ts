@@ -11,12 +11,12 @@ import { AudienceName } from 'src/common/constants';
 import { Order } from 'src/microservices/order/entities/order.entity';
 import { dynamicCatchException } from 'src/utils/error.utils';
 import { AudienceCustomerType, IAudienceCustomer } from '../interfaces/audienceCustomers.interface';
-import { IAudienceDetails } from '../interfaces/audienceDetails.interface';
 
 @Injectable()
 export class ClientAudienceCustomerService {
 	constructor(
-		@InjectModel(AudienceCustomer.name) private readonly audienceCustomerModel: Model<AudienceCustomer>,
+		@InjectModel(AudienceCustomer.name)
+		private readonly audienceCustomerModel: Model<AudienceCustomer>,
 		@InjectModel(POS.name) private readonly POSModel: Model<POS>,
 		@InjectModel(Order.name) private readonly orderModel: Model<Order>,
 		@InjectModel(Company.name) private readonly companyModel: Model<Company>,
@@ -27,7 +27,9 @@ export class ClientAudienceCustomerService {
 	async seedAudiceCustomers() {
 		try {
 			const currentDate = new Date(dayjs(new Date()).format('YYYY-MM-DDT00:00:00.000[Z]'));
-			const fromDate = new Date(dayjs(currentDate).subtract(15, 'day').format('YYYY-MM-DDT00:00:00.000[Z]'));
+			const fromDate = new Date(
+				dayjs(currentDate).subtract(15, 'day').format('YYYY-MM-DDT00:00:00.000[Z]')
+			);
 
 			const posData = await this.POSModel.find({});
 
@@ -59,7 +61,7 @@ export class ClientAudienceCustomerService {
 			audienceId = new mongoose.Types.ObjectId(audienceId);
 
 			const audienceDetail = await this.audienceDetailsService.getAudienceDetailById(audienceId);
-			let bulkOperations = [];
+			const bulkOperations = [];
 
 			if (audienceDetail.name === AudienceName.ALL) {
 				const audienceCustomersList: IAudienceCustomer[] = await this.audienceCustomerModel.find({
@@ -104,7 +106,9 @@ export class ClientAudienceCustomerService {
 				});
 			}
 
-			const audienceCustomer = await this.audienceCustomerModel.bulkWrite(bulkOperations, { ordered: false });
+			const audienceCustomer = await this.audienceCustomerModel.bulkWrite(bulkOperations, {
+				ordered: false,
+			});
 			return audienceCustomer;
 		} catch (error) {
 			if (error.code === 11000) {
@@ -124,8 +128,12 @@ export class ClientAudienceCustomerService {
 	}
 
 	async bigSpenderOrValueShopper(storeId, fromDate: Date, toDate: Date) {
-		const bigSpenderAudience = await this.audienceDetailsService.getAudienceIdByName(AudienceName.BIG_SPENDER);
-		const valueShopperAudience = await this.audienceDetailsService.getAudienceIdByName(AudienceName.VALUE_SHOPPER);
+		const bigSpenderAudience = await this.audienceDetailsService.getAudienceIdByName(
+			AudienceName.BIG_SPENDER
+		);
+		const valueShopperAudience = await this.audienceDetailsService.getAudienceIdByName(
+			AudienceName.VALUE_SHOPPER
+		);
 
 		const { averageCartSize } = await this.averageCartSize(storeId, fromDate, toDate);
 
@@ -230,7 +238,8 @@ export class ClientAudienceCustomerService {
 			await Promise.all(
 				previousCronJobCustomers.map(async (customerId) => {
 					try {
-						const isPresentInCurrentRun = bigSpenders.includes(customerId) || valueShoppers.includes(customerId);
+						const isPresentInCurrentRun =
+							bigSpenders.includes(customerId) || valueShoppers.includes(customerId);
 						const isBigSpenderInCurrentRun = bigSpenders.includes(customerId);
 						const existingRecord = await this.audienceCustomerModel.findOne({
 							storeId,
@@ -239,7 +248,10 @@ export class ClientAudienceCustomerService {
 
 						if (isPresentInCurrentRun) {
 							if (existingRecord) {
-								if (isBigSpenderInCurrentRun && existingRecord.audienceId !== bigSpenderAudience._id) {
+								if (
+									isBigSpenderInCurrentRun &&
+									existingRecord.audienceId !== bigSpenderAudience._id
+								) {
 									await this.audienceCustomerModel.create({
 										storeId,
 										customerId,
@@ -248,7 +260,10 @@ export class ClientAudienceCustomerService {
 									await existingRecord.updateOne({
 										isArchive: true,
 									});
-								} else if (!isBigSpenderInCurrentRun && existingRecord.audienceId !== valueShopperAudience._id) {
+								} else if (
+									!isBigSpenderInCurrentRun &&
+									existingRecord.audienceId !== valueShopperAudience._id
+								) {
 									await this.audienceCustomerModel.create({
 										storeId,
 										customerId,
@@ -259,7 +274,9 @@ export class ClientAudienceCustomerService {
 									});
 								}
 							} else {
-								const audienceId = isBigSpenderInCurrentRun ? bigSpenderAudience._id : valueShopperAudience._id;
+								const audienceId = isBigSpenderInCurrentRun
+									? bigSpenderAudience._id
+									: valueShopperAudience._id;
 								await this.audienceCustomerModel.create({
 									storeId,
 									customerId,
@@ -368,7 +385,9 @@ export class ClientAudienceCustomerService {
 			],
 		});
 
-		const previousCustomerIds = new Set(previousAudienceCustomers.map((item) => item.customerId.toString()));
+		const previousCustomerIds = new Set(
+			previousAudienceCustomers.map((item) => item.customerId.toString())
+		);
 
 		for (const item of result) {
 			const { customerId, purchaseCategory } = item;
@@ -428,13 +447,20 @@ export class ClientAudienceCustomerService {
 
 	async frequentFlyerAudience() {
 		const currentDate = dayjs(new Date()).format('YYYY-MM-DDT00:00:00.000[Z]');
-		const thirtyDaysAgo = dayjs(currentDate).subtract(30, 'day').format('YYYY-MM-DDT00:00:00.000[Z]');
+		const thirtyDaysAgo = dayjs(currentDate)
+			.subtract(30, 'day')
+			.format('YYYY-MM-DDT00:00:00.000[Z]');
 		const formattedFromDate = new Date(thirtyDaysAgo);
 		const formattedToDate = new Date(currentDate);
 
 		const posData = await this.POSModel.find({});
-		const { _id: audienceId } = await this.audienceDetailsService.getAudienceIdByName(AudienceName.FREQUENT_FLYER);
-		const existingCustomerIds = await this.audienceCustomerModel.find({ audienceId }, { customerId: 1 }).lean().exec();
+		const { _id: audienceId } = await this.audienceDetailsService.getAudienceIdByName(
+			AudienceName.FREQUENT_FLYER
+		);
+		const existingCustomerIds = await this.audienceCustomerModel
+			.find({ audienceId }, { customerId: 1 })
+			.lean()
+			.exec();
 
 		const bulkOperations = [];
 
@@ -481,7 +507,9 @@ export class ClientAudienceCustomerService {
 								];
 
 								const result = await this.orderModel.aggregate(pipeline);
-								const currentCustomerIdsSet = new Set(result.map((item) => item.customerId.toString()));
+								const currentCustomerIdsSet = new Set(
+									result.map((item) => item.customerId.toString())
+								);
 								const missingCustomerIds = existingCustomerIds.filter(
 									(item) => !currentCustomerIdsSet.has(item.customerId.toString())
 								);

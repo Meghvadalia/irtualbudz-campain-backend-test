@@ -6,67 +6,86 @@ import { ICampaign, CAMPAIGN_STATUS, SORT_ITEM } from '../interfaces/campaign.in
 @Schema({ collection: DATABASE_COLLECTION.CAMPAIGN, timestamps: true })
 export class Campaign extends Model<ICampaign> {
 	@Prop({ required: true, trim: true })
-	campaignName: string;
+		campaignName: string;
 
-	@Prop({ ref: DATABASE_COLLECTION.GOALS, required: true, type: mongoose.Schema.Types.ObjectId })
-	goals: Types.ObjectId;
+	@Prop({
+		ref: DATABASE_COLLECTION.GOALS,
+		required: true,
+		type: mongoose.Schema.Types.ObjectId,
+	})
+		goals: Types.ObjectId;
 
 	// @Prop({ ref: DATABASE_COLLECTION.CAMPAIGN_TYPES, type: mongoose.Schema.Types.ObjectId })
 	// campaignType: Types.ObjectId;
 
-	@Prop({ required: true, ref: DATABASE_COLLECTION.AUDIENCE_DETAIL, type: [mongoose.Schema.Types.ObjectId] })
-	audienceId: Types.ObjectId[];
+	@Prop({
+		required: true,
+		ref: DATABASE_COLLECTION.AUDIENCE_DETAIL,
+		type: [mongoose.Schema.Types.ObjectId],
+	})
+		audienceId: Types.ObjectId[];
 
-	@Prop({ required: true, ref: DATABASE_COLLECTION.STORES, type: mongoose.Schema.Types.ObjectId })
-	storeId: Types.ObjectId;
+	@Prop({
+		required: true,
+		ref: DATABASE_COLLECTION.STORES,
+		type: mongoose.Schema.Types.ObjectId,
+	})
+		storeId: Types.ObjectId;
 
-	@Prop({ required: true, ref: DATABASE_COLLECTION.ACTIONS, type: mongoose.Schema.Types.ObjectId })
-	actions: Types.ObjectId;
+	@Prop({
+		required: true,
+		ref: DATABASE_COLLECTION.ACTIONS,
+		type: mongoose.Schema.Types.ObjectId,
+	})
+		actions: Types.ObjectId;
 
 	@Prop()
-	notes: string;
+		notes: string;
 
 	@Prop()
-	files: string[];
+		files: string[];
 
-	@Prop({ ref: DATABASE_COLLECTION.CHANNELS, type: [mongoose.Schema.Types.ObjectId] })
-	channels: Types.ObjectId[];
+	@Prop({
+		ref: DATABASE_COLLECTION.CHANNELS,
+		type: [mongoose.Schema.Types.ObjectId],
+	})
+		channels: Types.ObjectId[];
 
 	@Prop({ required: true })
-	startDateWithTime: Date;
+		startDateWithTime: Date;
 
 	@Prop({ required: true })
-	endDateWithTime: Date;
+		endDateWithTime: Date;
 
 	// @Prop({ enum: sortBy })
 	// sortBy: sortBy;
 
 	@Prop({ type: Array })
-	sortItem: SORT_ITEM[];
+		sortItem: SORT_ITEM[];
 
 	@Prop()
-	productDiscount: number[];
+		productDiscount: number[];
 
 	@Prop()
-	productDiscountNote: string[];
+		productDiscountNote: string[];
 
 	// @Prop({ ref: DATABASE_COLLECTION.SUGGESTIONS })
 	// selectedSuggestion: Types.ObjectId[];
 
 	@Prop()
-	addCartValue: string;
+		addCartValue: string;
 
 	@Prop()
-	schedulesDays: string[];
+		schedulesDays: string[];
 
 	@Prop()
-	discount: string;
+		discount: string;
 
 	@Prop()
-	isDeleted: Boolean;
+		isDeleted: boolean;
 
 	@Prop({ enum: CAMPAIGN_STATUS, default: CAMPAIGN_STATUS.NOT_STARTED })
-	campaignStatus: CAMPAIGN_STATUS;
+		campaignStatus: CAMPAIGN_STATUS;
 }
 
 export const CampaignSchema = SchemaFactory.createForClass(Campaign);

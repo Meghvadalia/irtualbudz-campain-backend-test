@@ -10,7 +10,7 @@ export class ClientActionService {
 
 	async getActionList() {
 		try {
-			let actionList = await this.actionModel
+			const actionList = await this.actionModel
 				.find({ isActive: true, isDeleted: false })
 				.select(['-createdAt', '-updatedAt', '-__v', '-isDeleted', '-isActive']);
 			if (actionList.length === 0) {
@@ -32,7 +32,7 @@ export class ClientActionService {
 
 	async nonTrackableActionList() {
 		try {
-			let trackableActionList = await this.actionModel
+			const trackableActionList = await this.actionModel
 				.find({ isTrackable: false })
 				.select(['-createdAt', '-updatedAt', '-__v', '-isDeleted', '-isActive', '-graphId']);
 			if (trackableActionList.length === 0) {

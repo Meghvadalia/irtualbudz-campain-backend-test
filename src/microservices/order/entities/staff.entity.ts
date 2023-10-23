@@ -6,17 +6,17 @@ import { DATABASE_COLLECTION } from 'src/common/constants';
 @Schema({ collection: DATABASE_COLLECTION.STAFF, timestamps: true })
 export class Staff extends Model<IStaff> {
 	@Prop()
-	staffName: String;
+		staffName: string;
 
 	@Prop({
 		required: true,
 		type: Types.ObjectId,
 		ref: DATABASE_COLLECTION.STORES,
 	})
-	storeId: String;
+		storeId: string;
 
 	@Prop()
-	posIdCode: String;
+		posIdCode: string;
 }
 
 export const StaffSchema = SchemaFactory.createForClass(Staff);

@@ -1,10 +1,9 @@
 name: Change Tracking Marker
 on:
   workflow_run:
-    workflows: ["CI/CD"]
+    workflows: ['CI/CD']
     types:
       - completed
-
 
 jobs:
   newrelic:
@@ -20,5 +19,5 @@ jobs:
         with:
           apiKey: ${{ secrets.NEW_RELIC_API_KEY }}
           guid: ${{ secrets.NEW_RELIC_DEPLOYMENT_ENTITY_GUID }}
-          version: "${{ env.RELEASE_VERSION }}"
-          user: "${{ github.actor }}"
+          version: '${{ env.RELEASE_VERSION }}'
+          user: '${{ github.actor }}'

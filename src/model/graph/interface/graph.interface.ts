@@ -1,7 +1,7 @@
 export interface IGraph {
 	_id?: string;
 	name: string;
-	condition: Array<Object>;
+	condition: Array<object>;
 	axes?: iAxes[];
 	isTrackable?: boolean;
 }

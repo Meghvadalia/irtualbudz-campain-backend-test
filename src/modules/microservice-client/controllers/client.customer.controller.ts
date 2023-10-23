@@ -20,6 +20,5 @@ export class ClientCustomerController implements OnModuleInit {
 		} catch (error) {
 			return sendError(error.message, error.status);
 		}
-		
 	}
 }

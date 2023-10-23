@@ -13,31 +13,31 @@ import { IFlowhubHeaderInterface } from 'src/common/interface';
 @ObjectType()
 export class Company extends Model<ICompany> {
 	@Prop({ trim: true, required: true })
-	name: string;
+		name: string;
 
 	@Prop({
 		type: Types.ObjectId,
 		ref: DATABASE_COLLECTION.POS,
 		required: true,
 	})
-	posId: Types.ObjectId;
+		posId: Types.ObjectId;
 
 	@Prop()
-	totalStore: number;
+		totalStore: number;
 
 	@Prop({ type: Object })
-	dataObject: IFlowhubHeaderInterface;
+		dataObject: IFlowhubHeaderInterface;
 
 	@Prop({ default: Date.now })
-	updatedAt: Date;
+		updatedAt: Date;
 
 	@Prop({ default: false })
-	isDeleted: boolean;
+		isDeleted: boolean;
 
 	@Prop({ default: true })
-	isActive: boolean;
+		isActive: boolean;
 	@Prop({ default: 100 })
-	lastSyncDataDuration: number;
+		lastSyncDataDuration: number;
 }
 
 export const CompanySchema = SchemaFactory.createForClass(Company);

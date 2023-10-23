@@ -11,7 +11,12 @@ export class CampaignProducer {
 		this.producer = this.kafka.producer();
 	}
 
-	async sendCampaignMessage(campaignId: string, startDate: Date, endDate: Date, eventType: string): Promise<void> {
+	async sendCampaignMessage(
+		campaignId: string,
+		startDate: Date,
+		endDate: Date,
+		eventType: string
+	): Promise<void> {
 		await this.producer.connect();
 		await this.producer.send({
 			topic: this.campaignTopic,

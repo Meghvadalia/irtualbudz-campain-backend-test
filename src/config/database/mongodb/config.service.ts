@@ -3,22 +3,22 @@ import { ConfigService } from '@nestjs/config';
 
 @Injectable()
 export class MongodbConfigService {
-  constructor(private configService: ConfigService) {}
+	constructor(private configService: ConfigService) {}
 
-  get protocol(): string {
-    return this.configService.get<string>('mongodb.protocol') as string;
-  }
+	get protocol(): string {
+		return this.configService.get<string>('mongodb.protocol') as string;
+	}
 
-  get host(): string {
-    console.log(this.configService.get('mongodb.host'));
-    return this.configService.get<string>('mongodb.host') as string;
-  }
+	get host(): string {
+		console.log(this.configService.get('mongodb.host'));
+		return this.configService.get<string>('mongodb.host') as string;
+	}
 
-  get port(): number {
-    return Number(this.configService.get<number>('mongodb.port')) as number;
-  }
+	get port(): number {
+		return Number(this.configService.get<number>('mongodb.port')) as number;
+	}
 
-  get database(): string {
-    return this.configService.get<string>('mongodb.database') as string;
-  }
+	get database(): string {
+		return this.configService.get<string>('mongodb.database') as string;
+	}
 }
