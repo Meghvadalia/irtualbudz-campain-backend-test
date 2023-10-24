@@ -2,7 +2,7 @@
 
 exports.config = {
   app_name: ['monarch-backend'], // Replace with your application's name
-  license_key: '12fd92eabef470e7cc3b297e9103f350FFFFNRAL', // Replace with your New Relic license key
+  license_key: '12fd92eabef470e7cc3b297e9103f350FFFFNRAL',
   logging: {
     level: 'info', // Adjust the log level as needed (info, warn, error, etc.)
     filepath: 'stdout', // Log to stdout (console)
@@ -19,6 +19,7 @@ exports.config = {
     enabled: true,
   },
   application_logging: {
+    enabled: true,
     forwarding: {
       enabled: true,
     },

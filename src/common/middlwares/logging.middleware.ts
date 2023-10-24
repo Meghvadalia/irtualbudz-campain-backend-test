@@ -1,6 +1,9 @@
 import { Injectable, NestMiddleware } from '@nestjs/common';
 import { Request, Response, NextFunction } from 'express';
 import * as winston from 'winston';
+const newrelicFormatter = require('@newrelic/winston-enricher');
+
+const newrelicWinstonFormatter = newrelicFormatter(winston);
 
 export enum CombinedLogger {
 	EMERG = 'emerg',
@@ -15,13 +18,22 @@ export enum CombinedLogger {
 
 const logger = winston.createLogger({
 	format: winston.format.combine(
-		winston.format.colorize({ all: true }),
+		newrelicWinstonFormatter(),
 		winston.format.timestamp({ format: 'YYYY-MM-DD HH:mm:ss' }),
 		winston.format.printf(({ level, timestamp, message }) => {
 			return `${timestamp} [${level}] - ${message}`;
 		})
 	),
-	transports: [new winston.transports.Console()],
+	transports: [
+		new winston.transports.Console({
+			format: winston.format.combine(
+				winston.format.colorize({ all: true }),
+				winston.format.printf(({ level, message }) => {
+					return `[${level}] - ${message}`;
+				})
+			),
+		}),
+	],
 });
 
 @Injectable()
