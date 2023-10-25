@@ -1,6 +1,5 @@
 import {
 	BadGatewayException,
-	BadRequestException,
 	Body,
 	Controller,
 	Get,
@@ -37,7 +36,6 @@ interface IUserService {
 export class ClientUserController implements OnModuleInit {
 	private userService: IUserService;
 	private client: ClientGrpc;
-	constructor() {}
 
 	onModuleInit() {
 		this.client = ClientProxyFactory.create({
@@ -85,6 +83,7 @@ export class ClientUserController implements OnModuleInit {
 			throw new UnauthorizedException(error.details);
 		}
 	}
+
 	@UseGuards(RolesGuard)
 	@Roles(
 		USER_TYPE.SUPER_ADMIN,

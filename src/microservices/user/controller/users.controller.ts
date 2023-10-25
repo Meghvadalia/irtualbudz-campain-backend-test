@@ -1,4 +1,4 @@
-import { Controller, SerializeOptions } from '@nestjs/common';
+import { Controller, SerializeOptions, UseGuards } from '@nestjs/common';
 import { GrpcMethod, Payload, RpcException } from '@nestjs/microservices';
 
 import { extendedUserGroupsForSerializing } from '../serializers/user.serializer';

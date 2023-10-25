@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { MiddlewareConsumer, Module, NestModule, RequestMethod } from '@nestjs/common';
 import { ClientOrderController } from './controllers/client.order.controller';
 import { ClientOrderService } from './services/client.order.service';
 import { SeederService } from 'src/common/seeders/seeders';
@@ -77,6 +77,7 @@ import {
 } from 'src/model/notification/entities/notification.entity';
 import { Kafka } from 'kafkajs';
 import { CampaignProducer } from '../kafka/producers/campaign.producer';
+import { BasicAuthMiddleware } from 'src/common/middlwares/basicAuth.middleware';
 
 @Module({
 	imports: [
@@ -164,4 +165,8 @@ import { CampaignProducer } from '../kafka/producers/campaign.producer';
 	],
 	exports: [AudienceDetailsService, ClientCampaignService],
 })
-export class MicroserviceClientModule {}
+export class MicroserviceClientModule implements NestModule {
+	configure(consumer: MiddlewareConsumer) {
+		consumer.apply(BasicAuthMiddleware).forRoutes({ path: 'user/login', method: RequestMethod.POST });
+	}
+}

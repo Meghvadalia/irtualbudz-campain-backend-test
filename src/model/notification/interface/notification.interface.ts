@@ -7,7 +7,7 @@ export interface INOTIFICATION {
 	isRead: boolean;
 	isDeleted: boolean;
 	createdAt?: Date;
-	notificationData?: Object;
+	notificationData?: object;
 	notificationType: NotificationType;
 }
 
