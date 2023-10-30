@@ -408,11 +408,15 @@ export class ClientOrderService {
 
 			// console.log("redisUniqueId Value ====>", redisUniqueId)
 			console.time('<============== query goal pipeline ===============>');
+			console.log('goalPipeline');
+			console.log(goalPipeline);
 			const goalData = await this.orderModel.aggregate(goalPipeline);
 			console.timeEnd('<============== query goal pipeline ===============>');
 
 			let actionData;
 			if (actionPipeline) {
+				console.log('actionPipeline');
+				console.log(actionPipeline);
 				console.time('<============== query action pipeline ===============>');
 				actionData = await this.orderModel.aggregate(actionPipeline);
 				console.timeEnd('<============== query action pipeline ===============>');
