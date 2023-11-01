@@ -21,7 +21,7 @@ jobs:
         run: npm i
 
       - name: Build project
-        run: npm run build
+        run: npm run build:prod
 
       - name: Run tests
         run: npm run test
