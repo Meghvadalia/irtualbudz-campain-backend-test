@@ -14,9 +14,9 @@ jobs:
         uses: actions/checkout@v2
 
       - name: Set up Node.js
-        uses: actions/setup-node@v3.8.1
+        uses: actions/setup-node@v3
         with:
-          node-version: 16
+          node-version: latest
       - name: Install dependencies
         run: npm i
 
@@ -33,7 +33,7 @@ jobs:
           username: ${{ secrets.USERNAME }}
           port: ${{ secrets.PORT }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
-          source: 'dist'
+          source: 'dist/*,package.json,.env.production,pm2.config.js'
           target: /var/www/html/monarc-backend/html/
 
       - name: Reload server
@@ -43,4 +43,7 @@ jobs:
           username: ${{ secrets.USERNAME }}
           port: ${{ secrets.PORT }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
-          script: pm2 reload all
+          script: |
+          cd /var/www/html/monarc-backend/html/
+          npm install --production
+          pm2 restart all
