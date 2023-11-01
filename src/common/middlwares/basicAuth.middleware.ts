@@ -23,6 +23,7 @@ export class BasicAuthMiddleware implements NestMiddleware {
 		console.log(typeof this.validUsername);
 		console.log(this.validPassword);
 		console.log(typeof this.validPassword);
+		console.log(process.env.NODE_ENV);
 		if (username === this.validUsername && password === this.validPassword) {
 			next();
 		} else {
