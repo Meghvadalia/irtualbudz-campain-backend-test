@@ -22,8 +22,8 @@ export class BasicAuthMiddleware implements NestMiddleware {
 		if (username === this.validUsername && password === this.validPassword) {
 			next();
 		} else {
-			next();
-		//	throw new UnauthorizedException('Invalid username or password');
+			// next();
+			throw new UnauthorizedException('Invalid username or password');
 		}
 	}
 }
