@@ -44,6 +44,6 @@ jobs:
           port: ${{ secrets.PORT }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
-          cd /var/www/html/monarc-backend/html/
-          npm install --production
-          pm2 restart all
+            cd /var/www/html/monarc-backend/html/
+            npm install --production
+            pm2 restart all
