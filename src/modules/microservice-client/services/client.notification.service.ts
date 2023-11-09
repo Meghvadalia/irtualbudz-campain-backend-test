@@ -25,7 +25,7 @@ export class ClientNotificationService {
 		@InjectModel(User.name) private userModel: Model<User>,
 		@InjectModel(Order.name) private orderModel: Model<Order>,
 		@InjectModel(Inventory.name) private readonly inventoryModel: Model<Inventory>
-	) {}
+	) { }
 
 	async listAllNotification(
 		user: { userId: Types.ObjectId; type: string },
@@ -233,18 +233,27 @@ export class ClientNotificationService {
 					);
 				}
 
-				notifications.push(
-					...userList.map((user) => ({
-						userId: user._id,
-						storeId: store._id,
-						message: 'Create the campaign for halloween',
-						title: 'Halloween is coming',
-						isDeleted: false,
-						isRead: false,
-						notificationData: {},
-						notificationType: NotificationType.Halloween,
-					}))
-				);
+				const today = new Date();
+				const targetDate = new Date(today.getFullYear(), 10, 26); // Month is zero-based, so 10 represents November
+
+				if (today > targetDate) {
+					console.log("Today's date is later than November 26th.");
+				} else {
+					notifications.push(
+						...userList.map((user) => ({
+							userId: user._id,
+							storeId: store._id,
+							message: 'Create the campaign for thanks giving',
+							title: 'Thanks Giving',
+							isDeleted: false,
+							isRead: false,
+							notificationData: {},
+							notificationType: NotificationType.Thanks_Giving,
+						}))
+					);
+				}
+
+				
 
 				resolve(notifications);
 			} catch (error) {
