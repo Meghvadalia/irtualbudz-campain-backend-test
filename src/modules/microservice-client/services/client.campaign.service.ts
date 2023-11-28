@@ -713,7 +713,13 @@ export class ClientCampaignService {
 		try {
 			const campaigns = await this.campaignModel.findByIdAndRemove({
 				_id: campaignId,
-			});
+			},(err, removedDoc) => {
+				if (err) {
+				  console.error('Error:', err);
+				} else {
+				  console.log('Removed Document:', removedDoc);
+				}
+			  });
 			return campaigns;
 		} catch (error) {
 			dynamicCatchException(error);
