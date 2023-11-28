@@ -192,7 +192,7 @@ export class ClientCampaignService {
 					url: `${process.env.TRACKING_SERVER}/list/add`,
 					data: JSON.stringify({
 						app: storeData.brandId,
-						userID: storeData.sendyUserId,
+						userID: 1,
 						name: campaign.campaignName,
 						opt_in: '0',
 					}),
