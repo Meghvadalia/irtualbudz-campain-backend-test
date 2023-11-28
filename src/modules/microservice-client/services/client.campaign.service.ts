@@ -360,7 +360,7 @@ export class ClientCampaignService {
 			schedule_date_time: campaignData.startDate,
 			schedule_timezone: storeData.timeZone ? storeData.timeZone : 'UTC',
 			brand_id: storeData.brandId,
-			send_campaign: 1,
+			send_campaign: 0,
 			list_ids: campaignTempData.listId,
 		};
 
