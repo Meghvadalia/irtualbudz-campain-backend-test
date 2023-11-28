@@ -174,7 +174,7 @@ export class SeederService {
 					if (!store.brandId) {
 						const createBrandData = {
 							storeName: data.locationName,
-							storeEmail: user.email,
+							storeEmail: store.email,
 							password: '1234567890',
 							storeTimezone: data.timeZone,
 						};
@@ -191,7 +191,7 @@ export class SeederService {
 
 				const createBrandData = {
 					storeName: data.locationName,
-					storeEmail: user.email,
+					storeEmail: store.email,
 					password: '1234567890',
 					storeTimezone: data.timeZone,
 				};
