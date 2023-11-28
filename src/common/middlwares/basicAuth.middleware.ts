@@ -17,7 +17,7 @@ export class BasicAuthMiddleware implements NestMiddleware {
 
 		const base64Credentials = authHeader.split(' ')[1];
 		const credentials = Buffer.from(base64Credentials, 'base64').toString();
-		
+
 		const [username, password] = credentials.split(':');
 		if (username === this.validUsername && password === this.validPassword) {
 			next();

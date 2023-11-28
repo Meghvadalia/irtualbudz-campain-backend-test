@@ -21,6 +21,7 @@ export interface ICampaign {
 	schedulesDays: string[];
 	discount: string;
 	campaignStatus: CAMPAIGN_STATUS;
+	listId?: string;
 }
 
 export enum SORT_KEYS {

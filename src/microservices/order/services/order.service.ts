@@ -100,7 +100,6 @@ export class OrderService {
 
 			await processStoresParallel();
 		} catch (error) {
-			console.trace(error.message);
 			console.error('Error while scheduling cron job:', error.message);
 		}
 	}
@@ -254,9 +253,7 @@ export class OrderService {
 
 	async processOrders(options, posId: string, companyId: string, storeId: string) {
 		try {
-			console.log('====================================');
 			console.log('Processing Order Batch');
-			console.log('====================================');
 
 			let page = 1;
 			let shouldContinue = true;
@@ -287,9 +284,7 @@ export class OrderService {
 		storeId: string
 	) {
 		try {
-			console.log('====================================');
-			console.log('Processing Order Batch number', page);
-			console.log('====================================');
+			console.log('Processing Order Batch number ', page);
 
 			const temp = orders.map((x: IOrder) => ({
 				staffName: x.budtender,
@@ -306,9 +301,7 @@ export class OrderService {
 				posCustomerId: { $in: customerIdsArray },
 				companyId: companyId,
 			});
-			console.log('====================================');
 			console.log('found customer for comapy ID ' + companyId, customers.length);
-			console.log('====================================');
 			const distinctStaff = temp.reduce((accumulator, current) => {
 				const existingStaff = accumulator.find(
 					(staff) =>
@@ -547,14 +540,10 @@ export class OrderService {
 
 				const processChunk = async (chunk: IDutchieOrderInterface[], page) => {
 					try {
-						console.log('====================================');
-						console.log('Chunk Length', chunk.length);
-						console.log('====================================');
+						console.log('Chunk Length ', chunk.length);
 						const ordersArray: IOrderFlowHubInterface[] = [];
 						const retailOrders: IDutchieOrderInterface[] = chunk.filter(isRetail);
-						console.log('====================================');
-						console.log('retailOrders Length', retailOrders.length);
-						console.log('====================================');
+						console.log('retailOrders Length ', retailOrders.length);
 						for (let index = 0; index < retailOrders.length; index++) {
 							const element = retailOrders[index];
 							if (element.cashPaid !== null || element.creditPaid !== null) {
@@ -665,13 +654,11 @@ export class OrderService {
 							this.processOrderBatch(ordersArray, page, posData._id, company._id, storeData._id);
 						}, 2 * 1000);
 					} catch (error) {
-						console.log('====================================');
-						console.error('Error In the chunk', error);
-						console.log('====================================');
+						console.error('Error In the chunk ', error);
 					}
 				};
 
-				const chunkSize = 5000; // Set an appropriate chunk size based on your memory constraints
+				const chunkSize = 5000;
 
 				const arrayOfChunks = _.chunk(data, chunkSize);
 

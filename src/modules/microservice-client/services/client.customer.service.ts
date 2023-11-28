@@ -92,7 +92,6 @@ export class ClientCustomerService {
 	async getNewCustomersByMonth(storeId: Types.ObjectId) {
 		const storeData = await this.clientStoreService.storeById(storeId.toString());
 		const { formattedFromDate, formattedToDate } = getCurrentYearDateRange(storeData.timeZone);
-		console.log(formattedFromDate, formattedToDate);
 
 		try {
 			const pipeline: PipelineStage[] = [
@@ -169,5 +168,22 @@ export class ClientCustomerService {
 		} catch (error) {
 			dynamicCatchException(error);
 		}
+	}
+
+	async getCustomerData(customerIds) {
+		const customerData = await this.customerModel
+			.find({
+				$and: [
+					{ _id: { $in: customerIds } },
+					{
+						email: {
+							$ne: null,
+							$nin: ['', /^\s*$/],
+						},
+					},
+				],
+			})
+			.select('name email');
+		return customerData;
 	}
 }

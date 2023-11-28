@@ -27,7 +27,6 @@ export class ClientNotificationController {
 		try {
 			// @ts-ignore
 			const user = req.user;
-			console.log(user);
 			const notification = await this.clientNotificationService.listAllNotification(
 				user,
 				page,

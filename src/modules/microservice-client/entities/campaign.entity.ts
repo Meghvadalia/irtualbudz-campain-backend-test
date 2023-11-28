@@ -86,6 +86,9 @@ export class Campaign extends Model<ICampaign> {
 
 	@Prop({ enum: CAMPAIGN_STATUS, default: CAMPAIGN_STATUS.NOT_STARTED })
 		campaignStatus: CAMPAIGN_STATUS;
+
+	@Prop()
+		listId: string;
 }
 
 export const CampaignSchema = SchemaFactory.createForClass(Campaign);

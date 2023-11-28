@@ -1,19 +1,23 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Campaign } from '../entities/campaign.entity';
-import mongoose, { Model, Types } from 'mongoose';
-import { CAMPAIGN_STATUS, ICampaign, SORT_KEYS } from '../interfaces/campaign.interface';
+import mongoose, { Model, PipelineStage, Types } from 'mongoose';
+import { CAMPAIGN_STATUS, ICampaign, SORT_BY, SORT_KEYS } from '../interfaces/campaign.interface';
 import * as path from 'path';
 import { pagination } from 'src/utils/pagination';
 import { UsersService } from 'src/microservices/user/service/users.service';
 import { ClientStoreService } from './client.store.service';
 import { Goals } from 'src/model/goals/entities/goals.entity';
-import { CampaignTypes } from 'src/model/campaignTypes/entities/campaignTypes.entity';
 import { Channel } from 'src/model/channels/entities/channel.entity';
 import { AudienceDetail } from '../entities/audienceDetails.entity';
 import { Action } from 'src/model/actions/entities/actions.entity';
 import { createDirectoryIfNotExists, uploadFiles } from 'src/utils/fileUpload';
-import { KAFKA_CAMPAIGN_EVENT_TYPE, UPLOAD_DIRECTORY } from 'src/common/constants';
+import {
+	DATABASE_COLLECTION,
+	KAFKA_CAMPAIGN_EVENT_TYPE,
+	KAFKA_CUSTOMER_EVENT_TYPE,
+	UPLOAD_DIRECTORY,
+} from 'src/common/constants';
 import { CampaignAsset } from 'src/model/campaignAssets/entities/campaignAsset.entity';
 import { Product } from 'src/microservices/inventory';
 import { Suggestions } from 'src/model/suggestions/entities/suggestions.entity';
@@ -22,39 +26,54 @@ import {
 	ICampaignAssetFiles,
 } from 'src/model/campaignAssets/interface/campaignAsset.interface';
 import * as fs from 'fs';
-import { dynamicCatchException, throwNotFoundException } from 'src/utils/error.utils';
+import { dynamicCatchException } from 'src/utils/error.utils';
 import { ClientAudienceCustomerService } from './client.audienceCustomer.service';
 import { USER_TYPE } from 'src/microservices/user/constants/user.constant';
 import { CampaignProducer } from 'src/modules/kafka/producers/campaign.producer';
 import { ClientNotificationService } from './client.notification.service';
 import { NotificationType } from 'src/model/notification/interface/notification.interface';
+import axios, { AxiosRequestConfig } from 'axios';
+import { RawTemplate } from 'src/model/rawTemplate/entities/rawTemplate.entity';
+import { Template } from 'src/model/template/entities/template.entity';
+import { formatDateRange, templateUpdateFun, uniqueKeys } from 'src/utils/templateUpdate';
+import { Store } from 'src/model/store/entities/store.entity';
+import { TemplateReplaceKey } from 'src/model/template/interfaces/template.interface';
+import { CustomerProducer } from 'src/modules/kafka/producers/customer.producer';
+import { Channels } from 'src/model/channels/interface/channel.interface';
+import { Cart } from 'src/microservices/order/entities/cart.entity';
+import { ClientCategoryService } from '../services/client.category.service';
 
 @Injectable()
 export class ClientCampaignService {
 	constructor(
 		@InjectModel(Campaign.name) private readonly campaignModel: Model<Campaign>,
 		@InjectModel(Goals.name) private readonly goalsModel: Model<Goals>,
-		// @InjectModel(CampaignTypes.name) private readonly campaignTypeModel: Model<CampaignTypes>,
 		@InjectModel(Channel.name) private readonly channelModel: Model<Channel>,
-		@InjectModel(AudienceDetail.name)
-		private readonly audienceModel: Model<AudienceDetail>,
+		@InjectModel(AudienceDetail.name) private readonly audienceModel: Model<AudienceDetail>,
 		@InjectModel(Action.name) private readonly actionModel: Model<Action>,
-		@InjectModel(CampaignAsset.name)
-		private readonly campaignAssetModel: Model<CampaignAsset>,
+		@InjectModel(CampaignAsset.name) private readonly campaignAssetModel: Model<CampaignAsset>,
 		@InjectModel(Product.name) private readonly productModel: Model<Product>,
+		@InjectModel(Template.name) private readonly templateModel: Model<Template>,
 		@InjectModel(Suggestions.name) private readonly suggestionModel: Model<Suggestions>,
+		@InjectModel(RawTemplate.name) private readonly rawTemplate: Model<RawTemplate>,
+		@InjectModel(Store.name) private storeModel: Model<Store>,
+		@InjectModel(Cart.name) private cartModel: Model<Cart>,
 		private readonly userService: UsersService,
 		private readonly storeService: ClientStoreService,
 		private readonly audienceService: ClientAudienceCustomerService,
 		private readonly campaignProducer: CampaignProducer,
-		private readonly clientNotificationService: ClientNotificationService
+		private readonly clientNotificationService: ClientNotificationService,
+		private readonly customerProducer: CustomerProducer,
+		private readonly clientCategoryService: ClientCategoryService
 	) {}
 
-	async addCampaign(data: Partial<ICampaign>, files) {
+	async addCampaign(data: Partial<ICampaign>, files, userId: string) {
 		const directory = path.join(process.cwd(), 'public', UPLOAD_DIRECTORY.CAMPAIGN);
+		let template;
 		await createDirectoryIfNotExists(directory);
 
 		const filePaths = await uploadFiles(files, directory);
+
 		// @ts-ignore
 		data.sortItem = JSON.parse(data.sortItem);
 		if (data.sortItem && Array.isArray(data.sortItem)) {
@@ -74,10 +93,207 @@ export class ClientCampaignService {
 		}
 
 		const campaignDataWithFiles = { ...data, files: filePaths };
+		const itemCount: SORT_BY[] = campaignDataWithFiles.sortItem[0].sortBy;
+		let productItemCount = 0;
+		let productList = [];
+		for (let i = 0; i < itemCount.length; i++) {
+			const element = itemCount[i];
+			if (element.key == SORT_KEYS.AllSellable) {
+				productItemCount = productItemCount + element.value.length;
+				const itemList = await this.productModel.find({
+					_id: {
+						$in: element.value.map((x) => new mongoose.Types.ObjectId(x)),
+					},
+				});
+				productList = [...productList, ...itemList];
+			}
+			if (element.key == SORT_KEYS.Brand && element.value.length > 0) {
+				productItemCount = productItemCount + element.value.length;
+				const pipeline: PipelineStage[] = [
+					{
+						$match: {
+							storeId: new mongoose.Types.ObjectId(campaignDataWithFiles.storeId),
+							title2: { $in: element.value },
+						},
+					},
+					{
+						$group: {
+							_id: '$productName',
+							sku: { $first: '$sku' },
+							totalQuantitySold: { $sum: '$quantity' },
+						},
+					},
+					{
+						$sort: { totalQuantitySold: -1 },
+					},
+					{
+						$limit: element.value.length,
+					},
+					{
+						$lookup: {
+							from: DATABASE_COLLECTION.PRODUCT,
+							localField: 'sku',
+							foreignField: 'sku',
+							as: 'productDetails',
+						},
+					},
+					{
+						$unwind: '$productDetails',
+					},
+					{
+						$project: {
+							productName: '$productDetails.productName',
+							_id: '$productDetails._id',
+							sku: '$productDetails.sku',
+							productPictureURL: '$productDetails.productPictureURL',
+							totalQuantitySold: 1,
+						},
+					},
+				];
+				const result = await this.cartModel.aggregate(pipeline);
+
+				if (result.length > 0) {
+					productList = [...productList, ...result];
+				} else {
+					productList.push('');
+				}
+			}
+			if (element.key == SORT_KEYS.Category) {
+				productItemCount = productItemCount + element.value.length;
+				const categoryData: any = await this.clientCategoryService.getMatchingCategories(
+					// @ts-ignore
+					element.value
+				);
+				for (let i = 0; i < categoryData.length; i++) {
+					const element = categoryData[i];
+					productList.push({
+						productName: element.name,
+						productPictureURL:
+							process.env.REACT_APP_IMAGE_SERVER +
+							element.images[Math.floor(Math.random() * element.images.length)],
+						type: 'category',
+					});
+				}
+
+				// productList = [...productList, ...element.value];
+			}
+		}
+
+		const templateList = await this.rawTemplate.find({ itemCount: productItemCount });
 		const campaign = await this.campaignModel.create(campaignDataWithFiles);
+
+		for (const channel of data.channels) {
+			const channelData = await this.channelModel.findById(channel);
+			const storeData = await this.storeModel.findById(campaignDataWithFiles.storeId);
+
+			if (channelData.name === Channels.Email) {
+				const options: AxiosRequestConfig = {
+					method: 'post',
+					url: `${process.env.TRACKING_SERVER}/list/add`,
+					data: JSON.stringify({
+						app: storeData.brandId,
+						userID: storeData.sendyUserId,
+						name: campaign.campaignName,
+						opt_in: '0',
+					}),
+					headers: {
+						'Content-Type': 'application/json',
+						Authorization:
+							'Basic ' +
+							btoa(
+								`${process.env.TRACKING_AUTH_USERNAME}:${process.env.TRACKING_AUTH_PASSWORD}`
+							).toString(),
+					},
+				};
+				try {
+					axios
+						.request(options)
+						.then(async (response) => {
+							await this.campaignModel.findOneAndUpdate(
+								{ _id: campaign._id },
+								{ listId: response.data.data.listId }
+							);
+							setTimeout(() => {
+								this.customerProducer.sendCustomerMessage(
+									campaign._id as unknown as string,
+									response.data.data.listId,
+									KAFKA_CUSTOMER_EVENT_TYPE.CUSTOMER_TOPIC
+								);
+							}, 1000);
+						})
+						.catch((error) => {
+							console.log(error);
+						});
+				} catch (error) {
+					console.log(error);
+				}
+				for (let temp = 0; temp < templateList.length; temp++) {
+					const templateElement = templateList[temp];
+					template = templateElement.content;
+					const replaceKeys = templateElement.replacements;
+					template = template.replaceAll(
+						'src="./public/',
+						`src="${process.env.REACT_APP_IMAGE_SERVER}/public/template/`
+					);
+					const replaceArray = [];
+
+					const replaceMap = {
+						[TemplateReplaceKey.ITEM_IMAGE]: (element) => element?.productPictureURL || '',
+						[TemplateReplaceKey.PRODUCT_NAME]: (element) => element.productName || '',
+						[TemplateReplaceKey.PRODUCT_DISCOUNT]: () => `${campaignDataWithFiles.discount}%` || '',
+						[TemplateReplaceKey.PRODUCT_DESC]: (element) => element?.productDescription || '',
+						[TemplateReplaceKey.STORE_LINK]: () => storeData.storeLink || '',
+						[TemplateReplaceKey.CAMPAIGN_NAME]: () => campaignDataWithFiles.campaignName || '',
+						[TemplateReplaceKey.STORE_LOGO]: () => storeData.logo,
+						[TemplateReplaceKey.CAMPAIGN_DATE]: () =>
+							formatDateRange(
+								campaignDataWithFiles.startDateWithTime,
+								campaignDataWithFiles.endDateWithTime
+							) || '',
+						[TemplateReplaceKey.STORE_DESC]: () => storeData.storeDesc || '',
+						[TemplateReplaceKey.CAMPAIGN_IMAGE]: () =>
+							(campaign?.files.length > 0
+								? process.env.REACT_APP_IMAGE_SERVER + campaign?.files[0]
+								: null) || '',
+						[TemplateReplaceKey.STORE_FB_LINK]: () => storeData.facebook || '',
+						[TemplateReplaceKey.STORE_TWITTER_LINK]: () => storeData.twitter || '',
+						[TemplateReplaceKey.STORE_LINKEDIN_LINK]: () => storeData.linkedin || '',
+						[TemplateReplaceKey.STORE_INSTA_LINK]: () => storeData.instagram || '',
+					};
+					for (const element of productList) {
+						for (const obj of replaceKeys) {
+							const valueGenerator = replaceMap[obj];
+							if (valueGenerator) {
+								const searchKey = obj;
+								const value = valueGenerator(element);
+								if (element.type == 'category') {
+									if (searchKey == TemplateReplaceKey.ITEM_IMAGE) {
+										const categoryData = element.productName;
+										replaceArray.push({ searchKey, value, categoryData });
+									} else {
+										replaceArray.push({ searchKey, value });
+									}
+								} else {
+									replaceArray.push({ searchKey, value });
+								}
+							}
+						}
+					}
+
+					const newTemplate = templateUpdateFun(template, replaceArray);
+
+					await this.templateModel.create({
+						campaignId: campaign._id,
+						rawTemplateId: templateElement._id,
+						template: newTemplate,
+						userId: new Types.ObjectId(userId),
+					});
+				}
+			}
+		}
+
 		setImmediate(() => {
 			const audienceIds = Array.isArray(data.audienceId) ? data.audienceId : [data.audienceId];
-
 			for (const audienceId of audienceIds) {
 				this.audienceService.addTargetAudience(
 					audienceId,
@@ -122,6 +338,53 @@ export class ClientCampaignService {
 			{ $set: { campaignStatus: status } },
 			{ new: true }
 		);
+	}
+
+	async sendMail(campaignData) {
+		// const templateData = await this.templateModel.findOneAndUpdate({_id:campaignData.templateId},{template:campaignData.template});
+		// const templateData = await this.templateModel.findById(campaignData.templateId);
+		// console.log(templateData);
+
+		const campaignTempData = await this.campaignModel.findById(campaignData.campaignId);
+
+		const storeData = await this.storeModel.findById(campaignTempData.storeId);
+		const obj = {
+			from_name: storeData.locationName,
+			from_email: storeData.email ? storeData.email : process.env.SENDY_FROM_EMAIL,
+			title: campaignTempData.campaignName,
+			subject: 'This is the test email',
+			plain_text: 'text',
+			html_text: campaignData.template,
+			schedule_date_time: campaignData.startDate,
+			schedule_timezone: storeData.timeZone ? storeData.timeZone : 'UTC',
+			brand_id: storeData.brandId,
+			send_campaign: 1,
+			list_ids: campaignTempData.listId,
+		};
+
+		const options = {
+			method: 'post',
+			url: `${process.env.TRACKING_SERVER}/campaign/create`,
+			data: JSON.stringify(obj),
+			headers: {
+				'Content-Type': 'application/json',
+				Authorization:
+					'Basic ' +
+					btoa(
+						`${process.env.TRACKING_AUTH_USERNAME}:${process.env.TRACKING_AUTH_PASSWORD}`
+					).toString(),
+			},
+		};
+		const createCampaign = axios
+			.request(options)
+			.then((data) => {
+				return data.data;
+			})
+			.catch((error) => {
+				console.log(error);
+			});
+
+		return createCampaign;
 	}
 
 	async campaignList(user, page: number, limit: number, storeId?: string, name?: string) {
@@ -215,7 +478,7 @@ export class ClientCampaignService {
 					campaignName: { $regex: regex },
 				});
 			} else if (!storeId) {
-				query = query;
+				query;
 			} else {
 				query = query.find({ storeId: new mongoose.Types.ObjectId(storeId) });
 			}
@@ -243,6 +506,19 @@ export class ClientCampaignService {
 			return product;
 		} catch (error) {
 			console.error(`Error fetching product details for ID ${productId}: ${error}`);
+			return null;
+		}
+	}
+
+	async updateCampaign(campaignId, data) {
+		try {
+			const campaign = await this.campaignModel.findOneAndUpdate(
+				{ _id: new Types.ObjectId(campaignId) },
+				{ $set: { ...data } }
+			);
+			return campaign;
+		} catch (error) {
+			console.error(`Error updating campaign details for ID ${campaignId}: ${error}`);
 			return null;
 		}
 	}

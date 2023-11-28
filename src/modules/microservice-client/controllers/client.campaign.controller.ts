@@ -28,9 +28,18 @@ export class ClientCampaignController {
 	@UseGuards(RolesGuard)
 	@Roles(USER_TYPE.COMPANY_ADMIN, USER_TYPE.STORE_ADMIN, USER_TYPE.MANAGER)
 	@UseInterceptors(FilesInterceptor('files', FILE_UPLOAD_LIMIT))
-	async createCampaign(@Body() data, @UploadedFiles() files: Express.Multer.File[]) {
+	async createCampaign(
+		@Body() data,
+		@UploadedFiles() files: Express.Multer.File[],
+		@Req() req: Request
+	) {
 		try {
-			const campaignData = await this.clientCampaignService.addCampaign(data, files);
+			const campaignData = await this.clientCampaignService.addCampaign(
+				data,
+				files,
+				// @ts-ignore
+				req.user.userId
+			);
 			return sendSuccess(campaignData);
 		} catch (error) {
 			console.error(error);
@@ -155,6 +164,17 @@ export class ClientCampaignController {
 			} else {
 				return sendError('An error occured while removing the campaign.', 500);
 			}
+		} catch (error) {
+			console.error(error.message);
+			return sendError(error.message, error.status);
+		}
+	}
+
+	@Post('email/send')
+	async sendEmails(@Body() body: any) {
+		try {
+			const sendMails = await this.clientCampaignService.sendMail(body);
+			return sendSuccess(sendMails);
 		} catch (error) {
 			console.error(error.message);
 			return sendError(error.message, error.status);

@@ -7,10 +7,12 @@ import mongoose, { Model, PipelineStage, Types } from 'mongoose';
 import { Company } from 'src/model/company/entities/company.entity';
 import { Store } from 'src/model/store/entities/store.entity';
 import { AudienceDetailsService } from './client.audienceDetail.service';
-import { AudienceName } from 'src/common/constants';
+import { AudienceName, DATABASE_COLLECTION } from 'src/common/constants';
 import { Order } from 'src/microservices/order/entities/order.entity';
 import { dynamicCatchException } from 'src/utils/error.utils';
 import { AudienceCustomerType, IAudienceCustomer } from '../interfaces/audienceCustomers.interface';
+import { Customer } from 'src/microservices/customers';
+import axios, { AxiosRequestConfig, AxiosResponse } from 'axios';
 
 @Injectable()
 export class ClientAudienceCustomerService {
@@ -21,6 +23,7 @@ export class ClientAudienceCustomerService {
 		@InjectModel(Order.name) private readonly orderModel: Model<Order>,
 		@InjectModel(Company.name) private readonly companyModel: Model<Company>,
 		@InjectModel(Store.name) private readonly storeModel: Model<Store>,
+		@InjectModel(Customer.name) private readonly customerModel: Model<Customer>,
 		private readonly audienceDetailsService: AudienceDetailsService
 	) {}
 
@@ -83,28 +86,29 @@ export class ClientAudienceCustomerService {
 						},
 					});
 				}
-			}
-
-			const audienceCustomersList: IAudienceCustomer[] = await this.audienceCustomerModel.find({
-				audienceId,
-				type: AudienceCustomerType.SYSTEM,
-			});
-
-			for (const customer of audienceCustomersList) {
-				const audienceCustomerData = {
+			} else {
+				const audienceCustomersList: IAudienceCustomer[] = await this.audienceCustomerModel.find({
 					audienceId,
-					campaignId,
-					storeId: storeObjectId,
-					customerId: customer.customerId,
-					type: AudienceCustomerType.USER,
-				};
-
-				bulkOperations.push({
-					insertOne: {
-						document: audienceCustomerData,
-					},
+					type: AudienceCustomerType.SYSTEM,
 				});
+
+				for (const customer of audienceCustomersList) {
+					const audienceCustomerData = {
+						audienceId,
+						campaignId,
+						storeId: storeObjectId,
+						customerId: customer.customerId,
+						type: AudienceCustomerType.USER,
+					};
+
+					bulkOperations.push({
+						insertOne: {
+							document: audienceCustomerData,
+						},
+					});
+				}
 			}
+			console.log('bulkOperations ', bulkOperations.length);
 
 			const audienceCustomer = await this.audienceCustomerModel.bulkWrite(bulkOperations, {
 				ordered: false,
@@ -112,12 +116,37 @@ export class ClientAudienceCustomerService {
 			return audienceCustomer;
 		} catch (error) {
 			if (error.code === 11000) {
-				console.error('Duplicate key error:', error.message);
+				console.error('Duplicate key error: ', error.message);
 			} else {
-				console.error('Unexpected error occurred:', error.message);
+				console.error('Unexpected error occurred: ', error.message);
 				throw error;
 			}
 		}
+	}
+
+	async getAudienceByAudienceId(audienceId) {
+		const audienceDetail = await this.audienceDetailsService.getAudienceDetailById(audienceId);
+		let audienceArray = [];
+
+		if (audienceDetail.name === AudienceName.ALL) {
+			const audienceCustomersList = await this.audienceCustomerModel
+				.find({
+					type: AudienceCustomerType.SYSTEM,
+				})
+				.select(['customerId', '-_id']);
+			audienceArray = audienceArray.concat(audienceCustomersList);
+		} else {
+			const audienceCustomersList = await this.audienceCustomerModel
+				.find({
+					type: AudienceCustomerType.SYSTEM,
+					audienceId: new Types.ObjectId(audienceId),
+				})
+				.select(['customerId', '-_id']);
+			audienceArray = audienceArray.concat(audienceCustomersList);
+		}
+
+		audienceArray = audienceArray.flat(1).filter((item) => item);
+		return audienceArray;
 	}
 
 	async getAudienceCustomerCount(campaignId: string) {
@@ -322,7 +351,7 @@ export class ClientAudienceCustomerService {
 			},
 			{
 				$lookup: {
-					from: 'cart',
+					from: DATABASE_COLLECTION.CART,
 					localField: 'itemsInCart',
 					foreignField: '_id',
 					as: 'carts',
@@ -592,5 +621,13 @@ export class ClientAudienceCustomerService {
 			console.error(error);
 			dynamicCatchException(error);
 		}
+	}
+
+	async getCampaignWiseCustomer(campaignId: string) {
+		const audienceData = await this.audienceCustomerModel.find({
+			campaignId: new Types.ObjectId(campaignId),
+			customerId: { $type: 'objectId' },
+		});
+		return audienceData;
 	}
 }

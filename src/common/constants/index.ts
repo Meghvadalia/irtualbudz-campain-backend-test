@@ -26,6 +26,10 @@ export const DATABASE_COLLECTION = {
 	DISCOUNTS: 'discounts',
 	CAMPAIGN_ASSETS: 'campaignAssets',
 	NOTIFICATION: 'notification',
+	CATEGORY: 'category',
+	EMAIL: 'email',
+	RAW_TEMPLATE: 'rawTemplates',
+	TEMPLATE: 'templates',
 };
 
 export const enum PERMISSIONS_FOR_DATABASE {
@@ -64,6 +68,9 @@ export type GenerationGroup = AudienceName | string;
 export const UPLOAD_DIRECTORY = {
 	CAMPAIGN: 'campaign',
 	ASSETS: 'assets',
+	CATEGORY: 'category',
+	TEMPLATE: 'template',
+	LOGO: 'logo',
 };
 
 export const FILE_UPLOAD_LIMIT = 10;
@@ -86,4 +93,9 @@ export const CAMPAIGN_TOPIC = {
 export const KAFKA_CAMPAIGN_EVENT_TYPE = {
 	EVENT_STARTED: 'event-started',
 	EVENT_ENDED: 'event-ended',
+};
+
+export const KAFKA_CUSTOMER_EVENT_TYPE = {
+	CUSTOMER_TOPIC: 'customer-topic',
+	CUSTOMER_GROUP: 'customer-group',
 };

@@ -4,7 +4,7 @@ import { DATABASE_COLLECTION } from '../constants';
 export const SuggestionList: ISuggestions[] = [
 	{
 		name: Suggestions.CATEGORY_SATURATION,
-		isActive: true,
+		isActive: false,
 		isDeleted: false,
 		display: true,
 	},

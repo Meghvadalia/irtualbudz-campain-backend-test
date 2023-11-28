@@ -193,7 +193,6 @@ export class ClientOrderService {
 			// 	console.log("Graph data come from cachedStoreData")
 			// 	return cachedStoreData;
 			// } else {
-			console.log('Create query for graph data');
 			if (campaignData && campaignData != null) {
 				if (campaignData?.audienceId) {
 					const audienceName = await this.audienceDetailsModel.find({
@@ -316,7 +315,6 @@ export class ClientOrderService {
 								}
 
 								if (brand.length > 0) {
-									console.log('in brand');
 									if (actionDBData.name == ACTIONS.MARKET_SPECIFIC_BRAND) {
 										replacements = [
 											...replacements,
@@ -335,7 +333,6 @@ export class ClientOrderService {
 								}
 
 								if (product.length > 0) {
-									console.log('in product');
 									if (actionDBData.name == ACTIONS.MARKET_SPECIFIC_BRAND) {
 										const brandNames = await this.productModel.distinct('brand', {
 											_id: { $in: product },
@@ -353,7 +350,6 @@ export class ClientOrderService {
 								}
 
 								if (categories.length > 0) {
-									console.log('in categories');
 									if (actionDBData.name == ACTIONS.REDUCE_INVENTORY) {
 										const tempIds = await this.cartModel
 											.find({ category: { $in: categories } })
@@ -401,25 +397,14 @@ export class ClientOrderService {
 					console.log('Default Graph');
 				}
 			} else {
-				// Error("Campaign data not available")
 				console.log('Campaign data not available, default graph');
 			}
 			// }
-
-			// console.log("redisUniqueId Value ====>", redisUniqueId)
-			console.time('<============== query goal pipeline ===============>');
-			console.log('goalPipeline');
-			console.log(goalPipeline);
 			const goalData = await this.orderModel.aggregate(goalPipeline);
-			console.timeEnd('<============== query goal pipeline ===============>');
 
 			let actionData;
 			if (actionPipeline) {
-				console.log('actionPipeline');
-				console.log(actionPipeline);
-				console.time('<============== query action pipeline ===============>');
 				actionData = await this.orderModel.aggregate(actionPipeline);
-				console.timeEnd('<============== query action pipeline ===============>');
 			}
 
 			const responseData = {
@@ -468,7 +453,7 @@ export class ClientOrderService {
 				},
 				{
 					$lookup: {
-						from: 'cart',
+						from: DATABASE_COLLECTION.CART,
 						localField: 'itemsInCart',
 						foreignField: '_id',
 						as: 'product',
@@ -540,7 +525,7 @@ export class ClientOrderService {
 				},
 				{
 					$lookup: {
-						from: 'staff',
+						from: DATABASE_COLLECTION.STAFF,
 						localField: '_id',
 						foreignField: '_id',
 						as: 'employee',
@@ -551,7 +536,7 @@ export class ClientOrderService {
 				},
 				{
 					$lookup: {
-						from: 'orders',
+						from: DATABASE_COLLECTION.ORDER,
 						let: { staffId: '$employee._id' },
 						pipeline: [
 							{
@@ -946,7 +931,7 @@ export class ClientOrderService {
 				},
 				{
 					$lookup: {
-						from: 'cart',
+						from: DATABASE_COLLECTION.CART,
 						localField: 'itemsInCart',
 						foreignField: '_id',
 						as: 'cartData',
@@ -1040,7 +1025,6 @@ export class ClientOrderService {
 				},
 			];
 			const result = await this.orderModel.aggregate(pipeline);
-			console.log('PIPELINE ==>', JSON.stringify(pipeline));
 
 			const { returningCustomers, newCustomers } =
 				result.length > 0 ? result[0] : { returningCustomers: '', newCustomers: '' };
@@ -1243,7 +1227,7 @@ export class ClientOrderService {
 				},
 				{
 					$lookup: {
-						from: 'customers',
+						from: DATABASE_COLLECTION.CUSTOMER,
 						let: {
 							customerId: '$customerId',
 						},
@@ -1801,7 +1785,7 @@ export class ClientOrderService {
 							},
 							{
 								$lookup: {
-									from: 'cart',
+									from: DATABASE_COLLECTION.CART,
 									localField: 'itemsInCart',
 									foreignField: '_id',
 									as: 'carts',
@@ -1897,7 +1881,7 @@ export class ClientOrderService {
 				},
 				{
 					$lookup: {
-						from: 'cart',
+						from: DATABASE_COLLECTION.CART,
 						localField: 'itemsInCart',
 						foreignField: '_id',
 						as: 'cartItem',

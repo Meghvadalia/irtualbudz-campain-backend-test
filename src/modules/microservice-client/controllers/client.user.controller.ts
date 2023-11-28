@@ -68,7 +68,7 @@ export class ClientUserController implements OnModuleInit {
 			const user = await firstValueFrom(this.userService.Signup(userData));
 			return sendSuccess(user);
 		} catch (error) {
-			console.log('Error3', JSON.stringify(error));
+			console.log('Error ', JSON.stringify(error));
 			dynamicCatchException(error);
 		}
 	}
@@ -77,7 +77,6 @@ export class ClientUserController implements OnModuleInit {
 	async login(@Body() loginData: Login): Promise<any> {
 		try {
 			const user = await firstValueFrom(this.userService.Login(loginData));
-
 			return sendSuccess(user, 'Log-in successful.');
 		} catch (error) {
 			throw new UnauthorizedException(error.details);

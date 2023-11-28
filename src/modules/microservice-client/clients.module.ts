@@ -78,6 +78,17 @@ import {
 import { Kafka } from 'kafkajs';
 import { CampaignProducer } from '../kafka/producers/campaign.producer';
 import { BasicAuthMiddleware } from 'src/common/middlwares/basicAuth.middleware';
+import { Category, CategorySchema } from 'src/model/category/entities/category.entity';
+import { ClientCategoryController } from './controllers/client.category.controller';
+import { ClientCategoryService } from './services/client.category.service';
+import { RawTemplate, RawTemplateSchema } from 'src/model/rawTemplate/entities/rawTemplate.entity';
+import { ClientRawTemplateService } from './services/client.rawTemplate.service';
+import { ClientRawTemplateController } from './controllers/client.rawTemplate.controller';
+import { Template, TemplateSchema } from 'src/model/template/entities/template.entity';
+import { ClientTemplateController } from './controllers/client.template.controller';
+import { ClientTemplateService } from './services/client.template.service';
+import { CustomerConsumer } from '../kafka/consumers/customer.consumer';
+import { CustomerProducer } from '../kafka/producers/customer.producer';
 
 @Module({
 	imports: [
@@ -105,6 +116,9 @@ import { BasicAuthMiddleware } from 'src/common/middlwares/basicAuth.middleware'
 			{ name: Campaign.name, schema: CampaignSchema },
 			{ name: CampaignAsset.name, schema: CampaignAssetsSchema },
 			{ name: Notification.name, schema: NotificationSchema },
+			{ name: Category.name, schema: CategorySchema },
+			{ name: RawTemplate.name, schema: RawTemplateSchema },
+			{ name: Template.name, schema: TemplateSchema },
 		]),
 		CustomerModule,
 		OrderModule,
@@ -130,6 +144,9 @@ import { BasicAuthMiddleware } from 'src/common/middlwares/basicAuth.middleware'
 		ClientSuggestionController,
 		ClientGraphController,
 		ClientNotificationController,
+		ClientCategoryController,
+		ClientRawTemplateController,
+		ClientTemplateController,
 	],
 	providers: [
 		{
@@ -162,11 +179,23 @@ import { BasicAuthMiddleware } from 'src/common/middlwares/basicAuth.middleware'
 		ClientGraphService,
 		ClientNotificationService,
 		CampaignProducer,
+		ClientCategoryService,
+		ClientRawTemplateService,
+		ClientTemplateService,
+		CustomerConsumer,
+		CustomerProducer,
 	],
-	exports: [AudienceDetailsService, ClientCampaignService],
+	exports: [
+		AudienceDetailsService,
+		ClientCampaignService,
+		ClientAudienceCustomerService,
+		ClientCustomerService,
+	],
 })
 export class MicroserviceClientModule implements NestModule {
 	configure(consumer: MiddlewareConsumer) {
-		consumer.apply(BasicAuthMiddleware).forRoutes({ path: 'user/login', method: RequestMethod.POST });
+		consumer
+			.apply(BasicAuthMiddleware)
+			.forRoutes({ path: 'user/login', method: RequestMethod.POST });
 	}
 }

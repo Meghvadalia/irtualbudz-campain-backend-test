@@ -1,7 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
-import { IGraph } from 'src/model/graph/interface/graph.interface';
 import { Graph } from 'src/model/graph/entities/graph.entity';
 import { graphData } from 'src/common/seeders/graph';
 import { dynamicCatchException, throwNotFoundException } from 'src/utils/error.utils';

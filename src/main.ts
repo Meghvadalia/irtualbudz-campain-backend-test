@@ -1,5 +1,6 @@
 require('newrelic');
 import { NestFactory } from '@nestjs/core';
+import OpenAI from 'openai';
 import { AppModule } from './app.module';
 import { MicroserviceOptions, Transport } from '@nestjs/microservices';
 import { OrderModule } from './microservices/order';
@@ -12,6 +13,10 @@ import helmet from 'helmet';
 import { ValidationPipe } from '@nestjs/common';
 import * as express from 'express';
 import { customErrorLogger, customLogger } from './common/middlwares/logging.middleware';
+
+export const openai = new OpenAI({
+	apiKey: process.env.OPENAI_API_KEY,
+});
 
 console.log = customLogger;
 console.error = customErrorLogger;

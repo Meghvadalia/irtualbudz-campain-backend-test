@@ -25,7 +25,7 @@ export class ClientNotificationService {
 		@InjectModel(User.name) private userModel: Model<User>,
 		@InjectModel(Order.name) private orderModel: Model<Order>,
 		@InjectModel(Inventory.name) private readonly inventoryModel: Model<Inventory>
-	) { }
+	) {}
 
 	async listAllNotification(
 		user: { userId: Types.ObjectId; type: string },
@@ -149,7 +149,7 @@ export class ClientNotificationService {
 					},
 					{
 						$lookup: {
-							from: 'cart',
+							from: DATABASE_COLLECTION.CART,
 							localField: 'itemsInCart',
 							foreignField: '_id',
 							as: 'cartData',
@@ -237,7 +237,7 @@ export class ClientNotificationService {
 				const targetDate = new Date(today.getFullYear(), 10, 26); // Month is zero-based, so 10 represents November
 
 				if (today > targetDate) {
-					console.log("Today's date is later than November 26th.");
+					console.log('Today\'s date is later than November 26th.');
 				} else {
 					notifications.push(
 						...userList.map((user) => ({
@@ -252,8 +252,6 @@ export class ClientNotificationService {
 						}))
 					);
 				}
-
-				
 
 				resolve(notifications);
 			} catch (error) {
@@ -293,8 +291,6 @@ export class ClientNotificationService {
 			const NotificationList = await this.notificationModel.find({
 				notificationType: { $exists: false },
 			});
-			console.log('Notification');
-			console.log(NotificationList.length);
 			for (let i = 0; i < NotificationList.length; i++) {
 				const element = NotificationList[i];
 				if (element.title == 'Halloween is coming') {

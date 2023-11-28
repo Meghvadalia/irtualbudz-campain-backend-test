@@ -1,19 +1,21 @@
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import mongoose, { Model } from 'mongoose';
+import { Model, Types } from 'mongoose';
 import { Company } from 'src/model/company/entities/company.entity';
 import { ICompany } from 'src/model/company/interface/company.interface';
 import { POS } from 'src/model/pos/entities/pos.entity';
 import { IPOS } from 'src/model/pos/interface/pos.interface';
 import { Store } from 'src/model/store/entities/store.entity';
 import { IStore } from 'src/model/store/interface/store.inteface';
-import axios from 'axios';
+import axios, { AxiosRequestConfig, AxiosResponse } from 'axios';
 import { IStoreResponseFlowHub } from 'src/common/interface';
 import { User } from 'src/microservices/user/entities/user.entity';
-import { IUser } from 'src/microservices/user/interfaces/user.interface';
 import { USER_TYPE } from 'src/microservices/user/constants/user.constant';
 import { RedisService } from 'src/config/cache/config.service';
 import { dynamicCatchException } from 'src/utils/error.utils';
+import { UPLOAD_DIRECTORY } from 'src/common/constants';
+import { createDirectoryIfNotExists, uploadFiles } from 'src/utils/fileUpload';
+import * as path from 'path';
 
 @Injectable()
 export class ClientStoreService {
@@ -60,8 +62,33 @@ export class ClientStoreService {
 					});
 
 					if (existingStore) {
+						if (!existingStore.brandId) {
+							const createBrandData = {
+								storeName: element.locationName,
+								storeEmail: element.email ? element.email : '',
+								password: '1234567890',
+								storeTimezone: element.timeZone,
+							};
+
+							const brandData = await this.createBrand(createBrandData);
+
+							await this.storeModel.findByIdAndUpdate(existingStore._id, {
+								brandId: brandData.data.data.appId,
+								sendyUserId: brandData.data.data.loginId,
+							});
+						}
 						continue;
 					}
+
+					const createBrandData = {
+						storeName: element.locationName,
+						storeEmail: element.email ? element.email : '',
+						password: '1234567890',
+						storeTimezone: element.timeZone,
+					};
+
+					const brandData = await this.createBrand(createBrandData);
+
 					storeArea.push({
 						location: {
 							locationId: element.locationId,
@@ -77,6 +104,8 @@ export class ClientStoreService {
 						imageUrl: element.locationLogoURL,
 						website: element.website,
 						locationName: element.locationName,
+						brandId: brandData.data.data.appId,
+						sendyUserId: brandData.data.data.loginId,
 					});
 				}
 
@@ -85,8 +114,27 @@ export class ClientStoreService {
 				}
 			}
 		} catch (error) {
-			console.error('Error While Seeding the Data For Store' + error);
+			console.error('Error While Seeding the Data For Store: ', error);
 			return error;
+		}
+	}
+
+	async createBrand(brandData: any): Promise<AxiosResponse> {
+		const credentials = Buffer.from(
+			`${process.env.TRACKING_AUTH_USERNAME}:${process.env.TRACKING_AUTH_PASSWORD}`
+		).toString('base64');
+		const brandApiUrl = `${process.env.TRACKING_SERVER}/brandCreate/brand`;
+		const headers: AxiosRequestConfig['headers'] = {
+			'Content-Type': 'application/json',
+			Authorization: `Basic ${credentials}`,
+		};
+
+		try {
+			const response = await axios.post(brandApiUrl, brandData, { headers });
+			return response;
+		} catch (error) {
+			console.error('Error while creating brand:', error);
+			throw error;
 		}
 	}
 
@@ -179,13 +227,40 @@ export class ClientStoreService {
 							{ _id: existingStore._id },
 							{ locationName: element.locationName }
 						);
-						console.log(element.locationName);
 					}
 				}
 			}
 		} catch (error) {
 			console.error('Error While Seeding the Data For Store' + error);
 			return error;
+		}
+	}
+
+	async updateStores(id: string, logos: Express.Multer.File[] | undefined, data: any) {
+		try {
+			const directory = path.join(process.cwd(), 'public', UPLOAD_DIRECTORY.LOGO);
+			await createDirectoryIfNotExists(directory);
+
+			let updateFields = {};
+
+			if (logos && logos.length > 0) {
+				const filePaths = await uploadFiles(logos, directory);
+				updateFields = { logos: filePaths };
+			} else if (data) {
+				updateFields = { ...data };
+			}
+
+			const updateStore = await this.storeModel.findByIdAndUpdate(
+				{ _id: new Types.ObjectId(id) },
+				{
+					$set: updateFields,
+				},
+				{ new: true }
+			);
+			return updateStore;
+		} catch (error) {
+			console.error('Error While Updating the Data For Store', error);
+			throw error;
 		}
 	}
 }

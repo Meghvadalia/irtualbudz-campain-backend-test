@@ -11,5 +11,7 @@ export interface IStore {
 	licenseType: string[];
 	imageUrl: string;
 	locationName: string;
+	brandId: number;
+	sendyUserId: number;
 	[property: string]: any;
 }

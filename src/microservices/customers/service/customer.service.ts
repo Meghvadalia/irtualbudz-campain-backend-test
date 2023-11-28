@@ -32,7 +32,6 @@ export class CustomerService {
 			const date = new Date();
 			let fromDate, toDate;
 			let options: AxiosRequestConfig;
-			const customerDataArray: ICustomer[] = [];
 
 			for (const company of companiesList) {
 				let page = 1;
@@ -75,9 +74,7 @@ export class CustomerService {
 				while (shouldContinue) {
 					const { data } = await axios.request(options);
 					const customerData = data.customers ? data.customers : data.data;
-					console.log('====================================');
 					console.log('Data syncing for customer for company ' + company.name, customerData.length);
-					console.log('====================================');
 
 					const bulkOps = customerData.map((customer) => ({
 						updateOne: {

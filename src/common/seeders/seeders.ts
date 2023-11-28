@@ -94,7 +94,7 @@ export class SeederService {
 				);
 			}
 
-			console.log('Company seeding Done');
+			console.log('Company seeding completed.');
 		} catch (error) {
 			console.error('Error seeding Company collection:', error);
 		}
@@ -145,6 +145,8 @@ export class SeederService {
 			});
 
 			for (const company of companyData) {
+				const user = userArrayForCompany.find((u) => u.companyName === company.name);
+
 				const tokenOptions = {
 					method: 'get',
 					url: `${posData.liveUrl}/util/AuthorizationHeader/${company.dataObject.key}`,
@@ -168,15 +170,43 @@ export class SeederService {
 				const store = await this.storeModel.findOne({
 					'location.locationId': data.locationId,
 				});
-				if (!store) {
-					await this.storeModel.create({
-						location: {
-							locationId: data.locationId,
-							locationName: data.locationName,
-						},
-						companyId: company._id,
-					});
+				if (store) {
+					if (!store.brandId) {
+						const createBrandData = {
+							storeName: data.locationName,
+							storeEmail: user.email,
+							password: '1234567890',
+							storeTimezone: data.timeZone,
+						};
+
+						const brandData = await this.storeService.createBrand(createBrandData);
+
+						await this.storeModel.findByIdAndUpdate(store._id, {
+							brandId: brandData.data.data.appId,
+							sendyUserId: brandData.data.data.loginId,
+						});
+					}
+					continue;
 				}
+
+				const createBrandData = {
+					storeName: data.locationName,
+					storeEmail: user.email,
+					password: '1234567890',
+					storeTimezone: data.timeZone,
+				};
+
+				const brandData = await this.storeService.createBrand(createBrandData);
+
+				await this.storeModel.create({
+					location: {
+						locationId: data.locationId,
+						locationName: data.locationName,
+					},
+					companyId: company._id,
+					brandId: brandData.data.data.appId,
+					sendyUserId: brandData.data.data.loginId,
+				});
 			}
 		} catch (error) {
 			console.error(error);
@@ -202,7 +232,7 @@ export class SeederService {
 			// @ts-ignore
 			await this.graphModel.bulkWrite(bulkOps);
 
-			console.log('Graph seeding Done');
+			console.log('Graph seeding completed.');
 		} catch (error) {
 			console.error('Error Seeding graph collection:', error);
 		}
@@ -229,7 +259,7 @@ export class SeederService {
 				);
 			}
 
-			console.log('Goals seeding Done');
+			console.log('Goals seeding completed.');
 		} catch (error) {
 			console.error('Error seeding Goals collection:', error);
 		}
@@ -341,7 +371,7 @@ export class SeederService {
 			}
 
 			const result = await this.actionsModel.bulkWrite(bulkOperations);
-			console.log('Bulk write result:', result);
+			console.log('Actions seeding completed.');
 		} catch (error) {
 			console.error('Error seeding the actions: ', error);
 		}
@@ -379,6 +409,7 @@ export class SeederService {
 			await this.seedCompany();
 			await this.seedChannels();
 			await this.storeService.seedStoreData('flowhub');
+			await this.seedDutchieStores('dutchie');
 			await this.seedUser();
 			await this.graphCollection();
 			await this.seedGoals();
@@ -388,7 +419,7 @@ export class SeederService {
 			await this.addAudienceDetails();
 			console.log('Seeding completed successfully');
 		} catch (error) {
-			console.error('Error seeding collections:', error);
+			console.error('Error seeding collections: ', error);
 		}
 	}
 }

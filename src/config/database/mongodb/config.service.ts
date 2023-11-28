@@ -10,7 +10,6 @@ export class MongodbConfigService {
 	}
 
 	get host(): string {
-		console.log(this.configService.get('mongodb.host'));
 		return this.configService.get<string>('mongodb.host') as string;
 	}
 

@@ -4,7 +4,7 @@ export enum ACTIONS {
 	INCREASE_MARGINS = 'Increase Margins',
 	REDUCE_INVENTORY = 'Reduce Inventory',
 	MARKET_SPECIFIC_BRAND = 'Market Specific Brand',
-	INCREASE_TRANSACTIONS = 'increase Transactions',
+	INCREASE_TRANSACTIONS = 'Increase Transactions',
 	POP_UPS = 'Pop-Ups',
 	SALE_DAY = 'Sale Day',
 	CROSS_PROMOTION = 'Cross Promotion',
@@ -59,7 +59,7 @@ export const actionsList: IAction[] = [
 	},
 	{
 		name: ACTIONS.INCREASE_SOCIAL_MEDIA_TRAFFIC,
-		isActive: true,
+		isActive: false,
 		isDeleted: false,
 		isTrackable: false,
 	},
