@@ -227,6 +227,7 @@ export class ClientCampaignService {
 				} catch (error) {
 					console.log(error);
 				}
+				console.log(templateList.length +' row Templates found');
 				for (let temp = 0; temp < templateList.length; temp++) {
 					const templateElement = templateList[temp];
 					template = templateElement.content;
@@ -281,13 +282,14 @@ export class ClientCampaignService {
 					}
 
 					const newTemplate = templateUpdateFun(template, replaceArray);
-
-					await this.templateModel.create({
+					
+					const templateData = await this.templateModel.create({
 						campaignId: campaign._id,
 						rawTemplateId: templateElement._id,
 						template: newTemplate,
 						userId: new Types.ObjectId(userId),
 					});
+					console.log('Template created '+ templateData?._id);
 				}
 			}
 		}
