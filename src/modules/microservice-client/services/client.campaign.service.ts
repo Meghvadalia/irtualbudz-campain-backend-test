@@ -713,7 +713,7 @@ export class ClientCampaignService {
 		try {
 			const campaigns = await this.campaignModel.findByIdAndRemove({
 				_id: campaignId,
-			},{});
+			},{ lean: true });
 			return campaigns;
 		} catch (error) {
 			dynamicCatchException(error);
