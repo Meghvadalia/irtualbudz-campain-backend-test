@@ -16,7 +16,7 @@ mongoose.set('debug', true);
 						mongodbConfigService.userName
 					  )}:${encodeURIComponent(mongodbConfigService.password)}@${mongodbConfigService.host}:${
 						mongodbConfigService.port
-					  }/${mongodbConfigService.database}`
+					  }/${mongodbConfigService.database}?authSource=admin`
 					: `${mongodbConfigService.protocol}://${mongodbConfigService.host}:${mongodbConfigService.port}/${mongodbConfigService.database}`,
 			}),
 			inject: [MongodbConfigService],
