@@ -13,6 +13,8 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 				MONGODB_HOST: Joi.string(),
 				MONGODB_PORT: Joi.number(),
 				MONGODB_DATABASE: Joi.string(),
+				MONGODB_USERNAME: Joi.string(),
+				MONGODB_PASSWORD: Joi.string(),
 			}),
 		}),
 	],

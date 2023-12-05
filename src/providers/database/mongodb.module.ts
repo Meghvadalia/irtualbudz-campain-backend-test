@@ -11,7 +11,13 @@ mongoose.set('debug', true);
 		MongooseModule.forRootAsync({
 			imports: [MongodbConfigModule],
 			useFactory: async (mongodbConfigService: MongodbConfigService) => ({
-				uri: `${mongodbConfigService.protocol}://${mongodbConfigService.host}:${mongodbConfigService.port}/${mongodbConfigService.database}`,
+				uri: mongodbConfigService.shouldAuthenticate()
+					? `${mongodbConfigService.protocol}://${encodeURIComponent(
+						mongodbConfigService.userName
+					  )}:${encodeURIComponent(mongodbConfigService.password)}@${mongodbConfigService.host}:${
+						mongodbConfigService.port
+					  }/${mongodbConfigService.database}`
+					: `${mongodbConfigService.protocol}://${mongodbConfigService.host}:${mongodbConfigService.port}/${mongodbConfigService.database}`,
 			}),
 			inject: [MongodbConfigService],
 		} as MongooseModuleOptions),

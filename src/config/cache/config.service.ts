@@ -7,10 +7,14 @@ export class RedisService {
 	readonly sessionName = 'session';
 
 	constructor() {
-		this.redisClient = new Redis({
-			host: process.env.REDIS_HOST!,
+		const redisOptions: Record<string, any> = {
+			host: process.env.REDIS_HOST,
 			port: Number(process.env.REDIS_PORT),
-		});
+		};
+		if (process.env.NODE_ENV === 'production') {
+			redisOptions.password = process.env.REDIS_PASSWORD;
+		}
+		this.redisClient = new Redis(redisOptions);
 	}
 
 	getClient(): Redis {

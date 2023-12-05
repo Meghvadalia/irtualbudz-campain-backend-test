@@ -8,7 +8,8 @@ import { LoggingMiddleware } from './common/middlwares/logging.middleware';
 import { ScheduleModule } from '@nestjs/schedule';
 import { InventoryModule } from './microservices/inventory';
 import { CustomerModule } from './microservices/customers/customer.module';
-
+import { AppController } from './app.controller';
+import { AppService } from './app.service';
 @Module({
 	imports: [
 		ConfigModule.forRoot({
@@ -29,6 +30,8 @@ import { CustomerModule } from './microservices/customers/customer.module';
 		// Client module
 		MicroserviceClientModule,
 	],
+	controllers: [AppController],
+	providers: [AppService],
 })
 export class AppModule implements NestModule {
 	configure(consumer: MiddlewareConsumer) {
