@@ -370,6 +370,10 @@ export class ClientOrderService {
 									}
 								}
 								if (actionDBData.name == ACTIONS.BUNDLES) {
+									const productData = await this.productModel
+										.find({ _id: { $in: product } })
+										.select(['productName', '-_id']);
+									const productNames = productData.map((x: any) => x.productName);
 									replacements = [
 										...replacements,
 										...[
@@ -378,7 +382,7 @@ export class ClientOrderService {
 												value: [
 													{ 'carts.title2': { $in: brand } },
 													{ 'carts.category': { $in: categories } },
-													{ 'carts.productName': { $in: product } },
+													{ 'carts.productName': { $in: productNames } },
 												],
 											},
 										],
@@ -400,10 +404,14 @@ export class ClientOrderService {
 				console.log('Campaign data not available, default graph');
 			}
 			// }
+			console.error('goalPipeline');
+			console.log(goalPipeline);
 			const goalData = await this.orderModel.aggregate(goalPipeline);
 
 			let actionData;
 			if (actionPipeline) {
+				console.error('actionPipeline');
+				console.log(actionPipeline);
 				actionData = await this.orderModel.aggregate(actionPipeline);
 			}
 
@@ -830,10 +838,10 @@ export class ClientOrderService {
 				result.length > 0
 					? result[0]
 					: {
-						averageSpend: 0,
-						loyaltyPointsConverted: 0,
-						averageSpendGrowth: 0,
-						loyaltyPointsConversionGrowth: 0,
+							averageSpend: 0,
+							loyaltyPointsConverted: 0,
+							averageSpendGrowth: 0,
+							loyaltyPointsConversionGrowth: 0,
 					  };
 
 			return averageSpendWithLoyalty;
@@ -1190,10 +1198,10 @@ export class ClientOrderService {
 				result.length > 0
 					? result[0]
 					: {
-						returningCustomer: 0,
-						newCustomer: 0,
-						recurringCustomerAverageSpend: 0,
-						newCustomerAverageSpend: 0,
+							returningCustomer: 0,
+							newCustomer: 0,
+							recurringCustomerAverageSpend: 0,
+							newCustomerAverageSpend: 0,
 					  };
 			return {
 				returningCustomer,
@@ -1575,12 +1583,12 @@ export class ClientOrderService {
 				result.length > 0
 					? result[0]
 					: {
-						totalOrderAmount: 0,
-						totalDiscounts: 0,
-						totalOrders: 0,
-						orderAmountGrowth: 0,
-						discountGrowth: 0,
-						orderCountGrowth: 0,
+							totalOrderAmount: 0,
+							totalDiscounts: 0,
+							totalOrders: 0,
+							orderAmountGrowth: 0,
+							discountGrowth: 0,
+							orderCountGrowth: 0,
 					  };
 			return {
 				totalOrderAmount,
