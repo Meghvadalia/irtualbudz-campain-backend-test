@@ -93,92 +93,94 @@ export class ClientCampaignService {
 		}
 
 		const campaignDataWithFiles = { ...data, files: filePaths };
-		const itemCount: SORT_BY[] = campaignDataWithFiles.sortItem[0].sortBy;
+
 		let productItemCount = 0;
 		let productList = [];
-		for (let i = 0; i < itemCount.length; i++) {
-			const element = itemCount[i];
-			if (element.key == SORT_KEYS.AllSellable) {
-				productItemCount = productItemCount + element.value.length;
-				const itemList = await this.productModel.find({
-					_id: {
-						$in: element.value.map((x) => new mongoose.Types.ObjectId(x)),
-					},
-				});
-				productList = [...productList, ...itemList];
-			}
-			if (element.key == SORT_KEYS.Brand && element.value.length > 0) {
-				productItemCount = productItemCount + element.value.length;
-				const pipeline: PipelineStage[] = [
-					{
-						$match: {
-							storeId: new mongoose.Types.ObjectId(campaignDataWithFiles.storeId),
-							title2: { $in: element.value },
+		for (let index = 0; index < campaignDataWithFiles.sortItem.length; index++) {
+			const itemCount: SORT_BY[] = campaignDataWithFiles.sortItem[index].sortBy;
+			for (let i = 0; i < itemCount.length; i++) {
+				const element = itemCount[i];
+				if (element.key == SORT_KEYS.AllSellable) {
+					productItemCount = productItemCount + element.value.length;
+					const itemList = await this.productModel.find({
+						_id: {
+							$in: element.value.map((x) => new mongoose.Types.ObjectId(x)),
 						},
-					},
-					{
-						$group: {
-							_id: '$productName',
-							sku: { $first: '$sku' },
-							totalQuantitySold: { $sum: '$quantity' },
-						},
-					},
-					{
-						$sort: { totalQuantitySold: -1 },
-					},
-					{
-						$limit: element.value.length,
-					},
-					{
-						$lookup: {
-							from: DATABASE_COLLECTION.PRODUCT,
-							localField: 'sku',
-							foreignField: 'sku',
-							as: 'productDetails',
-						},
-					},
-					{
-						$unwind: '$productDetails',
-					},
-					{
-						$project: {
-							productName: '$productDetails.productName',
-							_id: '$productDetails._id',
-							sku: '$productDetails.sku',
-							productPictureURL: '$productDetails.productPictureURL',
-							totalQuantitySold: 1,
-						},
-					},
-				];
-				const result = await this.cartModel.aggregate(pipeline);
-
-				if (result.length > 0) {
-					productList = [...productList, ...result];
-				} else {
-					productList.push('');
-				}
-			}
-			if (element.key == SORT_KEYS.Category) {
-				productItemCount = productItemCount + element.value.length;
-				const categoryData: any = await this.clientCategoryService.getMatchingCategories(
-					// @ts-ignore
-					element.value
-				);
-				for (let i = 0; i < categoryData.length; i++) {
-					const element = categoryData[i];
-					productList.push({
-						productName: element.name,
-						productPictureURL:
-							process.env.REACT_APP_IMAGE_SERVER +
-							element.images[Math.floor(Math.random() * element.images.length)],
-						type: 'category',
 					});
+					productList = [...productList, ...itemList];
 				}
+				if (element.key == SORT_KEYS.Brand && element.value.length > 0) {
+					productItemCount = productItemCount + element.value.length;
+					const pipeline: PipelineStage[] = [
+						{
+							$match: {
+								storeId: new mongoose.Types.ObjectId(campaignDataWithFiles.storeId),
+								title2: { $in: element.value },
+							},
+						},
+						{
+							$group: {
+								_id: '$productName',
+								sku: { $first: '$sku' },
+								totalQuantitySold: { $sum: '$quantity' },
+							},
+						},
+						{
+							$sort: { totalQuantitySold: -1 },
+						},
+						{
+							$limit: element.value.length,
+						},
+						{
+							$lookup: {
+								from: DATABASE_COLLECTION.PRODUCT,
+								localField: 'sku',
+								foreignField: 'sku',
+								as: 'productDetails',
+							},
+						},
+						{
+							$unwind: '$productDetails',
+						},
+						{
+							$project: {
+								productName: '$productDetails.productName',
+								_id: '$productDetails._id',
+								sku: '$productDetails.sku',
+								productPictureURL: '$productDetails.productPictureURL',
+								totalQuantitySold: 1,
+							},
+						},
+					];
+					const result = await this.cartModel.aggregate(pipeline);
 
-				// productList = [...productList, ...element.value];
+					if (result.length > 0) {
+						productList = [...productList, ...result];
+					} else {
+						productList.push('');
+					}
+				}
+				if (element.key == SORT_KEYS.Category) {
+					productItemCount = productItemCount + element.value.length;
+					const categoryData: any = await this.clientCategoryService.getMatchingCategories(
+						// @ts-ignore
+						element.value
+					);
+					for (let i = 0; i < categoryData.length; i++) {
+						const element = categoryData[i];
+						productList.push({
+							productName: element.name,
+							productPictureURL:
+								process.env.REACT_APP_IMAGE_SERVER +
+								element.images[Math.floor(Math.random() * element.images.length)],
+							type: 'category',
+						});
+					}
+
+					// productList = [...productList, ...element.value];
+				}
 			}
 		}
-
 		const templateList = await this.rawTemplate.find({ itemCount: productItemCount });
 		const campaign = await this.campaignModel.create(campaignDataWithFiles);
 
@@ -227,7 +229,7 @@ export class ClientCampaignService {
 				} catch (error) {
 					console.log(error);
 				}
-				console.log(templateList.length +' row Templates found');
+				console.log(templateList.length + ' row Templates found');
 				for (let temp = 0; temp < templateList.length; temp++) {
 					const templateElement = templateList[temp];
 					template = templateElement.content;
@@ -282,14 +284,14 @@ export class ClientCampaignService {
 					}
 
 					const newTemplate = templateUpdateFun(template, replaceArray);
-					
+
 					const templateData = await this.templateModel.create({
 						campaignId: campaign._id,
 						rawTemplateId: templateElement._id,
 						template: newTemplate,
 						userId: new Types.ObjectId(userId),
 					});
-					console.log('Template created '+ templateData?._id);
+					console.log('Template created ' + templateData?._id);
 				}
 			}
 		}
@@ -713,9 +715,12 @@ export class ClientCampaignService {
 
 	async removeCampaign(campaignId: Types.ObjectId) {
 		try {
-			const campaigns = await this.campaignModel.findByIdAndRemove({
-				_id: campaignId,
-			},{ lean: true });
+			const campaigns = await this.campaignModel.findByIdAndRemove(
+				{
+					_id: campaignId,
+				},
+				{ lean: true }
+			);
 			return campaigns;
 		} catch (error) {
 			dynamicCatchException(error);
