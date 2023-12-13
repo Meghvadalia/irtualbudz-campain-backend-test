@@ -149,11 +149,11 @@ export class ClientCampaignService {
 								sku: '$productDetails.sku',
 								productPictureURL: '$productDetails.productPictureURL',
 								totalQuantitySold: 1,
+								category: '$productDetails.category',
 							},
 						},
 					];
 					const result = await this.cartModel.aggregate(pipeline);
-
 					if (result.length > 0) {
 						productList = [...productList, ...result];
 					} else {
@@ -176,8 +176,21 @@ export class ClientCampaignService {
 							type: 'category',
 						});
 					}
-
 					// productList = [...productList, ...element.value];
+				}
+				const categoryData: any = await this.clientCategoryService.getMatchingCategories(
+					// @ts-ignore
+					productList.map((x) => x.category)
+				);
+				for (let i = 0; i < productList.length; i++) {
+					const element = productList[i];
+					if (element.productPictureURL == null && element.type != 'category') {
+						if (categoryData.length > 0) {
+							let imgs = categoryData.filter((x) => x.name == element.category)[0].images;
+							element.productPictureURL =
+								process.env.REACT_APP_IMAGE_SERVER + imgs[Math.floor(Math.random() * imgs.length)];
+						}
+					}
 				}
 			}
 		}
