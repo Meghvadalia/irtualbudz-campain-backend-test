@@ -260,7 +260,7 @@ export class ClientCampaignService {
 						[TemplateReplaceKey.PRODUCT_DESC]: (element) => element?.productDescription || '',
 						[TemplateReplaceKey.STORE_LINK]: () => storeData.storeLink || '',
 						[TemplateReplaceKey.CAMPAIGN_NAME]: () => campaignDataWithFiles.campaignName || '',
-						[TemplateReplaceKey.STORE_LOGO]: () => storeData.logo,
+						[TemplateReplaceKey.STORE_LOGO]: () => storeData.logos,
 						[TemplateReplaceKey.CAMPAIGN_DATE]: () =>
 							formatDateRange(
 								campaignDataWithFiles.startDateWithTime,
