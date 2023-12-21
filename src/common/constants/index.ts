@@ -95,6 +95,11 @@ export const KAFKA_CAMPAIGN_EVENT_TYPE = {
 	EVENT_ENDED: 'event-ended',
 };
 
+export const KAFKA_SEEDING_EVENT_TYPE = {
+	INITIAL_TIME: 'initial-time',
+	SCHEDULE_TIME: 'schedule-time',
+	SEEDING_GROUP: 'seeding-group',
+};
 export const KAFKA_CUSTOMER_EVENT_TYPE = {
 	CUSTOMER_TOPIC: 'customer-topic',
 	CUSTOMER_GROUP: 'customer-group',

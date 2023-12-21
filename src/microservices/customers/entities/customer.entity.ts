@@ -80,4 +80,4 @@ export class Customer extends Model<ICustomer> {
 }
 
 export const CustomerSchema = SchemaFactory.createForClass(Customer);
-CustomerSchema.index({ posCustomerId: 1, companyId: 1 }, { unique: true });
+CustomerSchema.index({ posCustomerId: 1, companyId: 1 });

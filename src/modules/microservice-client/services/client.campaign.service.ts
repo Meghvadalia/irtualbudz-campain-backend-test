@@ -26,10 +26,10 @@ import {
 	ICampaignAssetFiles,
 } from 'src/model/campaignAssets/interface/campaignAsset.interface';
 import * as fs from 'fs';
-import { dynamicCatchException } from 'src/utils/error.utils';
+import { dynamicCatchException, throwNotFoundException } from 'src/utils/error.utils';
+import { CampaignProducer } from 'src/modules/kafka/producers/campaign.producer';
 import { ClientAudienceCustomerService } from './client.audienceCustomer.service';
 import { USER_TYPE } from 'src/microservices/user/constants/user.constant';
-import { CampaignProducer } from 'src/modules/kafka/producers/campaign.producer';
 import { ClientNotificationService } from './client.notification.service';
 import { NotificationType } from 'src/model/notification/interface/notification.interface';
 import axios, { AxiosRequestConfig } from 'axios';

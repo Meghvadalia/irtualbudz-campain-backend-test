@@ -77,6 +77,7 @@ import {
 } from 'src/model/notification/entities/notification.entity';
 import { Kafka } from 'kafkajs';
 import { CampaignProducer } from '../kafka/producers/campaign.producer';
+import { SeedDataProducer } from '../kafka/producers/dataSeed.producer';
 import { BasicAuthMiddleware } from 'src/common/middlwares/basicAuth.middleware';
 import { Category, CategorySchema } from 'src/model/category/entities/category.entity';
 import { ClientCategoryController } from './controllers/client.category.controller';
@@ -179,6 +180,7 @@ import { CustomerProducer } from '../kafka/producers/customer.producer';
 		ClientGraphService,
 		ClientNotificationService,
 		CampaignProducer,
+		SeedDataProducer,
 		ClientCategoryService,
 		ClientRawTemplateService,
 		ClientTemplateService,

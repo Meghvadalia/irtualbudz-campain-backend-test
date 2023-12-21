@@ -24,68 +24,60 @@ export class InventoryService {
 		@InjectModel(Store.name) private storeModel: Model<Store>
 	) {}
 
-	async seedInventory(posName: string): Promise<void> {
+	async seedInventory(posData: IPOS, company: any): Promise<void> {
 		try {
-			const posData = await this.posModel.findOne({ name: posName });
-			const flowhubCompaniesList = await this.companyModel.find<ICompany>({
-				isActive: true,
-				posId: posData._id,
+			const locations = await this.storeModel.find({
+				companyId: company.companyId,
 			});
 
-			for (const company of flowhubCompaniesList) {
-				const locations = await this.storeModel.find({
-					companyId: company._id,
-				});
+			const inventoryOptions = locations.map((location) => {
+				const options = {
+					method: 'get',
+					url: `${posData.liveUrl}/v0/locations/${location.location.locationId}/Analytics`,
+					headers: {
+						key: company.key,
+						ClientId: company.clientId,
+						Accept: 'application/json',
+					},
+				};
+				return { options, locationMongoId: location._id };
+			});
 
-				const inventoryOptions = locations.map((location) => {
-					const options = {
-						method: 'get',
-						url: `${posData.liveUrl}/v0/locations/${location.location.locationId}/Analytics`,
-						headers: {
-							key: company.dataObject.key,
-							ClientId: company.dataObject.clientId,
-							Accept: 'application/json',
-						},
-					};
-					return { options, locationMongoId: location._id };
-				});
+			const inventoryResponses = await Promise.all(
+				inventoryOptions.map(({ options }) => axios.request(options))
+			);
+			const inventoryDataArray = inventoryResponses.flatMap(({ data }) => data.data);
 
-				const inventoryResponses = await Promise.all(
-					inventoryOptions.map(({ options }) => axios.request(options))
+			const productMap = new Map();
+
+			for (const productData of inventoryDataArray) {
+				const transformedProductData = this.transformProductData(
+					productData,
+					company._id,
+					posData._id
 				);
-				const inventoryDataArray = inventoryResponses.flatMap(({ data }) => data.data);
-
-				const productMap = new Map();
-
-				for (const productData of inventoryDataArray) {
-					const transformedProductData = this.transformProductData(
-						productData,
-						company._id,
-						posData._id
-					);
-					const savedProduct = await this.productModel.findOneAndUpdate(
-						{
-							posProductId: productData.productId,
-							companyId: company._id,
-						},
-						transformedProductData,
-						{ upsert: true, new: true }
-					);
-					productMap.set(productData.productId, savedProduct._id);
-				}
-
-				const inventoryDataToSaveArray = inventoryDataArray.map((inventoryData) =>
-					this.transformInventoryData(
-						inventoryData,
-						productMap.get(inventoryData.productId),
-						company._id,
-						posData._id,
-						locations
-					)
+				const savedProduct = await this.productModel.findOneAndUpdate(
+					{
+						posProductId: productData.productId,
+						companyId: company._id,
+					},
+					transformedProductData,
+					{ upsert: true, new: true }
 				);
-
-				await this.updateOrCreateInventory(inventoryDataToSaveArray);
+				productMap.set(productData.productId, savedProduct._id);
 			}
+
+			const inventoryDataToSaveArray = inventoryDataArray.map((inventoryData) =>
+				this.transformInventoryData(
+					inventoryData,
+					productMap.get(inventoryData.productId),
+					company._id,
+					posData._id,
+					locations
+				)
+			);
+
+			await this.updateOrCreateInventory(inventoryDataToSaveArray);
 		} catch (error) {
 			console.error('GRPC METHOD', error);
 			dynamicCatchException(error);
@@ -122,124 +114,132 @@ export class InventoryService {
 		await this.inventoryModel.bulkWrite(bulkWriteOps);
 	}
 
-	async seedDutchieInventory(posName: string) {
+	async seedDutchieInventory(company, posData) {
 		try {
-			const posData: IPOS = await this.posModel.findOne<IPOS>({
-				name: posName,
+			// const posData: IPOS = await this.posModel.findOne<IPOS>({
+			// 	name: posName,
+			// });
+
+			// const companyData = await this.companyModel.find<ICompany>({
+			// 	posId: posData._id,
+			// 	isActive: true,
+			// });
+
+			// for (const company of companyData) {
+			const tokenOptions = {
+				method: 'get',
+				url: `${posData.liveUrl}/util/AuthorizationHeader/${company.key}`,
+				headers: {
+					Accept: 'application/json',
+				},
+			};
+
+			const { data: token } = await axios.request(tokenOptions);
+
+			const inventoryOptions: AxiosRequestConfig = {
+				url: `${posData.liveUrl}/inventory?includeLabResults=true&includeRoomQuantities=true`,
+				headers: {
+					Accept: 'application/json',
+					Authorization: token,
+				},
+			};
+
+			const productOptions: AxiosRequestConfig = {
+				url: `${posData.liveUrl}/reporting/products`,
+				headers: {
+					Accept: 'application/json',
+					Authorization: token,
+				},
+			};
+
+			const { data: productsData } = await axios.request(productOptions);
+			const storeData: IStore = await this.storeModel.findOne<IStore>({
+				companyId: company.companyId,
 			});
 
-			const companyData = await this.companyModel.find<ICompany>({
-				posId: posData._id,
-				isActive: true,
-			});
+			const productArray: IProduct[] = [];
+			const inventoryArray: IInventory[] = [];
 
-			for (const company of companyData) {
-				const tokenOptions = {
-					method: 'get',
-					url: `${posData.liveUrl}/util/AuthorizationHeader/${company.dataObject.key}`,
-					headers: {
-						Accept: 'application/json',
+			for (const d of productsData) {
+				productArray.push({
+					productName: d.productName,
+					productDescription: d.description,
+					brand: d.brandName,
+					category: d.masterCategory,
+					posProductId: d.productId,
+					productPictureURL: d.imageUrl,
+					productWeight: d.netWeight,
+					sku: d.sku,
+					posId: posData._id,
+					type: d.category,
+					companyId: company.companyId,
+					purchaseCategory: d.raregulatoryCategory,
+					speciesName: d.strainType,
+					extraDetails: {
+						nutrients: '',
+						isMixAndMatch: null,
+						isStackable: null,
+						productUnitOfMeasure: d.defaultUnit,
+						productUnitOfMeasureToGramsMultiplier: '',
+						cannabinoidInformation: {
+							name: '',
+							lowerRange: null,
+							upperRange: null,
+							unitOfMeasure: '',
+							unitOfMeasureToGramsMultiplier: '',
+						},
+						weightTierInformation: {
+							name: '',
+							gramAmount: '',
+							pricePerUnitInMinorUnits: null,
+						},
 					},
-				};
+				});
+			}
+			const insertedProducts = await this.productModel.insertMany(productArray);
 
-				const { data: token } = await axios.request(tokenOptions);
+			const { data: inventoryData } = await axios.request(inventoryOptions);
 
-				const inventoryOptions: AxiosRequestConfig = {
-					url: `${posData.liveUrl}/inventory?includeLabResults=true&includeRoomQuantities=true`,
-					headers: {
-						Accept: 'application/json',
-						Authorization: token,
-					},
-				};
-
-				const productOptions: AxiosRequestConfig = {
-					url: `${posData.liveUrl}/reporting/products`,
-					headers: {
-						Accept: 'application/json',
-						Authorization: token,
-					},
-				};
-
-				const { data: productsData } = await axios.request(productOptions);
-				const storeData: IStore = await this.storeModel.findOne<IStore>({
-					companyId: company._id,
+			for (const d of inventoryData) {
+				const matchingProduct = insertedProducts.find((product) => {
+					return +product.posProductId === +d.productId;
 				});
 
-				const productArray: IProduct[] = [];
-
-				for (const d of productsData) {
-					productArray.push({
-						productName: d.productName,
-						productDescription: d.description,
-						brand: d.brandName,
-						category: d.masterCategory,
-						posProductId: d.productId,
-						productPictureURL: d.imageUrl,
-						productWeight: d.netWeight,
-						sku: d.sku,
-						posId: posData._id,
-						type: d.category,
-						companyId: company._id,
-						purchaseCategory: d.raregulatoryCategory,
-						speciesName: d.strainType,
-						extraDetails: {
-							nutrients: '',
-							isMixAndMatch: null,
-							isStackable: null,
-							productUnitOfMeasure: d.defaultUnit,
-							productUnitOfMeasureToGramsMultiplier: '',
-							cannabinoidInformation: {
-								name: '',
-								lowerRange: null,
-								upperRange: null,
-								unitOfMeasure: '',
-								unitOfMeasureToGramsMultiplier: '',
-							},
-							weightTierInformation: {
-								name: '',
-								gramAmount: '',
-								pricePerUnitInMinorUnits: null,
-							},
-						},
-					});
-				}
-				const insertedProducts = await this.productModel.insertMany(productArray);
-
-				const { data: inventoryData } = await axios.request(inventoryOptions);
-
-				const inventoryArray: IInventory[] = [];
-
-				for (const d of inventoryData) {
-					const matchingProduct = insertedProducts.find((product) => {
-						return +product.posProductId === +d.productId;
-					});
-
-					inventoryArray.push({
-						quantity: d.quantityAvailable,
-						expirationDate: d.expirationDate,
-						companyId: company._id,
-						posId: posData._id,
-						posProductId: d.productId,
-						sku: d.sku,
-						productUpdatedAt: d.lastModifiedDateUtc,
-						storeId: storeData._id,
-						locationName: storeData.location.locationName,
-						productId: matchingProduct ? (matchingProduct._id as string) : '',
-						extraDetails: {
-							inventoryUnitOfMeasure: d.unitWeightUnit,
-							inventoryUnitOfMeasureToGramsMultiplier: 1,
-							currencyCode: '',
-						},
-						costInMinorUnits: 0,
-						priceInMinorUnits: 0,
-						forSale: false,
-					});
-				}
-
-				await this.inventoryModel.insertMany(inventoryArray);
-				console.log(`Seeded ${inventoryData.length} inventory data.`);
-				console.log(`Seeded ${productsData.length} products.`);
+				inventoryArray.push({
+					quantity: d.quantityAvailable,
+					expirationDate: d.expirationDate,
+					companyId: company.companyId,
+					posId: posData._id,
+					posProductId: d.productId,
+					sku: d.sku,
+					productUpdatedAt: d.lastModifiedDateUtc,
+					storeId: storeData._id,
+					locationName: storeData.location.locationName,
+					productId: matchingProduct ? (matchingProduct._id as string) : '',
+					extraDetails: {
+						inventoryUnitOfMeasure: d.unitWeightUnit,
+						inventoryUnitOfMeasureToGramsMultiplier: 1,
+						currencyCode: '',
+					},
+					costInMinorUnits: 0,
+					priceInMinorUnits: 0,
+					forSale: false,
+				});
 			}
+
+			try {
+				await this.inventoryModel.insertMany(inventoryArray, { ordered: false });
+			} catch (error) {
+				if (error.code === 11000) {
+					console.error('Duplicate key error:', error.message);
+				} else {
+					console.error('Unexpected error occurred:', error.message);
+					throw error;
+				}
+			}
+			console.log(`Seeded ${inventoryData.length} inventory data.`);
+			console.log(`Seeded ${productsData.length} products.`);
+			// }
 		} catch (error) {
 			console.error('Failed to seed inventory data:', error.message);
 			dynamicCatchException(error);
