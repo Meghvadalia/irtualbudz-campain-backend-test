@@ -23,7 +23,7 @@ export class FlowhubController {
 		// await this.customerService.seedCustomers('flowhub');
 		// await this.orderService.scheduleCronJob('flowhub');
 		// await this.inventoryService.seedInventory('flowhub');
-		await this.seedDataProducer.sendSeedData('flowhub', KAFKA_SEEDING_EVENT_TYPE.INITIAL_TIME);
+		await this.seedDataProducer.sendSeedData('flowhub', KAFKA_SEEDING_EVENT_TYPE.SCHEDULE_TIME);
 	}
 
 	@Get('seed-company-wise/:companyId')
