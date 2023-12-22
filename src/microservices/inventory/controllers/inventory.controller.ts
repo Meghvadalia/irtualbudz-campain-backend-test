@@ -20,7 +20,7 @@ export class InventoryController {
 	@Get('seed')
 	async seedInventoryData() {
 		try {
-			// await this.inventoryService.seedInventory('flowhub');
+			await this.inventoryService.seedInventory('flowhub');
 		} catch (error) {
 			throw new Error(error);
 		}

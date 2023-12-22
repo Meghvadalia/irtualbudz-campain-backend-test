@@ -3,7 +3,7 @@ import { sendError, sendSuccess } from 'src/utils/request-response.utils';
 import { ClientTemplateService } from '../services/client.template.service';
 import { Roles, RolesGuard } from 'src/common/guards/auth.guard';
 import { USER_TYPE } from 'src/microservices/user/constants/user.constant';
-import { Request } from 'express';
+
 @Controller('template')
 export class ClientTemplateController {
 	constructor(private readonly clientTemplateService: ClientTemplateService) {}
@@ -71,7 +71,7 @@ export class ClientTemplateController {
 		try {
 			// @ts-ignore
 			const user = req.user;
-
+			
 			// return sendSuccess(template);
 		} catch (error) {
 			console.error(`Error updating template ${error.message}`);

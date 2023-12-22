@@ -20,8 +20,6 @@ import {
 } from 'src/modules/microservice-client/entities/audienceDetails.entity';
 import { AudienceDetailsService } from 'src/modules/microservice-client/services/client.audienceDetail.service';
 import { Product, ProductSchema } from '../inventory/entities/product.entity';
-import { SeedDataProducer } from 'src/modules/kafka/producers/dataSeed.producer';
-import { Kafka } from 'kafkajs';
 
 @Module({
 	imports: [
@@ -40,15 +38,7 @@ import { Kafka } from 'kafkajs';
 		CustomerModule,
 	],
 	controllers: [OrderController],
-	providers: [OrderService, AudienceDetailsService,{
-		provide: Kafka,
-		useFactory: () => {
-			return new Kafka({
-				clientId: 'your-client-id',
-				brokers: ['localhost:9092'],
-			});
-		},
-	},SeedDataProducer],
+	providers: [OrderService, AudienceDetailsService],
 	exports: [OrderService],
 })
 export class OrderModule {}

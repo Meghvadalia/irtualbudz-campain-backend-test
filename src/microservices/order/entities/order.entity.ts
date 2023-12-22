@@ -11,35 +11,35 @@ export class Order extends Model<IOrder> {
 		type: Types.ObjectId,
 		ref: DATABASE_COLLECTION.COMPANIES,
 	})
-	companyId: string;
+		companyId: string;
 
 	@Prop({
 		required: true,
 		type: Types.ObjectId,
 		ref: DATABASE_COLLECTION.POS,
 	})
-	posId: string;
+		posId: string;
 
 	@Prop({ required: true, unique: true })
-	posOrderId: string;
+		posOrderId: string;
 
 	@Prop({ trim: true })
-	clientId: string;
+		clientId: string;
 
 	@Prop({ type: Types.ObjectId, ref: DATABASE_COLLECTION.CUSTOMER })
-	customerId: string;
+		customerId: string;
 
 	@Prop()
-	currentPoints: number;
+		currentPoints: number;
 
 	@Prop()
-	Name: string;
+		Name: string;
 
 	@Prop({})
-	orderStatus: string;
+		orderStatus: string;
 
 	@Prop({})
-	orderType: string;
+		orderType: string;
 
 	@Prop(
 		raw({
@@ -50,13 +50,13 @@ export class Order extends Model<IOrder> {
 			totalTaxes: { type: Number },
 		})
 	)
-	totals: Totals;
+		totals: Totals;
 
 	@Prop()
-	itemsInCart: string[];
+		itemsInCart: string[];
 
 	@Prop({ enum: CUSTOMER_TYPE })
-	customerType: string;
+		customerType: string;
 
 	@Prop({
 		required: true,
@@ -64,19 +64,19 @@ export class Order extends Model<IOrder> {
 		ref: DATABASE_COLLECTION.STORES,
 		index: true,
 	})
-	storeId: string;
+		storeId: string;
 
 	@Prop()
-	voided: boolean;
+		voided: boolean;
 
 	@Prop()
-	posCreatedAt: Date;
+		posCreatedAt: Date;
 
 	@Prop()
-	fullName: string;
+		fullName: string;
 
 	@Prop()
-	staffId: Types.ObjectId;
+		staffId: Types.ObjectId;
 
 	@Prop(
 		raw([
@@ -91,9 +91,9 @@ export class Order extends Model<IOrder> {
 			},
 		])
 	)
-	payments: Payments;
+		payments: Payments;
 }
 
 export const OrderSchema = SchemaFactory.createForClass(Order);
-// OrderSchema.index({ customerId: 1 }, { unique: true });
-// OrderSchema.index({ itemsInCart: 1 }, { unique: true });
+OrderSchema.index({ customerId: 1 }, { unique: true });
+OrderSchema.index({ itemsInCart: 1 }, { unique: true });
