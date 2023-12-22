@@ -18,7 +18,7 @@ export class FlowhubController {
 	) {}
 
 	@Get('seed')
-	@Cron(CronExpression.EVERY_DAY_AT_5AM)
+	@Cron(CronExpression.EVERY_DAY_AT_2AM)
 	async seedData() {
 		// await this.customerService.seedCustomers('flowhub');
 		// await this.orderService.scheduleCronJob('flowhub');
