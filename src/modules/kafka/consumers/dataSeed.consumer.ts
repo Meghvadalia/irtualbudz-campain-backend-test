@@ -132,7 +132,15 @@ export class SeedDataConsumer implements OnModuleInit {
 								const cronJobTime = new Date(
 									new Date().toLocaleString('en-US', { timeZone: storeData.timeZone })
 								);
+								console.log('store timeZone');
+								console.log(storeData.timeZone);
+								console.log('cronJobTime');
+								console.log(cronJobTime);
+								console.log('currentDate');
+								console.log(currentDate);
 								const delayMilliseconds = this.calculateDelay(cronJobTime, currentDate);
+								console.log('delayMilliseconds');
+								console.log(delayMilliseconds);
 								if (delayMilliseconds > 0) {
 									await this.delay(delayMilliseconds);
 									if (POSName == 'flowhub')
