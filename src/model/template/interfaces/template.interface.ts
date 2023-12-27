@@ -8,7 +8,6 @@ export interface ITemplate {
 	[property: string]: any;
 }
 
-
 export enum TemplateReplaceKey {
 	ITEM_IMAGE = '{{item_image}}',
 	PRODUCT_NAME = '{{product_name}}',
@@ -24,4 +23,5 @@ export enum TemplateReplaceKey {
 	STORE_TWITTER_LINK = '{{store_twitter_link}}',
 	STORE_LINKEDIN_LINK = '{{store_linkedin_link}}',
 	STORE_INSTA_LINK = '{{store_insta_link}}',
+	STORE_WEB_LINK = '{{store_web_link}}',
 }

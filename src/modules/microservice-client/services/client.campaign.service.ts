@@ -251,6 +251,7 @@ export class ClientCampaignService {
 						'src="./public/',
 						`src="${process.env.REACT_APP_IMAGE_SERVER}/public/template/`
 					);
+					template = template.replaceAll(TemplateReplaceKey.STORE_LINK, storeData.storeLink);
 					const replaceArray = [];
 
 					const replaceMap = {
@@ -258,7 +259,7 @@ export class ClientCampaignService {
 						[TemplateReplaceKey.PRODUCT_NAME]: (element) => element.productName || '',
 						[TemplateReplaceKey.PRODUCT_DISCOUNT]: () => `${campaignDataWithFiles.discount}%` || '',
 						[TemplateReplaceKey.PRODUCT_DESC]: (element) => element?.productDescription || '',
-						[TemplateReplaceKey.STORE_LINK]: () => storeData.storeLink || '',
+						// [TemplateReplaceKey.STORE_LINK]: () => storeData.storeLink || '',
 						[TemplateReplaceKey.CAMPAIGN_NAME]: () => campaignDataWithFiles.campaignName || '',
 						[TemplateReplaceKey.STORE_LOGO]: () => storeData.logos,
 						[TemplateReplaceKey.CAMPAIGN_DATE]: () =>
@@ -275,6 +276,7 @@ export class ClientCampaignService {
 						[TemplateReplaceKey.STORE_TWITTER_LINK]: () => storeData.twitter || '',
 						[TemplateReplaceKey.STORE_LINKEDIN_LINK]: () => storeData.linkedin || '',
 						[TemplateReplaceKey.STORE_INSTA_LINK]: () => storeData.instagram || '',
+						[TemplateReplaceKey.STORE_WEB_LINK]: () => storeData.website || '',
 					};
 					for (const element of productList) {
 						for (const obj of replaceKeys) {
