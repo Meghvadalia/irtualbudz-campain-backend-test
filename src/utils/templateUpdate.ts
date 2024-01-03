@@ -17,9 +17,12 @@ export function uniqueKeys(template) {
 export function templateUpdateFun(template: string, replaceArray) {
 	for (let i = 0; i < replaceArray.length; i++) {
 		const element = replaceArray[i];
-		if(element.categoryData){
-			template = template.replace(element.searchKey, element.value + ' "categoryImageTag="'+element.categoryData );
-		}else{
+		if (element.categoryData) {
+			template = template.replace(
+				element.searchKey,
+				element.value + ` ","categoryImageTag":"` + element.categoryData
+			);
+		} else {
 			template = template.replace(element.searchKey, element.value ? element.value : '');
 		}
 	}
@@ -29,15 +32,17 @@ export function templateUpdateFun(template: string, replaceArray) {
 export function formatDateRange(start, end) {
 	const startDate = new Date(start);
 	const endDate = new Date(end);
-  
+
 	const formatter = new Intl.DateTimeFormat('en-US', { month: 'long' });
-  
+
 	const startMonth = formatter.format(startDate);
 	const endMonth = formatter.format(endDate);
-  
+
 	if (startMonth === endMonth) {
-	  return `All ${startMonth}`;
+		return `All ${startMonth}`;
 	} else {
-	  return `${new Date(startDate).getDate()} ${startMonth} To ${new Date(startDate).getDate()} ${endMonth}`;
+		return `${new Date(startDate).getDate()} ${startMonth} To ${new Date(
+			startDate
+		).getDate()} ${endMonth}`;
 	}
 }

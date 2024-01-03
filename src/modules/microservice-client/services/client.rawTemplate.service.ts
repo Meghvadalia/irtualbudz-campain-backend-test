@@ -83,4 +83,18 @@ export class ClientRawTemplateService {
 			dynamicCatchException(error);
 		}
 	}
+
+	async uploadImageWithPath(imageUploadPath, image: Express.Multer.File) {
+		console.log('imageUploadPath' + imageUploadPath);
+		const directory = path.join(
+			process.cwd(),
+			'public',
+			imageUploadPath ? imageUploadPath : UPLOAD_DIRECTORY.TEMPLATE
+		);
+		await createDirectoryIfNotExists(directory);
+
+		const filePath = await uploadFiles(image, directory);
+		console.log(filePath[0]);
+		return filePath[0];
+	}
 }

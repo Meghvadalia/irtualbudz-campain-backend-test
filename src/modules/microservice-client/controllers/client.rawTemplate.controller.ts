@@ -92,4 +92,25 @@ export class ClientRawTemplateController {
 			return sendError(error.message, error.status);
 		}
 	}
+	@UseGuards(RolesGuard)
+	@UseInterceptors(FilesInterceptor('file', 1))
+	@Post('createUpload')
+	async uploadImageWithPathFun(@Body() data, @UploadedFiles() file: Express.Multer.File) {
+		try {
+			// Add validation for 'data' and 'file' if necessary
+
+			console.log('Received file:', file);
+			console.log('Data:', data);
+
+			// Handle file processing here using services or logic
+			const template = await this.clientRawTemplateService.uploadImageWithPath(data.path, file);
+
+			// Return success response with processed data
+			return sendSuccess(template);
+		} catch (error) {
+			console.error(`Error uploading file: ${error.message}`);
+			// Improve error handling, return appropriate error response
+			return sendError(error.message, error.status || 500);
+		}
+	}
 }

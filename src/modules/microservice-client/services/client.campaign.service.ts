@@ -194,7 +194,10 @@ export class ClientCampaignService {
 				}
 			}
 		}
-		const templateList = await this.rawTemplate.find({ itemCount: productItemCount });
+		const templateList = await this.rawTemplate.find({
+			itemCount: productItemCount,
+			isActive: true,
+		});
 		const campaign = await this.campaignModel.create(campaignDataWithFiles);
 
 		for (const channel of data.channels) {
@@ -252,6 +255,31 @@ export class ClientCampaignService {
 						`src="${process.env.REACT_APP_IMAGE_SERVER}/public/template/`
 					);
 					template = template.replaceAll(TemplateReplaceKey.STORE_LINK, storeData.storeLink);
+					template = template.replaceAll(TemplateReplaceKey.STORE_LOGO, storeData.logos);
+					template = template.replaceAll(
+						TemplateReplaceKey.CAMPAIGN_NAME,
+						campaignDataWithFiles.campaignName
+					);
+					template = template.replaceAll(
+						TemplateReplaceKey.STORE_FB_LINK,
+						storeData.facebook ? storeData.facebook : storeData.storeLink
+					);
+					template = template.replaceAll(
+						TemplateReplaceKey.STORE_TWITTER_LINK,
+						storeData.twitter ? storeData.twitter : storeData.storeLink
+					);
+					template = template.replaceAll(
+						TemplateReplaceKey.STORE_LINKEDIN_LINK,
+						storeData.linkedIn ? storeData.linkedIn : storeData.storeLink
+					);
+					template = template.replaceAll(
+						TemplateReplaceKey.STORE_INSTA_LINK,
+						storeData.instagram ? storeData.instagram : storeData.storeLink
+					);
+					template = template.replaceAll(
+						TemplateReplaceKey.STORE_WEB_LINK,
+						storeData.website ? storeData.website : storeData.storeLink
+					);
 					const replaceArray = [];
 
 					const replaceMap = {
@@ -260,8 +288,8 @@ export class ClientCampaignService {
 						[TemplateReplaceKey.PRODUCT_DISCOUNT]: () => `${campaignDataWithFiles.discount}%` || '',
 						[TemplateReplaceKey.PRODUCT_DESC]: (element) => element?.productDescription || '',
 						// [TemplateReplaceKey.STORE_LINK]: () => storeData.storeLink || '',
-						[TemplateReplaceKey.CAMPAIGN_NAME]: () => campaignDataWithFiles.campaignName || '',
-						[TemplateReplaceKey.STORE_LOGO]: () => storeData.logos,
+						// [TemplateReplaceKey.CAMPAIGN_NAME]: () => campaignDataWithFiles.campaignName || '',
+						// [TemplateReplaceKey.STORE_LOGO]: () => storeData.logos,
 						[TemplateReplaceKey.CAMPAIGN_DATE]: () =>
 							formatDateRange(
 								campaignDataWithFiles.startDateWithTime,
@@ -272,38 +300,50 @@ export class ClientCampaignService {
 							(campaign?.files.length > 0
 								? process.env.REACT_APP_IMAGE_SERVER + campaign?.files[0]
 								: null) || '',
-						[TemplateReplaceKey.STORE_FB_LINK]: () => storeData.facebook || '',
-						[TemplateReplaceKey.STORE_TWITTER_LINK]: () => storeData.twitter || '',
-						[TemplateReplaceKey.STORE_LINKEDIN_LINK]: () => storeData.linkedin || '',
-						[TemplateReplaceKey.STORE_INSTA_LINK]: () => storeData.instagram || '',
-						[TemplateReplaceKey.STORE_WEB_LINK]: () => storeData.website || '',
+						// [TemplateReplaceKey.STORE_FB_LINK]: () => storeData.facebook || '',
+						// [TemplateReplaceKey.STORE_TWITTER_LINK]: () => storeData.twitter || '',
+						// [TemplateReplaceKey.STORE_LINKEDIN_LINK]: () => storeData.linkedin || '',
+						// [TemplateReplaceKey.STORE_INSTA_LINK]: () => storeData.instagram || '',
+						// [TemplateReplaceKey.STORE_WEB_LINK]: () => storeData.website || '',
 					};
 					for (const element of productList) {
 						for (const obj of replaceKeys) {
 							const valueGenerator = replaceMap[obj];
 							if (valueGenerator) {
 								const searchKey = obj;
-								const value = valueGenerator(element);
+								var value = valueGenerator(element);
+
 								if (element.type == 'category') {
 									if (searchKey == TemplateReplaceKey.ITEM_IMAGE) {
 										const categoryData = element.productName;
 										replaceArray.push({ searchKey, value, categoryData });
+									} else if (searchKey == TemplateReplaceKey.PRODUCT_DESC) {
+										value = value.replace(/\n/g, '');
+										replaceArray.push({ searchKey, value });
 									} else {
 										replaceArray.push({ searchKey, value });
 									}
 								} else {
-									replaceArray.push({ searchKey, value });
+									if (searchKey == TemplateReplaceKey.PRODUCT_DESC) {
+										value = value.replace(/\n/g, '');
+										replaceArray.push({ searchKey, value });
+									} else {
+										replaceArray.push({ searchKey, value });
+									}
 								}
 							}
 						}
 					}
-
+					console.log('replaceArray');
+					console.log(replaceArray);
 					const newTemplate = templateUpdateFun(template, replaceArray);
 
 					const templateData = await this.templateModel.create({
 						campaignId: campaign._id,
 						rawTemplateId: templateElement._id,
 						template: newTemplate,
+						// .replace(/\n/g, '').replace(/\t/g, ''),
+						// .replace(/\\"/g, "'"),
 						userId: new Types.ObjectId(userId),
 					});
 					console.log('Template created ' + templateData?._id);
