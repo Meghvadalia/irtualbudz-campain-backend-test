@@ -411,7 +411,7 @@ export class ClientCampaignService {
 			from_name: storeData.locationName,
 			from_email: storeData.email ? storeData.email : process.env.SENDY_FROM_EMAIL,
 			title: campaignTempData.campaignName,
-			subject: 'This is the test email',
+			subject: campaignTempData.campaignName,
 			plain_text: 'text',
 			html_text: campaignData.template,
 			schedule_date_time: campaignData.startDate,
