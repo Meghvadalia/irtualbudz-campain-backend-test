@@ -1,0 +1,177 @@
+import { Injectable, OnModuleInit } from '@nestjs/common';
+import { InjectModel } from '@nestjs/mongoose';
+import { Consumer, EachMessagePayload, Kafka } from 'kafkajs';
+import { Model } from 'mongoose';
+import { KAFKA_SEEDING_EVENT_TYPE } from 'src/common/constants';
+import { SeederService } from 'src/common/seeders/seeders';
+import { CustomerService } from 'src/microservices/customers/service/customer.service';
+import { InventoryService } from 'src/microservices/inventory/services/inventory.service';
+import { OrderService } from 'src/microservices/order/services/order.service';
+import { Company } from 'src/model/company/entities/company.entity';
+import { ICompany } from 'src/model/company/interface/company.interface';
+import { POS } from 'src/model/pos/entities/pos.entity';
+import { IPOS } from 'src/model/pos/interface/pos.interface';
+import { Store } from 'src/model/store/entities/store.entity';
+import * as moment from 'moment-timezone';
+@Injectable()
+export class SeedDataConsumer implements OnModuleInit {
+	private consumer: Consumer;
+	private readonly initial_time = KAFKA_SEEDING_EVENT_TYPE.INITIAL_TIME;
+	private readonly schedule_time = KAFKA_SEEDING_EVENT_TYPE.SCHEDULE_TIME;
+	private readonly seedingGroup = KAFKA_SEEDING_EVENT_TYPE.SEEDING_GROUP;
+
+	constructor(
+		private readonly kafka: Kafka,
+		private readonly orderService: OrderService,
+		@InjectModel(Store.name) private storeModel: Model<Store>,
+		@InjectModel(POS.name) private posModel: Model<POS>,
+		@InjectModel(Company.name) private companyModel: Model<Company>,
+		private readonly customerService: CustomerService,
+		private readonly inventoryService: InventoryService // private readonly storeService: SeederService,
+	) {
+		this.consumer = this.kafka.consumer({ groupId: this.seedingGroup });
+	}
+
+	async onModuleInit() {
+		await this.consumeSchedulerInfo();
+	}
+
+	async consumeSchedulerInfo() {
+		try {
+			await this.consumer.connect();
+			await this.consumer.subscribe({
+				topic: this.initial_time,
+				fromBeginning: true,
+			});
+
+			await this.consumer.subscribe({
+				topic: this.schedule_time,
+				fromBeginning: true,
+			});
+
+			await this.consumer.run({
+				autoCommit: true,
+				eachMessage: async ({ topic, partition, message }: EachMessagePayload) => {
+					try {
+						const seedingData = JSON.parse(message.value.toString());
+						console.log(
+							`Received seeding message: ${JSON.stringify(seedingData)}, ${topic}.${partition}`
+						);
+
+						const { eventType, companyId, storeId, posDataId, utcOffsetForStore } = seedingData;
+
+						const storeData = await this.storeModel.findById(storeId);
+						const companyData = await this.companyModel.findById(companyId);
+						const posData: any = await this.posModel.findById(posDataId);
+						const currentDate = new Date();
+
+						const storeObject = {
+							companyId: companyData._id,
+							key: companyData.dataObject.key,
+							clientId: companyData.dataObject.clientId,
+							location: storeData.location,
+							_id: storeData._id,
+							lastSyncDataDuration: companyData.lastSyncDataDuration,
+							timeZone: storeData.timeZone,
+							name: companyData.name,
+						};
+
+						if (eventType === KAFKA_SEEDING_EVENT_TYPE.INITIAL_TIME) {
+							// Check if the company has already been processed
+							if (posData.name == 'flowhub') {
+								console.log('Call type ' + eventType);
+								console.log(
+									'Start order process for ' +
+										storeData?.locationName +
+										' with ' +
+										storeData.timeZone +
+										' time zone'
+								);
+								await this.inventoryService.seedInventory(posData, storeObject);
+								await this.customerService.seedCustomers(posData, storeObject);
+								await this.orderService.processStoreData(storeObject, currentDate, posData);
+								// await this.delay(intervalDuration);
+							} else if (posData.name == 'dutchie') {
+								// await this.orderService.seedDutchieStaff(storeData, posData);
+								// await this.inventoryService.seedDutchieInventory(storeData, posData);
+								// await this.customerService.seedDutchieCustomers(storeData, posData);
+								// await this.orderService.seedDutchieOrders(storeData, posData);
+							}
+						} else if (eventType === KAFKA_SEEDING_EVENT_TYPE.SCHEDULE_TIME) {
+							const cronJobTime = new Date(
+								new Date().toLocaleString('en-US', { timeZone: storeObject.timeZone })
+							);
+							const delayDuration = await this.calculateDelay(utcOffsetForStore);
+							console.log('delayDuration ' + delayDuration);
+
+							this.delay(delayDuration)
+								.then(async () => {
+									if (posData.name == 'flowhub') {
+										console.log(
+											'Start order process for ' +
+												storeData?.locationName +
+												' with ' +
+												storeData.timeZone +
+												' time zone'
+										);
+										await this.orderService.processStoreData(storeObject, currentDate, posData);
+									}
+									if (posData.name == 'dutchie') {
+										// await this.storeService.seedDutchieStores(storeObject,posData);
+										// await this.orderService.seedDutchieStaff(storeObject, posData);
+										// await this.inventoryService.seedDutchieInventory(storeObject, posData);
+										// await this.customerService.seedDutchieCustomers(storeObject, posData);
+										// await this.orderService.seedDutchieOrders(storeObject, posData);
+									} else {
+										console.log('seedCustomers');
+										await this.inventoryService.seedInventory(posData, storeObject);
+										await this.customerService.seedCustomers(posData, storeObject);
+									}
+								})
+								.catch((err) => {
+									console.error('SCHEDULE_TIME error');
+									console.error(err);
+								});
+						}
+
+						console.log('==============================>');
+						await this.consumer.commitOffsets([{ topic, partition, offset: message.offset }]);
+					} catch (error) {
+						console.error('Error processing campaign message:');
+						console.log(error);
+					}
+				},
+			});
+		} catch (error) {
+			console.error('Kafka consumer error:', error);
+		}
+	}
+
+	private calculateDelay(utcOffset: number): number {
+		const now = new Date();
+		const currentUTCMinutes = now.getUTCMinutes() + now.getUTCHours() * 60;
+
+		// Calculate the remaining minutes until midnight in the store's timezone
+		let remainingMinutes = 0;
+
+		if (utcOffset > 0) {
+			remainingMinutes = 24 * 60 - currentUTCMinutes; // Positive UTC offset (ahead of UTC)
+		} else {
+			remainingMinutes = -currentUTCMinutes; // Negative UTC offset (behind UTC)
+		}
+
+		return remainingMinutes * 60 * 1000; // Convert to milliseconds
+	}
+
+	private isMidnightInStore(timezone: string, utcOffset: number): boolean {
+		const now = moment();
+		const storeTime = now.tz(timezone).utcOffset(utcOffset);
+
+		return storeTime.hours() === 0 && storeTime.minutes() === 0;
+	}
+
+	async delay(ms: number): Promise<void> {
+		return new Promise((resolve) => setTimeout(resolve, ms));
+	}
+}
+// Create the code

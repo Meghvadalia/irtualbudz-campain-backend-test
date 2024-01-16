@@ -36,6 +36,30 @@ const logger = winston.createLogger({
 	],
 });
 
+const loggerFile = winston.createLogger({
+	format: winston.format.combine(
+		newrelicWinstonFormatter(),
+		winston.format.timestamp({ format: 'YYYY-MM-DD HH:mm:ss' }),
+		winston.format.printf(({ level, timestamp, message }) => {
+			return `${timestamp} [${level}] - ${message}`;
+		})
+	),
+	transports: [
+		new winston.transports.File({
+			filename: 'error.log',
+			level: 'error',
+			format: winston.format.combine(
+				winston.format.timestamp({ format: 'YYYY-MM-DD HH:mm:ss' }),
+				winston.format.printf(({ level, timestamp, message }) => {
+					return `${timestamp} [${level}] - ${message}`;
+				})
+			),
+			// Add the 'create' option to create the file if it doesn't exist
+			options: { flags: 'a', create: true },
+		}),
+	],
+});
+
 @Injectable()
 export class LoggingMiddleware implements NestMiddleware {
 	use(req: Request, res: Response, next: NextFunction) {
@@ -66,6 +90,7 @@ export function combineLog(level: CombinedLogger, message: any) {
 		message = JSON.stringify(message);
 	}
 	logger[level](message);
+	if (level == 'error') loggerFile[level](message);
 }
 
 export function customLogger(args: any) {

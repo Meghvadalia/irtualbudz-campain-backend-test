@@ -104,8 +104,9 @@ export class OrderService {
 		}
 	}
 	async processStoreData(storeData, currentDate: Date, posData) {
+		console.log('====> ProcessStoreData function call');
 		const { key, clientId, location, _id, companyId } = storeData;
-
+		console.log('storeData ===> ' + JSON.stringify(storeData));
 		const ordersCount = await this.orderModel.countDocuments({
 			storeId: _id,
 		});
@@ -136,10 +137,14 @@ export class OrderService {
 		companyId: string,
 		posData
 	) {
+		console.log('====> seedOrders function call');
 		try {
 			const storeData = await this.storeModel.findOne({
 				'location.importId': importId,
 			});
+			console.log('Store Name : ' + storeData.locationName);
+			console.log('Start Date : ' + startDate.toISOString().split('T')[0]);
+			console.log('End Date : ' + endDate.toISOString().split('T')[0]);
 
 			const options = {
 				method: 'get',
@@ -164,6 +169,7 @@ export class OrderService {
 	}
 
 	async addItemsToCart(carts: ItemsCart[], storeId: string, id: string) {
+		console.log('====> AddItemsToCart function call');
 		try {
 			const tempArr = carts.map((cart) => this.addSingleData(cart, storeId));
 			const data = await Promise.all(tempArr);
@@ -174,21 +180,29 @@ export class OrderService {
 		}
 	}
 
-	async addStaff(element: IStaff, storeId: string) {
+	async addStaff(staff: IStaff[], storeId: string) {
 		try {
-			const staffObject: IStaff = {
-				staffName: element.staffName,
+			const bulkWriteOps = staff.map((element) => ({
+				updateOne: {
+					filter: {
+						staffName: element.staffName,
+						storeId,
+					},
+					update: {
+						$set: {
+							staffName: element.staffName,
+							storeId,
+						},
+					},
+					upsert: true,
+				},
+			}));
+			const result = await this.staffModel.bulkWrite(bulkWriteOps);
+			const allStaff = await this.staffModel.find({
+				staffName: { $in: staff.map((element) => element.staffName) },
 				storeId,
-			};
-
-			const existingStaff = await this.staffModel.findOne(staffObject);
-
-			if (existingStaff === null) {
-				const newStaff = await this.staffModel.create(staffObject);
-				return newStaff;
-			}
-
-			return existingStaff;
+			});
+			return allStaff;
 		} catch (error) {
 			console.trace('Error while adding staff:', error.message);
 			throw error;
@@ -224,6 +238,7 @@ export class OrderService {
 		}
 	}
 	async addSingleData(cart: ItemsCart, storeId: string) {
+		console.log('====> AddSingleData function call');
 		try {
 			const posCartId = cart._id ? cart._id : cart.id;
 			const existingCartItem = await this.cartModel.findOne({
@@ -252,29 +267,51 @@ export class OrderService {
 	}
 
 	async processOrders(options, posId: string, companyId: string, storeId: string) {
+		console.log('====> ProcessOrders function call');
 		try {
 			console.log('Processing Order Batch');
 
-			let page = 1;
-			let shouldContinue = true;
-
-			while (shouldContinue) {
-				options.params.page = page;
-				const { data } = await axios.request(options);
-				const orderData = data.orders;
-
-				if (orderData.length > 0) {
-					this.processOrderBatch(orderData, page, posId, companyId, storeId);
-					page++;
-				} else {
-					console.log('All orders fetched');
-					shouldContinue = false;
-				}
-			}
+			this.callAxiosFun(options, posId, companyId, storeId);
 		} catch (error) {
 			console.trace('Error while processing orders:', error.message);
 			throw error;
 		}
+	}
+	async callAxiosFun(options, posId: string, companyId: string, storeId: string) {
+		console.log('====> CallAxiosFun function call');
+		let page = 1;
+		let shouldContinue = true;
+		while (shouldContinue) {
+			options.params.page = page;
+			try {
+				var { data } = await axios.request(options);
+			} catch (error) {
+				console.error(error);
+			}
+
+			const orderData = data.orders;
+			console.log('====================================');
+			console.log('orderData.length ' + orderData.length);
+			console.log('====================================');
+
+			if (orderData.length > 0) {
+				this.processOrderBatch(orderData, page, posId, companyId, storeId);
+				page++;
+			} else {
+				console.log('All orders fetched');
+				shouldContinue = false;
+			}
+		}
+	}
+	async replaceValueInDataArray(array, idToFind, newValue) {
+		array.forEach((item) => {
+			if (Array.isArray(item.data)) {
+				const index = item.data.indexOf(idToFind);
+				if (index !== -1) {
+					item.data[index] = newValue;
+				}
+			}
+		});
 	}
 	async processOrderBatch(
 		orders: any,
@@ -283,6 +320,7 @@ export class OrderService {
 		companyId: string,
 		storeId: string
 	) {
+		console.log('====> ProcessOrderBatch function call');
 		try {
 			console.log('Processing Order Batch number ', page);
 
@@ -293,15 +331,12 @@ export class OrderService {
 			}));
 
 			const customerIds: Set<string> = new Set(temp.map((t) => t.customerId));
-			console.log('Cutomer Id size => ', customerIds.size);
-			console.log('orders size => ', orders.length);
-
 			const customerIdsArray = Array.from(customerIds);
 			const customers = await this.customerModel.find({
 				posCustomerId: { $in: customerIdsArray },
 				companyId: companyId,
 			});
-			console.log('found customer for comapy ID ' + companyId, customers.length);
+			console.log('found customer for comapy ID ' + companyId + ' => ' + customers.length);
 			const distinctStaff = temp.reduce((accumulator, current) => {
 				const existingStaff = accumulator.find(
 					(staff) =>
@@ -311,19 +346,53 @@ export class OrderService {
 				return accumulator;
 			}, []);
 
-			const staffData = await Promise.all(
-				distinctStaff.map((staff: IStaff) => this.addStaff(staff, storeId))
-			);
+			// const staffData = await Promise.all(
+			// 	distinctStaff.map((staff: IStaff) => this.addStaff(staff, storeId))
+			// );
+			const staffData = await this.addStaff(distinctStaff, storeId);
 
-			const itemPromises = orders.map((order) =>
-				this.addItemsToCart(
-					order.itemsInCart,
-					storeId,
-					order._id ? order._id.toString() : order.id.toString()
-				)
-			);
+			// const itemPromises = orders.map((order) =>
+			// 	this.addItemsToCart(
+			// 		order.itemsInCart,
+			// 		storeId,
+			// 		order._id ? order._id.toString() : order.id.toString()
+			// 	)
+			// );
+			const bulkOperations = [];
+			const itemsInCartIds = [];
+			for (const order of orders) {
+				const itemsInCartId = {};
+				itemsInCartId['id'] = order._id ? order._id.toString() : order.id.toString();
+				itemsInCartId['data'] = [];
+				const items = order.itemsInCart.map((cart) => {
+					const posCartId = cart._id ? cart._id : cart.id;
+					const { _id, id, ...cartWithoutId } = cart;
+					itemsInCartId['data'].push(posCartId);
+					return {
+						updateOne: {
+							filter: { posCartId: posCartId, storeId, productName: cart.productName },
+							update: {
+								$set: {
+									...cartWithoutId,
+									posCartId: posCartId,
+									storeId,
+								},
+							},
+							upsert: true,
+						},
+					};
+				});
+				bulkOperations.push(...items);
+				itemsInCartIds.push(itemsInCartId);
+			}
+			const cartResults = await this.cartModel.bulkWrite(bulkOperations);
+			// @ts-ignore
+			cartResults.result.upserted.forEach((element) => {
+				const id = bulkOperations[element.index].updateOne.update.$set.posCartId;
+				this.replaceValueInDataArray(itemsInCartIds, id, element._id);
+			});
 
-			const cart = await Promise.all(itemPromises);
+			const cart = itemsInCartIds;
 
 			const orderPromises = orders.map((order) => {
 				const staffId = staffData.find((staff) => staff.staffName === order.budtender)._id;
@@ -408,7 +477,7 @@ export class OrderService {
 						error.keyPattern.audienceId === 1 &&
 						error.keyPattern.customerId === 1
 					) {
-						console.error('Duplicate key violation:', error.message);
+						console.error('Duplicate key violation:' + error.message);
 					} else {
 						throw error;
 					}
@@ -445,7 +514,7 @@ export class OrderService {
 				error.keyPattern.customerId === 1 &&
 				error.keyPattern.storeId === 1
 			) {
-				console.error('Duplicate key violation:', error.message);
+				console.error('Duplicate key violation:' + error.message);
 			} else {
 				throw error;
 			}

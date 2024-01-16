@@ -13,18 +13,18 @@ export class InventoryController {
 			console.log('get Method Called', data);
 			return { surname: 78 };
 		} catch (error) {
-			console.error('GRPC METHOD', error);
+			console.error('GRPC METHOD' + error);
 		}
 	}
 
-	@Get('seed')
-	async seedInventoryData() {
-		try {
-			await this.inventoryService.seedInventory('flowhub');
-		} catch (error) {
-			throw new Error(error);
-		}
-	}
+	// @Get('seed')
+	// async seedInventoryData() {
+	// 	try {
+	// 		await this.inventoryService.seedInventory('flowhub');
+	// 	} catch (error) {
+	// 		throw new Error(error);
+	// 	}
+	// }
 
 	@Get('migrate')
 	migrateData() {

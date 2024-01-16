@@ -116,9 +116,9 @@ export class ClientAudienceCustomerService {
 			return audienceCustomer;
 		} catch (error) {
 			if (error.code === 11000) {
-				console.error('Duplicate key error: ', error.message);
+				console.error('Duplicate key error: ' + error.message);
 			} else {
-				console.error('Unexpected error occurred: ', error.message);
+				console.error('Unexpected error occurred: ' + error.message);
 				throw error;
 			}
 		}
@@ -319,9 +319,9 @@ export class ClientAudienceCustomerService {
 						}
 					} catch (error) {
 						if (error.code === 11000) {
-							console.error('Duplicate key error:', error.message);
+							console.error('Duplicate key error:' + error.message);
 						} else {
-							console.error('Unexpected error occurred:', error.message);
+							console.error('Unexpected error occurred:' + error.message);
 							throw error;
 						}
 					}
@@ -445,9 +445,9 @@ export class ClientAudienceCustomerService {
 					);
 				} catch (error) {
 					if (error.code === 11000) {
-						console.error('Duplicate key error:', error.message);
+						console.error('Duplicate key error:' + error.message);
 					} else {
-						console.error('Unexpected error occurred:', error.message);
+						console.error('Unexpected error occurred:' + error.message);
 						throw error;
 					}
 				}
@@ -465,9 +465,9 @@ export class ClientAudienceCustomerService {
 				);
 			} catch (error) {
 				if (error.code === 11000) {
-					console.error('Duplicate key error:', error.message);
+					console.error('Duplicate key error:' + error.message);
 				} else {
-					console.error('Unexpected error occurred:', error.message);
+					console.error('Unexpected error occurred:' + error.message);
 					throw error;
 				}
 			}
@@ -580,9 +580,9 @@ export class ClientAudienceCustomerService {
 			await this.audienceCustomerModel.bulkWrite(bulkOperations);
 		} catch (error) {
 			if (error.code === 11000) {
-				console.error('Duplicate key error:', error.message);
+				console.error('Duplicate key error:' + error.message);
 			} else {
-				console.error('Unexpected error occurred:', error.message);
+				console.error('Unexpected error occurred:' + error.message);
 				throw error;
 			}
 		}

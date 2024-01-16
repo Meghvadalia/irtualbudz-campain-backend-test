@@ -24,3 +24,13 @@ export function getCurrentYearDateRange(userTimezone: string) {
 		formattedToDate: new Date(toUtc),
 	};
 }
+
+export function calculateUtcOffset(timezone: string): number {
+	const now = moment();
+	const localMoment = now.clone().tz(timezone);
+
+	// Calculate the UTC offset directly
+	const utcOffsetMinutes = localMoment.utcOffset();
+
+	return utcOffsetMinutes;
+}

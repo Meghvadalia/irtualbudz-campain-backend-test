@@ -24,71 +24,65 @@ export class InventoryService {
 		@InjectModel(Store.name) private storeModel: Model<Store>
 	) {}
 
-	async seedInventory(posName: string): Promise<void> {
+	async seedInventory(posData: IPOS, company: any): Promise<void> {
 		try {
-			const posData = await this.posModel.findOne({ name: posName });
-			const flowhubCompaniesList = await this.companyModel.find<ICompany>({
-				isActive: true,
-				posId: posData._id,
+			// const locations = await this.storeModel.find({
+			// 	companyId: company.companyId,
+			// });
+			const locations = await this.storeModel.find({
+				'location.locationId': company.location.locationId,
 			});
 
-			for (const company of flowhubCompaniesList) {
-				const locations = await this.storeModel.find({
-					companyId: company._id,
-				});
+			const inventoryOptions = locations.map((location) => {
+				const options = {
+					method: 'get',
+					url: `${posData.liveUrl}/v0/locations/${location.location.locationId}/Analytics`,
+					headers: {
+						key: company.key,
+						ClientId: company.clientId,
+						Accept: 'application/json',
+					},
+				};
+				return { options, locationMongoId: location._id };
+			});
 
-				const inventoryOptions = locations.map((location) => {
-					const options = {
-						method: 'get',
-						url: `${posData.liveUrl}/v0/locations/${location.location.locationId}/Analytics`,
-						headers: {
-							key: company.dataObject.key,
-							ClientId: company.dataObject.clientId,
-							Accept: 'application/json',
-						},
-					};
-					return { options, locationMongoId: location._id };
-				});
+			const inventoryResponses = await Promise.all(
+				inventoryOptions.map(({ options }) => axios.request(options))
+			);
+			const inventoryDataArray = inventoryResponses.flatMap(({ data }) => data.data);
 
-				const inventoryResponses = await Promise.all(
-					inventoryOptions.map(({ options }) => axios.request(options))
+			const productMap = new Map();
+
+			for (const productData of inventoryDataArray) {
+				const transformedProductData = this.transformProductData(
+					productData,
+					company._id,
+					posData._id
 				);
-				const inventoryDataArray = inventoryResponses.flatMap(({ data }) => data.data);
-
-				const productMap = new Map();
-
-				for (const productData of inventoryDataArray) {
-					const transformedProductData = this.transformProductData(
-						productData,
-						company._id,
-						posData._id
-					);
-					const savedProduct = await this.productModel.findOneAndUpdate(
-						{
-							posProductId: productData.productId,
-							companyId: company._id,
-						},
-						transformedProductData,
-						{ upsert: true, new: true }
-					);
-					productMap.set(productData.productId, savedProduct._id);
-				}
-
-				const inventoryDataToSaveArray = inventoryDataArray.map((inventoryData) =>
-					this.transformInventoryData(
-						inventoryData,
-						productMap.get(inventoryData.productId),
-						company._id,
-						posData._id,
-						locations
-					)
+				const savedProduct = await this.productModel.findOneAndUpdate(
+					{
+						posProductId: productData.productId,
+						companyId: company._id,
+					},
+					transformedProductData,
+					{ upsert: true, new: true }
 				);
-
-				await this.updateOrCreateInventory(inventoryDataToSaveArray);
+				productMap.set(productData.productId, savedProduct._id);
 			}
+
+			const inventoryDataToSaveArray = inventoryDataArray.map((inventoryData) =>
+				this.transformInventoryData(
+					inventoryData,
+					productMap.get(inventoryData.productId),
+					company._id,
+					posData._id,
+					locations
+				)
+			);
+			this.updateOrCreateInventory(inventoryDataToSaveArray);
 		} catch (error) {
 			console.error('GRPC METHOD', error);
-			dynamicCatchException(error);
+			// dynamicCatchException(error);
 		}
 	}
 
@@ -108,18 +102,23 @@ export class InventoryService {
 	}
 
 	async updateOrCreateInventory(inventoryDataArray) {
+		console.log('updateOrCreateInventory ', inventoryDataArray.length);
 		const bulkWriteOps = inventoryDataArray.map((inventoryData) => ({
 			updateOne: {
 				filter: {
 					posProductId: inventoryData.posProductId,
-					companyId: inventoryDataArray.companyId,
+					storeId: inventoryData.storeId,
 				},
 				update: { $set: inventoryData },
 				upsert: true,
 			},
 		}));
-
-		await this.inventoryModel.bulkWrite(bulkWriteOps);
+		try {
+			await this.inventoryModel.bulkWrite(bulkWriteOps);
+		} catch (error) {
+			console.log('updateOrCreateInventory error');
+			console.error(error);
+		}
 	}
 
 	async seedDutchieInventory(posName: string) {

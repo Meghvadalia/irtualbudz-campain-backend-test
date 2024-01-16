@@ -89,6 +89,8 @@ import { ClientTemplateController } from './controllers/client.template.controll
 import { ClientTemplateService } from './services/client.template.service';
 import { CustomerConsumer } from '../kafka/consumers/customer.consumer';
 import { CustomerProducer } from '../kafka/producers/customer.producer';
+import { SeedDataConsumer } from '../kafka/consumers/dataSeed.consumer';
+import { SeedDataProducer } from '../kafka/producers/dataSeed.producer';
 
 @Module({
 	imports: [
@@ -153,7 +155,7 @@ import { CustomerProducer } from '../kafka/producers/customer.producer';
 			provide: Kafka,
 			useFactory: () => {
 				return new Kafka({
-					clientId: 'your-client-id',
+					clientId: process.env.REDIS_CLIENT,
 					brokers: ['localhost:9092'],
 				});
 			},
@@ -184,6 +186,8 @@ import { CustomerProducer } from '../kafka/producers/customer.producer';
 		ClientTemplateService,
 		CustomerConsumer,
 		CustomerProducer,
+		SeedDataProducer,
+		SeedDataConsumer,
 	],
 	exports: [
 		AudienceDetailsService,

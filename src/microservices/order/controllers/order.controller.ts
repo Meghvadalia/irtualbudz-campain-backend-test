@@ -11,7 +11,7 @@ export class OrderController {
 		try {
 			await this.orderService.scheduleCronJob('flowhub');
 		} catch (error) {
-			console.error('GRPC METHOD', error);
+			console.error('GRPC METHOD' + error);
 		}
 	}
 

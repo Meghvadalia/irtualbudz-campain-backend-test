@@ -27,7 +27,7 @@ export class KafkaService implements OnModuleInit {
 		private readonly clientCustomerService: ClientCustomerService
 	) {
 		this.kafkaConfig = {
-			clientId: 'your-client-id',
+			clientId: process.env.REDIS_CLIENT,
 			brokers: ['localhost:9092'],
 		};
 		this.kafka = new Kafka(this.kafkaConfig);
@@ -36,7 +36,11 @@ export class KafkaService implements OnModuleInit {
 		this.campaignProducer = new CampaignProducer(this.kafka);
 		this.campaignConsumer = new CampaignConsumer(this.kafka, this.campaignService);
 		this.customerProducer = new CustomerProducer(this.kafka);
-		this.customerConsumer = new CustomerConsumer(this.kafka, this.customerService, this.clientCustomerService);
+		this.customerConsumer = new CustomerConsumer(
+			this.kafka,
+			this.customerService,
+			this.clientCustomerService
+		);
 	}
 
 	async onModuleInit(): Promise<void> {
@@ -60,7 +64,7 @@ export class KafkaService implements OnModuleInit {
 		return this.campaignProducer;
 	}
 
-	getCustomerProducer(): CustomerProducer{
+	getCustomerProducer(): CustomerProducer {
 		return this.customerProducer;
 	}
 	getCustomerConsumer(): CustomerConsumer {

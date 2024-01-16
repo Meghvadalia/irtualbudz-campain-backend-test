@@ -99,3 +99,9 @@ export const KAFKA_CUSTOMER_EVENT_TYPE = {
 	CUSTOMER_TOPIC: 'customer-topic',
 	CUSTOMER_GROUP: 'customer-group',
 };
+
+export const KAFKA_SEEDING_EVENT_TYPE = {
+	INITIAL_TIME: 'store-initial',
+	SCHEDULE_TIME: 'store-schedule',
+	SEEDING_GROUP: 'store-group',
+};
