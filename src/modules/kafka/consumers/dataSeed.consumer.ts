@@ -13,6 +13,7 @@ import { POS } from 'src/model/pos/entities/pos.entity';
 import { IPOS } from 'src/model/pos/interface/pos.interface';
 import { Store } from 'src/model/store/entities/store.entity';
 import * as moment from 'moment-timezone';
+import { calculateDelay, delay } from 'src/utils/time.utils';
 @Injectable()
 export class SeedDataConsumer implements OnModuleInit {
 	private consumer: Consumer;
@@ -101,10 +102,10 @@ export class SeedDataConsumer implements OnModuleInit {
 							const cronJobTime = new Date(
 								new Date().toLocaleString('en-US', { timeZone: storeObject.timeZone })
 							);
-							const delayDuration = await this.calculateDelay(utcOffsetForStore);
+							const delayDuration = await calculateDelay(storeData.timeZone);
 							console.log('delayDuration ' + delayDuration);
 
-							this.delay(delayDuration)
+							delay(delayDuration)
 								.then(async () => {
 									if (posData.name == 'flowhub') {
 										console.log(
@@ -145,33 +146,6 @@ export class SeedDataConsumer implements OnModuleInit {
 		} catch (error) {
 			console.error('Kafka consumer error:', error);
 		}
-	}
-
-	private calculateDelay(utcOffset: number): number {
-		const now = new Date();
-		const currentUTCMinutes = now.getUTCMinutes() + now.getUTCHours() * 60;
-
-		// Calculate the remaining minutes until midnight in the store's timezone
-		let remainingMinutes = 0;
-
-		if (utcOffset > 0) {
-			remainingMinutes = 24 * 60 - currentUTCMinutes; // Positive UTC offset (ahead of UTC)
-		} else {
-			remainingMinutes = -currentUTCMinutes; // Negative UTC offset (behind UTC)
-		}
-
-		return remainingMinutes * 60 * 1000; // Convert to milliseconds
-	}
-
-	private isMidnightInStore(timezone: string, utcOffset: number): boolean {
-		const now = moment();
-		const storeTime = now.tz(timezone).utcOffset(utcOffset);
-
-		return storeTime.hours() === 0 && storeTime.minutes() === 0;
-	}
-
-	async delay(ms: number): Promise<void> {
-		return new Promise((resolve) => setTimeout(resolve, ms));
 	}
 }
 // Create the code

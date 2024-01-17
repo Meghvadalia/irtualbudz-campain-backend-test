@@ -34,3 +34,21 @@ export function calculateUtcOffset(timezone: string): number {
 
 	return utcOffsetMinutes;
 }
+
+// calculate the delay based on the server Time
+
+export function calculateDelay(storeTimeZone: string): number {
+	const now = moment().tz('America/New_York');
+
+	// Convert to the store timezone
+	const nowInStoreTimeZone = now.clone().tz(storeTimeZone);
+
+	// Calculate milliseconds until midnight in the store timezone
+	const midnight = nowInStoreTimeZone.clone().endOf('day');
+	const delayMilliseconds = midnight.diff(nowInStoreTimeZone);
+	return delayMilliseconds;
+}
+
+export async function delay(ms: number): Promise<void> {
+	return new Promise((resolve) => setTimeout(resolve, ms));
+}
