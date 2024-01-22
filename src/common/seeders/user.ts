@@ -52,4 +52,12 @@ export const userArrayForCompany: Array<UserSeeder> = [
 		phone: '+911234567890',
 		companyName: 'Valley Meade',
 	},
+	{
+		name: 'Green mountain Admin',
+		email: 'greenmountainadmin@greenmountain.com',
+		password: 'GreenMountain@123',
+		type: USER_TYPE.COMPANY_ADMIN,
+		phone: '+911234567890',
+		companyName: 'Green mountain',
+	},
 ];

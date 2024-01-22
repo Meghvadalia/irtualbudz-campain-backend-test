@@ -65,4 +65,15 @@ export const companyData = [
 		posName: 'flowhub',
 		lastSyncDataDuration: 100,
 	},
+	{
+		name: 'Green mountain',
+		posId: '',
+		totalStore: 0,
+		dataObject: {
+			clientId: '4fccd38a-39d5-4492-bb90-57acb393743d',
+			key: '854fb848-08dc-4cca-b918-1fb1c53e6e6c',
+		},
+		posName: 'flowhub',
+		lastSyncDataDuration: 100,
+	},
 ];
