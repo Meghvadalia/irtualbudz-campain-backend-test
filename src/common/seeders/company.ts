@@ -74,6 +74,6 @@ export const companyData = [
 			key: '854fb848-08dc-4cca-b918-1fb1c53e6e6c',
 		},
 		posName: 'flowhub',
-		lastSyncDataDuration: 100,
+		lastSyncDataDuration: 395,
 	},
 ];
