@@ -106,6 +106,11 @@ export const SuggestionList: ISuggestions[] = [
 				},
 			},
 			{
+				$sort: {
+					_id: 1,
+				},
+			},
+			{
 				$addFields: {
 					orderCount: {
 						$size: '$orderIdList',
@@ -547,8 +552,18 @@ export const SuggestionList: ISuggestions[] = [
 				$unwind: '$productInfo',
 			},
 			{
+				$match: {
+					'productInfo.brand': { $ne: null },
+				},
+			},
+			{
 				$group: {
 					_id: '$productInfo.brand',
+				},
+			},
+			{
+				$sort: {
+					_id: 1,
 				},
 			},
 			{ $skip: '' },
@@ -630,6 +645,11 @@ export const SuggestionList: ISuggestions[] = [
 			{
 				$group: {
 					_id: '$productInfo.category',
+				},
+			},
+			{
+				$sort: {
+					_id: 1,
 				},
 			},
 			{ $skip: '' },
@@ -1387,6 +1407,13 @@ export const SuggestionList: ISuggestions[] = [
 					},
 					productId: { $first: '$inventoryData.productId' },
 					productName: { $first: '$cartData.productName' },
+				},
+			},
+			{
+				$match: {
+					productName: {
+						$ne: null,
+					},
 				},
 			},
 			{
