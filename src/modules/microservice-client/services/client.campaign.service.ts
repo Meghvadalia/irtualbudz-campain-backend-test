@@ -188,9 +188,8 @@ export class ClientCampaignService {
 					if (element.productPictureURL == null && element.type != 'category') {
 						if (categoryData.length > 0) {
 							let imgs = categoryData.filter((x) => x.name == element.category)[0].images;
-							element.productPictureURL = (
-								process.env.REACT_APP_IMAGE_SERVER + imgs[Math.floor(Math.random() * imgs.length)]
-							).trim();
+							element.productPictureURL =
+								process.env.REACT_APP_IMAGE_SERVER + imgs[Math.floor(Math.random() * imgs.length)];
 						}
 					}
 				}
@@ -285,8 +284,8 @@ export class ClientCampaignService {
 					const replaceArray = [];
 
 					const replaceMap = {
-						[TemplateReplaceKey.ITEM_IMAGE]: (element) => (element?.productPictureURL || '').trim(),
-						[TemplateReplaceKey.PRODUCT_NAME]: (element) => (element.productName || '').trim(),
+						[TemplateReplaceKey.ITEM_IMAGE]: (element) => element?.productPictureURL || '',
+						[TemplateReplaceKey.PRODUCT_NAME]: (element) => element.productName || '',
 						[TemplateReplaceKey.PRODUCT_DISCOUNT]: () => `${campaignDataWithFiles.discount}%` || '',
 						[TemplateReplaceKey.PRODUCT_DESC]: (element) => element?.productDescription || '',
 						// [TemplateReplaceKey.STORE_LINK]: () => storeData.storeLink || '',
