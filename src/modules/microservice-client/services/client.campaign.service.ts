@@ -111,6 +111,7 @@ export class ClientCampaignService {
 				}
 				if (element.key == SORT_KEYS.Brand && element.value.length > 0) {
 					productItemCount = productItemCount + element.value.length;
+					const storeData = await this.storeModel.findById(campaignDataWithFiles.storeId);
 					const pipeline: PipelineStage[] = [
 						{
 							$match: {
@@ -134,8 +135,21 @@ export class ClientCampaignService {
 						{
 							$lookup: {
 								from: DATABASE_COLLECTION.PRODUCT,
-								localField: 'sku',
-								foreignField: 'sku',
+								let: { sku: '$sku' }, // Use the local variable 'sku'
+								pipeline: [
+									{
+										$match: {
+											$expr: {
+												$and: [
+													{ $eq: ['$sku', '$$sku'] },
+													{ $eq: ['$companyId', storeData.companyId] }, // Additional condition for companyId
+												],
+												// Compare the 'sku' field from both collections
+											},
+											// Add additional conditions as needed
+										},
+									},
+								],
 								as: 'productDetails',
 							},
 						},
@@ -166,19 +180,29 @@ export class ClientCampaignService {
 						// @ts-ignore
 						element.value
 					);
-					for (let i = 0; i < categoryData.length; i++) {
-						const element = categoryData[i];
-						productList.push({
-							productName: element.name,
-							productPictureURL: (
-								process.env.REACT_APP_IMAGE_SERVER +
-								element.images[Math.floor(Math.random() * element.images.length)]
-							).trim(),
-							type: 'category',
-						});
+					console.log('categoryData =>' + JSON.stringify(categoryData));
+					for (let i = 0; i < element.value.length; i++) {
+						const data = categoryData[i];
+						if (data) {
+							productList.push({
+								productName: data.name,
+								productPictureURL: (
+									process.env.REACT_APP_IMAGE_SERVER +
+									data.images[Math.floor(Math.random() * data.images.length)]
+								).trim(),
+								type: 'category',
+							});
+						} else {
+							productList.push({
+								productName: element.value[i],
+								productPictureURL: '',
+								type: 'category',
+							});
+						}
 					}
 					// productList = [...productList, ...element.value];
 				}
+
 				const categoryData: any = await this.clientCategoryService.getMatchingCategories(
 					// @ts-ignore
 					productList.map((x) => x.category)
@@ -196,6 +220,9 @@ export class ClientCampaignService {
 				}
 			}
 		}
+		console.log('productList ' + productList.length);
+		console.log(productList);
+		console.log('productItemCount ' + productItemCount);
 		const templateList = await this.rawTemplate.find({
 			itemCount: productItemCount,
 			isActive: true,
@@ -283,12 +310,19 @@ export class ClientCampaignService {
 						storeData.website ? storeData.website : storeData.storeLink
 					);
 					const replaceArray = [];
-
+					const replaceSpecialCharacters = (text) => {
+						if (text) {
+							text = text.replace(/[&\/\\#,+()$~%.'":*?<>{}]/g, '_');
+						}
+						return text;
+					};
 					const replaceMap = {
 						[TemplateReplaceKey.ITEM_IMAGE]: (element) => element?.productPictureURL || '',
-						[TemplateReplaceKey.PRODUCT_NAME]: (element) => element.productName || '',
+						[TemplateReplaceKey.PRODUCT_NAME]: (element) =>
+							replaceSpecialCharacters(element.productName) || '',
 						[TemplateReplaceKey.PRODUCT_DISCOUNT]: () => `${campaignDataWithFiles.discount}%` || '',
-						[TemplateReplaceKey.PRODUCT_DESC]: (element) => element?.productDescription || '',
+						[TemplateReplaceKey.PRODUCT_DESC]: (element) =>
+							replaceSpecialCharacters(element?.productDescription) || '',
 						// [TemplateReplaceKey.STORE_LINK]: () => storeData.storeLink || '',
 						// [TemplateReplaceKey.CAMPAIGN_NAME]: () => campaignDataWithFiles.campaignName || '',
 						// [TemplateReplaceKey.STORE_LOGO]: () => storeData.logos,
@@ -300,7 +334,7 @@ export class ClientCampaignService {
 						[TemplateReplaceKey.STORE_DESC]: () => storeData.storeDesc || '',
 						[TemplateReplaceKey.CAMPAIGN_IMAGE]: () =>
 							(campaign?.files.length > 0
-								? process.env.REACT_APP_IMAGE_SERVER + campaign?.files[0]
+								? (process.env.REACT_APP_IMAGE_SERVER + campaign?.files[0]).trim()
 								: null) || '',
 						// [TemplateReplaceKey.STORE_FB_LINK]: () => storeData.facebook || '',
 						// [TemplateReplaceKey.STORE_TWITTER_LINK]: () => storeData.twitter || '',

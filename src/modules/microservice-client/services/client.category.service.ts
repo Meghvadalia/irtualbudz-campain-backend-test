@@ -42,8 +42,8 @@ export class ClientCategoryService {
 				if (categoryData) {
 					matchingCategories.push({
 						_id: categoryData._id,
-						name: categoryData.name,
-						images: categoryData.images,
+						name: categoryData?.name,
+						images: categoryData?.images,
 					});
 				} else {
 					const allCategories = await this.categoryModel.find({}, 'name images');
@@ -60,8 +60,8 @@ export class ClientCategoryService {
 						const matchedCategoryData = allCategories[bestMatchIndex];
 						matchingCategories.push({
 							_id: matchedCategoryData._id,
-							name: matchedCategoryData.name,
-							images: matchedCategoryData.images,
+							name: matchedCategoryData?.name,
+							images: matchedCategoryData?.images,
 						});
 					}
 				}

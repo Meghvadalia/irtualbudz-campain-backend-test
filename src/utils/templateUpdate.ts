@@ -20,7 +20,7 @@ export function templateUpdateFun(template: string, replaceArray) {
 		if (element.categoryData) {
 			template = template.replace(
 				element.searchKey,
-				element.value + ` ","categoryImageTag":"` + element.categoryData
+				element.value.trim() + `","categoryImageTag":"` + element.categoryData
 			);
 		} else {
 			template = template.replace(element.searchKey, element.value ? element.value : '');
