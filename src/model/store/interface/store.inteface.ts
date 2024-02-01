@@ -14,4 +14,5 @@ export interface IStore {
 	brandId: number;
 	sendyUserId: number;
 	[property: string]: any;
+	store_address?: string;
 }

@@ -309,6 +309,10 @@ export class ClientCampaignService {
 						TemplateReplaceKey.STORE_WEB_LINK,
 						storeData.website ? storeData.website : storeData.storeLink
 					);
+					template = template.replaceAll(
+						TemplateReplaceKey.STORE_ADDRESS,
+						storeData.store_address ? storeData.store_address : ''
+					);
 					const replaceArray = [];
 					const replaceSpecialCharacters = (text) => {
 						if (text) {

@@ -78,6 +78,9 @@ export class Store extends Model<IStore> {
 
 	@Prop({ default: null })
 	linkedIn: string;
+
+	@Prop({ default: '' })
+	store_address: string;
 }
 
 export const StoreSchema = SchemaFactory.createForClass(Store);

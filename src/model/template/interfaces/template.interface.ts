@@ -24,4 +24,5 @@ export enum TemplateReplaceKey {
 	STORE_LINKEDIN_LINK = '{{store_linkedin_link}}',
 	STORE_INSTA_LINK = '{{store_insta_link}}',
 	STORE_WEB_LINK = '{{store_web_link}}',
+	STORE_ADDRESS = '{{store_address}}',
 }
