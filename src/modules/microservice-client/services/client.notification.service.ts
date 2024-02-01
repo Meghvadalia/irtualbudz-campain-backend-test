@@ -234,21 +234,21 @@ export class ClientNotificationService {
 				}
 
 				const today = new Date();
-				const targetDate = new Date(today.getFullYear(), 11, 31); // Month is zero-based, so 11 represents December
+				const targetDate = new Date(today.getFullYear(), 1, 15);
 
 				if (today > targetDate) {
-					console.log("Today's date is later than December 31st");
+					console.log("Today's date is greater than January 15");
 				} else {
 					notifications.push(
 						...userList.map((user) => ({
 							userId: user._id,
 							storeId: store._id,
-							message: 'Create the campaign for Winter Season',
-							title: 'Christmas Season',
+							message: 'Create the campaign for Valentines Season',
+							title: 'Valentines Specials',
 							isDeleted: false,
 							isRead: false,
 							notificationData: {},
-							notificationType: NotificationType.CHRISTMAS_SEASON,
+							notificationType: NotificationType.VALENTINES_SEASON,
 						}))
 					);
 				}

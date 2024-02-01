@@ -16,6 +16,6 @@ export enum NotificationType {
 	Expiring = 'Expiring products',
 	Halloween = 'Halloween',
 	SlowMoving = 'Slow Moving Items',
-    Thanks_Giving = 'Thanks_Giving',
-	CHRISTMAS_SEASON='Christmas Season'
+	Thanks_Giving = 'Thanks_Giving',
+	VALENTINES_SEASON = 'Valentines Specials',
 }
