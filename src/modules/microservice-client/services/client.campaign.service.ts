@@ -188,8 +188,9 @@ export class ClientCampaignService {
 					if (element.productPictureURL == null && element.type != 'category') {
 						if (categoryData.length > 0) {
 							let imgs = categoryData.filter((x) => x.name == element.category)[0].images;
-							element.productPictureURL =
-								process.env.REACT_APP_IMAGE_SERVER + imgs[Math.floor(Math.random() * imgs.length)];
+							element.productPictureURL = (
+								process.env.REACT_APP_IMAGE_SERVER + imgs[Math.floor(Math.random() * imgs.length)]
+							).trim();
 						}
 					}
 				}
