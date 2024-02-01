@@ -172,7 +172,7 @@ export class ClientCampaignService {
 							productName: element.name,
 							productPictureURL:
 								process.env.REACT_APP_IMAGE_SERVER +
-								element.images[Math.floor(Math.random() * element.images.length)],
+								element.images[Math.floor(Math.random() * element.images.length)].trim(),
 							type: 'category',
 						});
 					}
@@ -188,7 +188,8 @@ export class ClientCampaignService {
 						if (categoryData.length > 0) {
 							let imgs = categoryData.filter((x) => x.name == element.category)[0].images;
 							element.productPictureURL =
-								process.env.REACT_APP_IMAGE_SERVER + imgs[Math.floor(Math.random() * imgs.length)];
+								process.env.REACT_APP_IMAGE_SERVER +
+								imgs[Math.floor(Math.random() * imgs.length)].trim();
 						}
 					}
 				}
