@@ -170,9 +170,10 @@ export class ClientCampaignService {
 						const element = categoryData[i];
 						productList.push({
 							productName: element.name,
-							productPictureURL:
+							productPictureURL: (
 								process.env.REACT_APP_IMAGE_SERVER +
-								element.images[Math.floor(Math.random() * element.images.length)].trim(),
+								element.images[Math.floor(Math.random() * element.images.length)]
+							).trim(),
 							type: 'category',
 						});
 					}
@@ -284,7 +285,7 @@ export class ClientCampaignService {
 					const replaceArray = [];
 
 					const replaceMap = {
-						[TemplateReplaceKey.ITEM_IMAGE]: (element) => element?.productPictureURL.trim() || '',
+						[TemplateReplaceKey.ITEM_IMAGE]: (element) => (element?.productPictureURL || '').trim(),
 						[TemplateReplaceKey.PRODUCT_NAME]: (element) => element.productName.trim() || '',
 						[TemplateReplaceKey.PRODUCT_DISCOUNT]: () => `${campaignDataWithFiles.discount}%` || '',
 						[TemplateReplaceKey.PRODUCT_DESC]: (element) =>
@@ -300,7 +301,7 @@ export class ClientCampaignService {
 						[TemplateReplaceKey.STORE_DESC]: () => storeData.storeDesc || '',
 						[TemplateReplaceKey.CAMPAIGN_IMAGE]: () =>
 							(campaign?.files.length > 0
-								? process.env.REACT_APP_IMAGE_SERVER + campaign?.files[0].trim()
+								? process.env.REACT_APP_IMAGE_SERVER + campaign?.files[0]
 								: null) || '',
 						// [TemplateReplaceKey.STORE_FB_LINK]: () => storeData.facebook || '',
 						// [TemplateReplaceKey.STORE_TWITTER_LINK]: () => storeData.twitter || '',
