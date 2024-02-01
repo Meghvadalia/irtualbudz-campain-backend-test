@@ -283,10 +283,11 @@ export class ClientCampaignService {
 					const replaceArray = [];
 
 					const replaceMap = {
-						[TemplateReplaceKey.ITEM_IMAGE]: (element) => element?.productPictureURL || '',
-						[TemplateReplaceKey.PRODUCT_NAME]: (element) => element.productName || '',
+						[TemplateReplaceKey.ITEM_IMAGE]: (element) => element?.productPictureURL.trim() || '',
+						[TemplateReplaceKey.PRODUCT_NAME]: (element) => element.productName.trim() || '',
 						[TemplateReplaceKey.PRODUCT_DISCOUNT]: () => `${campaignDataWithFiles.discount}%` || '',
-						[TemplateReplaceKey.PRODUCT_DESC]: (element) => element?.productDescription || '',
+						[TemplateReplaceKey.PRODUCT_DESC]: (element) =>
+							element?.productDescription.trim() || '',
 						// [TemplateReplaceKey.STORE_LINK]: () => storeData.storeLink || '',
 						// [TemplateReplaceKey.CAMPAIGN_NAME]: () => campaignDataWithFiles.campaignName || '',
 						// [TemplateReplaceKey.STORE_LOGO]: () => storeData.logos,
