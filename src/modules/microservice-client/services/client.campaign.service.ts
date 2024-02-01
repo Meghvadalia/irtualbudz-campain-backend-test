@@ -299,7 +299,7 @@ export class ClientCampaignService {
 						[TemplateReplaceKey.STORE_DESC]: () => storeData.storeDesc || '',
 						[TemplateReplaceKey.CAMPAIGN_IMAGE]: () =>
 							(campaign?.files.length > 0
-								? process.env.REACT_APP_IMAGE_SERVER + campaign?.files[0]
+								? process.env.REACT_APP_IMAGE_SERVER + campaign?.files[0].trim()
 								: null) || '',
 						// [TemplateReplaceKey.STORE_FB_LINK]: () => storeData.facebook || '',
 						// [TemplateReplaceKey.STORE_TWITTER_LINK]: () => storeData.twitter || '',
