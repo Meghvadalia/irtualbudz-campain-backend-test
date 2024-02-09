@@ -223,10 +223,41 @@ export class ClientCampaignService {
 		console.log('productList ' + productList.length);
 		console.log(productList);
 		console.log('productItemCount ' + productItemCount);
-		const templateList = await this.rawTemplate.find({
+		var templateList = await this.rawTemplate.find({
 			itemCount: productItemCount,
 			isActive: true,
 		});
+		if (templateList.length == 0) {
+			templateList = await this.rawTemplate.aggregate([
+				{
+					$group: {
+						_id: null,
+						maxItemCount: { $max: '$itemCount' },
+					},
+				},
+				{
+					$lookup: {
+						from: DATABASE_COLLECTION.RAW_TEMPLATE,
+						let: { maxCount: '$maxItemCount' },
+						pipeline: [
+							{
+								$match: {
+									$expr: { $eq: ['$itemCount', '$$maxCount'] },
+								},
+							},
+							{ $sort: { itemCount: -1 } },
+						],
+						as: 'documentsWithMaxItemCount',
+					},
+				},
+				{
+					$unwind: '$documentsWithMaxItemCount',
+				},
+				{
+					$replaceRoot: { newRoot: '$documentsWithMaxItemCount' },
+				},
+			]);
+		}
 		const campaign = await this.campaignModel.create(campaignDataWithFiles);
 
 		for (const channel of data.channels) {
