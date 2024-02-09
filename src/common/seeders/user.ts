@@ -60,4 +60,12 @@ export const userArrayForCompany: Array<UserSeeder> = [
 		phone: '+911234567890',
 		companyName: 'Green mountain',
 	},
+	{
+		name: 'Tea house Admin',
+		email: 'teahouseadmin@teahouse.com',
+		password: 'TeaHouse@123',
+		type: USER_TYPE.COMPANY_ADMIN,
+		phone: '+911234567890',
+		companyName: 'Tea House',
+	},
 ];

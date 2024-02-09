@@ -144,69 +144,66 @@ export class CustomerService {
 	// 	return age;
 	// }
 
-	async seedDutchieCustomers(posName: string) {
+	async seedDutchieCustomers(posData: IPOS, company: any) {
+		console.log('seedDutchieCustomers ====>');
 		try {
-			const posData: IPOS = await this.posModel.findOne<IPOS>({
-				name: posName,
-			});
+			const tokenOptions = {
+				method: 'get',
+				url: `${posData.liveUrl}/util/AuthorizationHeader/${company.key}`,
+				headers: {
+					Accept: 'application/json',
+				},
+			};
 
-			const companyData = await this.companyModel.find<ICompany>({
-				posId: posData._id,
-				isActive: true,
-			});
+			const { data: token } = await axios.request(tokenOptions);
 
-			for (const company of companyData) {
-				const tokenOptions = {
-					method: 'get',
-					url: `${posData.liveUrl}/util/AuthorizationHeader/${company.dataObject.key}`,
-					headers: {
-						Accept: 'application/json',
+			const customerOptions: AxiosRequestConfig = {
+				url: `${posData.liveUrl}/customer/customers?&includeAnonymous=true`,
+				headers: {
+					Accept: 'application/json',
+					Authorization: token,
+				},
+			};
+
+			const { data } = await axios.request(customerOptions);
+
+			const bulkOps = data.map((customer) => ({
+				updateOne: {
+					filter: { posCustomerId: customer.customerId },
+					update: {
+						$setOnInsert: {
+							birthDate: customer.dateOfBirth,
+							city: customer.city,
+							email: customer.emailAddress,
+							posCustomerId: customer.customerId,
+							name: customer.name,
+							phone: customer.phone,
+							isLoyal: customer.isLoyaltyMember,
+							state: customer.state,
+							streetAddress1: customer.address1,
+							streetAddress2: customer.address2,
+							zip: customer.postalCode,
+							type:
+								customer.customerType === 'Recreational'
+									? CustomerType.recCustomer
+									: CustomerType.medCustomer,
+							POSId: posData._id,
+							companyId: company.companyId,
+							loyaltyPoints: 0,
+							country: '',
+							userCreatedAt: customer.creationDate,
+						},
 					},
-				};
+					upsert: true,
+				},
+			}));
 
-				const { data: token } = await axios.request(tokenOptions);
+			await this.customerModel.bulkWrite(bulkOps);
 
-				const customerOptions: AxiosRequestConfig = {
-					url: `${posData.liveUrl}/customer/customers?&includeAnonymous=true`,
-					headers: {
-						Accept: 'application/json',
-						Authorization: token,
-					},
-				};
-
-				const { data } = await axios.request(customerOptions);
-
-				const customersArray: ICustomer[] = [];
-
-				for (const customer of data)
-					customersArray.push({
-						birthDate: customer.dateOfBirth,
-						city: customer.city,
-						email: customer.emailAddress,
-						posCustomerId: customer.customerId,
-						name: customer.name,
-						phone: customer.phone,
-						isLoyal: customer.isLoyaltyMember,
-						state: customer.state,
-						streetAddress1: customer.address1,
-						streetAddress2: customer.address2,
-						zip: customer.postalCode,
-						type:
-							customer.customerType === 'Recreational'
-								? CustomerType.recCustomer
-								: CustomerType.medCustomer,
-						POSId: posData._id,
-						companyId: company._id,
-						loyaltyPoints: 0,
-						country: '',
-						userCreatedAt: customer.creationDate,
-					});
-
-				await this.customerModel.insertMany(customersArray);
-				console.log(`Seeded ${data.length} customers.`);
-			}
+			console.log(`Seeded ${data.length} customers.`);
 		} catch (error) {
-			console.error('Failed to seed customers:', error.message);
+			console.error('Failed to seed customers:');
+			console.error(error.message);
 			dynamicCatchException(error);
 		}
 	}

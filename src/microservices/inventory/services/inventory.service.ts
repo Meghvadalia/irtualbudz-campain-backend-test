@@ -121,126 +121,118 @@ export class InventoryService {
 		}
 	}
 
-	async seedDutchieInventory(posName: string) {
+	async seedDutchieInventory(posData: IPOS, company: any) {
+		console.log('seedDutchieInventory ====>');
 		try {
-			const posData: IPOS = await this.posModel.findOne<IPOS>({
-				name: posName,
+			const tokenOptions = {
+				method: 'get',
+				url: `${posData.liveUrl}/util/AuthorizationHeader/${company.key}`,
+				headers: {
+					Accept: 'application/json',
+				},
+			};
+
+			const { data: token } = await axios.request(tokenOptions);
+
+			const inventoryOptions: AxiosRequestConfig = {
+				url: `${posData.liveUrl}/inventory?includeLabResults=true&includeRoomQuantities=true`,
+				headers: {
+					Accept: 'application/json',
+					Authorization: token,
+				},
+			};
+
+			const productOptions: AxiosRequestConfig = {
+				url: `${posData.liveUrl}/reporting/products`,
+				headers: {
+					Accept: 'application/json',
+					Authorization: token,
+				},
+			};
+
+			const { data: productsData } = await axios.request(productOptions);
+			const storeData: IStore = await this.storeModel.findOne<IStore>({
+				companyId: company.companyId,
 			});
 
-			const companyData = await this.companyModel.find<ICompany>({
-				posId: posData._id,
-				isActive: true,
-			});
-
-			for (const company of companyData) {
-				const tokenOptions = {
-					method: 'get',
-					url: `${posData.liveUrl}/util/AuthorizationHeader/${company.dataObject.key}`,
-					headers: {
-						Accept: 'application/json',
-					},
-				};
-
-				const { data: token } = await axios.request(tokenOptions);
-
-				const inventoryOptions: AxiosRequestConfig = {
-					url: `${posData.liveUrl}/inventory?includeLabResults=true&includeRoomQuantities=true`,
-					headers: {
-						Accept: 'application/json',
-						Authorization: token,
-					},
-				};
-
-				const productOptions: AxiosRequestConfig = {
-					url: `${posData.liveUrl}/reporting/products`,
-					headers: {
-						Accept: 'application/json',
-						Authorization: token,
-					},
-				};
-
-				const { data: productsData } = await axios.request(productOptions);
-				const storeData: IStore = await this.storeModel.findOne<IStore>({
-					companyId: company._id,
-				});
-
-				const productArray: IProduct[] = [];
-
-				for (const d of productsData) {
-					productArray.push({
-						productName: d.productName,
-						productDescription: d.description,
-						brand: d.brandName,
-						category: d.masterCategory,
-						posProductId: d.productId,
-						productPictureURL: d.imageUrl,
-						productWeight: d.netWeight,
-						sku: d.sku,
-						posId: posData._id,
-						type: d.category,
-						companyId: company._id,
-						purchaseCategory: d.raregulatoryCategory,
-						speciesName: d.strainType,
-						extraDetails: {
-							nutrients: '',
-							isMixAndMatch: null,
-							isStackable: null,
-							productUnitOfMeasure: d.defaultUnit,
-							productUnitOfMeasureToGramsMultiplier: '',
-							cannabinoidInformation: {
+			const bulkProductOps = productsData.map((d) => ({
+				updateOne: {
+					filter: { posProductId: d.productId },
+					update: {
+						$setOnInsert: {
+							productName: d.productName,
+							productDescription: d.description,
+							brand: d.brandName,
+							category: d.masterCategory,
+							posProductId: d.productId,
+							productPictureURL: d.imageUrl,
+							productWeight: d.netWeight,
+							sku: d.sku,
+							posId: posData._id,
+							type: d.category,
+							companyId: company.companyId,
+							purchaseCategory: d.raregulatoryCategory,
+							speciesName: d.strainType,
+							'extraDetails.nutrients': '',
+							'extraDetails.isMixAndMatch': null,
+							'extraDetails.isStackable': null,
+							'extraDetails.productUnitOfMeasure': d.defaultUnit,
+							'extraDetails.cannabinoidInformation': {
 								name: '',
 								lowerRange: null,
 								upperRange: null,
 								unitOfMeasure: '',
 								unitOfMeasureToGramsMultiplier: '',
 							},
-							weightTierInformation: {
+							'extraDetails.weightTierInformation': {
 								name: '',
 								gramAmount: '',
 								pricePerUnitInMinorUnits: null,
 							},
 						},
-					});
-				}
-				const insertedProducts = await this.productModel.insertMany(productArray);
+					},
+					upsert: true,
+				},
+			}));
 
-				const { data: inventoryData } = await axios.request(inventoryOptions);
+			await this.productModel.bulkWrite(bulkProductOps);
 
-				const inventoryArray: IInventory[] = [];
+			const { data: inventoryData } = await axios.request(inventoryOptions);
 
-				for (const d of inventoryData) {
-					const matchingProduct = insertedProducts.find((product) => {
-						return +product.posProductId === +d.productId;
-					});
-
-					inventoryArray.push({
-						quantity: d.quantityAvailable,
-						expirationDate: d.expirationDate,
-						companyId: company._id,
-						posId: posData._id,
-						posProductId: d.productId,
-						sku: d.sku,
-						productUpdatedAt: d.lastModifiedDateUtc,
-						storeId: storeData._id,
-						locationName: storeData.location.locationName,
-						productId: matchingProduct ? (matchingProduct._id as string) : '',
-						extraDetails: {
-							inventoryUnitOfMeasure: d.unitWeightUnit,
-							inventoryUnitOfMeasureToGramsMultiplier: 1,
+			const bulkInventoryOps = inventoryData.map((d) => ({
+				updateOne: {
+					filter: { posProductId: d.productId },
+					update: {
+						$setOnInsert: {
+							quantity: d.quantityAvailable,
+							expirationDate: d.expirationDate,
+							companyId: company.companyId,
+							posId: posData._id,
+							posProductId: d.productId,
+							sku: d.sku,
+							productUpdatedAt: d.lastModifiedDateUtc,
+							storeId: storeData._id,
+							locationName: storeData.location.locationName,
+							productId: '',
+							'extraDetails.inventoryUnitOfMeasure': d.unitWeightUnit,
+							'extraDetails.inventoryUnitOfMeasureToGramsMultiplier': 1,
 							currencyCode: '',
+							costInMinorUnits: 0,
+							priceInMinorUnits: 0,
+							forSale: false,
 						},
-						costInMinorUnits: 0,
-						priceInMinorUnits: 0,
-						forSale: false,
-					});
-				}
+					},
+					upsert: true,
+				},
+			}));
 
-				await this.inventoryModel.insertMany(inventoryArray);
-				console.log(`Seeded ${inventoryData.length} inventory data.`);
-				console.log(`Seeded ${productsData.length} products.`);
-			}
+			await this.inventoryModel.bulkWrite(bulkInventoryOps);
+
+			console.log(`Seeded ${inventoryData.length} inventory data.`);
+			console.log(`Seeded ${productsData.length} products.`);
 		} catch (error) {
-			console.error('Failed to seed inventory data:', error.message);
+			console.error('Failed to seed inventory data:');
+			console.error(error.message);
 			dynamicCatchException(error);
 		}
 	}

@@ -93,10 +93,11 @@ export class SeedDataConsumer implements OnModuleInit {
 								await this.orderService.processStoreData(storeObject, currentDate, posData);
 								// await this.delay(intervalDuration);
 							} else if (posData.name == 'dutchie') {
-								// await this.orderService.seedDutchieStaff(storeData, posData);
-								// await this.inventoryService.seedDutchieInventory(storeData, posData);
-								// await this.customerService.seedDutchieCustomers(storeData, posData);
-								// await this.orderService.seedDutchieOrders(storeData, posData);
+								// await this.storeService.seedDutchieStores(posData, storeObject);
+								await this.inventoryService.seedDutchieInventory(posData, storeObject);
+								await this.customerService.seedDutchieCustomers(posData, storeObject);
+								await this.orderService.seedDutchieOrders(posData, storeObject);
+								await this.orderService.seedDutchieStaff(posData, storeObject);
 							}
 						} else if (eventType === KAFKA_SEEDING_EVENT_TYPE.SCHEDULE_TIME) {
 							const cronJobTime = new Date(
@@ -118,11 +119,10 @@ export class SeedDataConsumer implements OnModuleInit {
 										await this.orderService.processStoreData(storeObject, currentDate, posData);
 									}
 									if (posData.name == 'dutchie') {
-										// await this.storeService.seedDutchieStores(storeObject,posData);
-										// await this.orderService.seedDutchieStaff(storeObject, posData);
-										// await this.inventoryService.seedDutchieInventory(storeObject, posData);
-										// await this.customerService.seedDutchieCustomers(storeObject, posData);
-										// await this.orderService.seedDutchieOrders(storeObject, posData);
+										await this.inventoryService.seedDutchieInventory(posData, storeObject);
+										await this.customerService.seedDutchieCustomers(posData, storeObject);
+										await this.orderService.seedDutchieOrders(posData, storeObject);
+										await this.orderService.seedDutchieStaff(posData, storeObject);
 									} else {
 										console.log('seedCustomers');
 										await this.inventoryService.seedInventory(posData, storeObject);

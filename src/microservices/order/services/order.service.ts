@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectModel, Schema } from '@nestjs/mongoose';
-import { Model, Types } from 'mongoose';
+import mongoose, { Model, Types } from 'mongoose';
 import axios, { AxiosRequestConfig } from 'axios';
 
 import { Order } from '../entities/order.entity';
@@ -521,17 +521,9 @@ export class OrderService {
 		}
 	}
 
-	async seedDutchieOrders(posName: string) {
+	async seedDutchieOrders(posData: IPOS, company: any) {
+		console.log('seedDutchieOrders ====>');
 		try {
-			const posData: IPOS = await this.posModel.findOne<IPOS>({
-				name: posName,
-			});
-
-			const companyData = await this.companyModel.find<ICompany>({
-				posId: posData._id,
-				isActive: true,
-			});
-
 			let currentDate: Date = new Date(),
 				fromDate: Date,
 				toDate = new Date(
@@ -542,256 +534,244 @@ export class OrderService {
 					0,
 					0
 				);
+
 			let storeData: IStore;
-			for (const company of companyData) {
-				storeData = await this.storeModel.findOne({
-					companyId: company._id,
-				});
-				const tokenOptions = {
-					method: 'get',
-					url: `${posData.liveUrl}/util/AuthorizationHeader/${company.dataObject.key}`,
-					headers: {
-						Accept: 'application/json',
-					},
-				};
-
-				const { data: token } = await axios.request(tokenOptions);
-				const orderData: IOrder = await this.orderModel.findOne({
-					companyId: company._id,
-				});
-
-				let orderOptions: AxiosRequestConfig;
-
-				if (!orderData) {
-					fromDate = new Date(
-						currentDate.getFullYear(),
-						currentDate.getMonth(),
-						currentDate.getDate() - company.lastSyncDataDuration,
-						0,
-						0,
-						0
-					);
-
-					orderOptions = {
-						url: `${
-							posData.liveUrl
-						}/reporting/transactions?FromLastModifiedDateUTC=${fromDate.toISOString()}&ToLastModifiedDateUTC=${toDate.toISOString()}&IncludeDetail=true&IncludeTaxes=true&IncludeOrderIds=true`,
-						headers: {
-							Accept: 'application/json',
-							Authorization: token,
-						},
-					};
-				} else {
-					fromDate = new Date(
-						currentDate.getFullYear(),
-						currentDate.getMonth(),
-						currentDate.getDate() - 1,
-						0,
-						0,
-						0
-					);
-					orderOptions = {
-						url: `${
-							posData.liveUrl
-						}/reporting/transactions?FromLastModifiedDateUTC=${fromDate.toISOString()}&ToLastModifiedDateUTC=${toDate.toISOString()}&IncludeDetail=true&IncludeTaxes=true&IncludeOrderIds=true&IncludeFeesAndDonations=true`,
-						headers: {
-							Accept: 'application/json',
-							Authorization: token,
-						},
-					};
-				}
-
-				const { data } = await axios.request(orderOptions);
-
-				let paymentType: string;
-				const isRetail = (iDutchieOrder: IDutchieOrderInterface) =>
-					iDutchieOrder.transactionType === 'Retail';
-
-				const processChunk = async (chunk: IDutchieOrderInterface[], page) => {
-					try {
-						console.log('Chunk Length ', chunk.length);
-						const ordersArray: IOrderFlowHubInterface[] = [];
-						const retailOrders: IDutchieOrderInterface[] = chunk.filter(isRetail);
-						console.log('retailOrders Length ', retailOrders.length);
-						for (let index = 0; index < retailOrders.length; index++) {
-							const element = retailOrders[index];
-							if (element.cashPaid !== null || element.creditPaid !== null) {
-								paymentType = 'cash';
-							} else if (element.giftPaid !== null) {
-								paymentType = 'gift card';
-							} else if (element.loyaltySpent !== null) {
-								paymentType = 'loyalty points';
-							} else {
-								paymentType = 'debit';
-							}
-							const itemDiscounts: ItemDiscounts[] = [];
-							const taxArray: ITaxFlowhub[] = [];
-							const cartItemsArray: ICartItemFlowhub[] = [];
-							for (const cartItem of element.items) {
-								const product = await this.productModel.findOne({
-									posProductId: cartItem.productId,
-								});
-								if (!product) {
-									continue;
-								}
-								if (cartItem.discounts) {
-									for (const discount of cartItem.discounts) {
-										itemDiscounts.push({
-											_id: discount.discountId.toString(),
-											name: discount.discountName,
-											discountAmount: discount.amount,
-										});
-									}
-								}
-
-								if (cartItem.taxes) {
-									for (const tax of cartItem.taxes) {
-										taxArray.push({
-											_id: '',
-											name: tax.rateName,
-											percentage: tax.rate,
-											appliesTo: 'all',
-											supplierSpecificTax: false,
-											excludeCustomerGroups: [],
-											thisTaxInPennies: tax.amount,
-										});
-									}
-								}
-
-								cartItemsArray.push({
-									category: product.category,
-									itemDiscounts: itemDiscounts,
-									id: element.transactionId.toString(),
-									productName: product.productName,
-									quantity: cartItem.quantity,
-									sku: product.sku,
-									strainName: product.strain,
-									tax: taxArray,
-									totalCost: cartItem.quantity * cartItem.unitCost,
-									totalPrice: cartItem.totalPrice,
-									unitCost: cartItem.unitCost,
-									unitOfWeight: cartItem.unitWeightUnit,
-									unitPrice: cartItem.unitPrice,
-									title1: product.productName,
-									title2: cartItem.vendor,
-									brand: product.brand,
-								});
-							}
-
-							const orderObject: IOrderFlowHubInterface = {
-								_id: element.transactionId.toString(),
-								clientId: '',
-								createdAt: new Date(element.checkInDate).toISOString(),
-								customerId: element.customerId.toString(),
-								currentPoints: element.loyaltyEarned,
-								customerType:
-									element.customerTypeId === 2
-										? CUSTOMER_TYPE.recCustomer
-										: CUSTOMER_TYPE.medCustomer,
-								name: element.completedByUser,
-								locationId: storeData.location.locationId,
-								locationName: storeData.locationName,
-								itemsInCart: cartItemsArray,
-								voided: false,
-								fullName: element.completedByUser,
-								orderType: orderType[element.orderType],
-								payments: [
-									{
-										amount: element.total,
-										_id: element.transactionId.toString(),
-										cardId: null,
-										debitProvider: '',
-										paymentType,
-										loyaltyPoints: element.loyaltySpent,
-										balanceAfterPayment: null,
-									},
-								],
-								totals: {
-									finalTotal: element.total,
-									subTotal: element.subtotal,
-									totalDiscounts: element.totalDiscount,
-									totalTaxes: element.tax,
-									totalFees: 0,
-								},
-								completedOn: new Date(element.estDeliveryDateLocal).toISOString(),
-								orderStatus: 'sold',
-								budtender: element.employeeId.toString(),
-							};
-							ordersArray.push(orderObject);
-						}
-						setTimeout(() => {
-							this.processOrderBatch(ordersArray, page, posData._id, company._id, storeData._id);
-						}, 2 * 1000);
-					} catch (error) {
-						console.error('Error In the chunk ', error);
-					}
-				};
-
-				const chunkSize = 5000;
-
-				const arrayOfChunks = _.chunk(data, chunkSize);
-
-				arrayOfChunks.map((chunk: any, index: number) => processChunk(chunk, index));
-			}
-		} catch (error) {
-			console.error(error);
-		}
-	}
-
-	async seedDutchieStaff(posName: string) {
-		try {
-			const posData: IPOS = await this.posModel.findOne<IPOS>({
-				name: posName,
+			storeData = await this.storeModel.findOne({
+				companyId: company.companyId,
 			});
 
-			const companyData = await this.companyModel.find<ICompany>({
-				posId: posData._id,
-				isActive: true,
+			const tokenOptions = {
+				method: 'get',
+				url: `${posData.liveUrl}/util/AuthorizationHeader/${company.key}`,
+				headers: {
+					Accept: 'application/json',
+				},
+			};
+
+			const { data: token } = await axios.request(tokenOptions);
+			const orderData: IOrder = await this.orderModel.findOne({
+				companyId: company.companyId,
 			});
 
-			for (const company of companyData) {
-				const tokenOptions = {
-					method: 'get',
-					url: `${posData.liveUrl}/util/AuthorizationHeader/${company.dataObject.key}`,
-					headers: {
-						Accept: 'application/json',
-					},
-				};
+			let orderOptions: AxiosRequestConfig;
 
-				const { data: token } = await axios.request(tokenOptions);
+			if (!orderData) {
+				fromDate = new Date(
+					currentDate.getFullYear(),
+					currentDate.getMonth(),
+					currentDate.getDate() - company.lastSyncDataDuration,
+					0,
+					0,
+					0
+				);
 
-				const staffOptions: AxiosRequestConfig = {
-					url: `${posData.liveUrl}/employees`,
+				orderOptions = {
+					url: `${
+						posData.liveUrl
+					}/reporting/transactions?FromDateUTC=${fromDate.toISOString()}&ToDateUTC=${toDate.toISOString()}&IncludeDetail=true&IncludeTaxes=true&IncludeOrderIds=true`,
 					headers: {
 						Accept: 'application/json',
 						Authorization: token,
 					},
 				};
+			} else {
+				fromDate = new Date(
+					currentDate.getFullYear(),
+					currentDate.getMonth(),
+					currentDate.getDate() - 1,
+					0,
+					0,
+					0
+				);
+				orderOptions = {
+					url: `${
+						posData.liveUrl
+					}/reporting/transactions?FromDateUTC=${fromDate.toISOString()}&ToDateUTC=${toDate.toISOString()}&IncludeDetail=true&IncludeTaxes=true&IncludeOrderIds=true&IncludeFeesAndDonations=true`,
+					headers: {
+						Accept: 'application/json',
+						Authorization: token,
+					},
+				};
+			}
 
-				const { data } = await axios.request(staffOptions);
+			const { data } = await axios.request(orderOptions);
 
-				const storeData: IStore = await this.storeModel.findOne({
-					companyId: company._id,
-				});
-				const staffArray: IStaff[] = [];
+			let paymentType: string;
 
-				for (const d of data) {
-					const staffExists = await this.staffModel.findOne({
-						staffName: d.fullName,
-						storeId: storeData._id,
+			const isRetail = (iDutchieOrder: IDutchieOrderInterface) =>
+				iDutchieOrder.transactionType === 'Retail';
+
+			const ordersArray: IOrderFlowHubInterface[] = [];
+
+			for (const element of data) {
+				if (element.cashPaid !== null || element.creditPaid !== null) {
+					paymentType = 'cash';
+				} else if (element.giftPaid !== null) {
+					paymentType = 'gift card';
+				} else if (element.loyaltySpent !== null) {
+					paymentType = 'loyalty points';
+				} else {
+					paymentType = 'debit';
+				}
+
+				const itemDiscounts: ItemDiscounts[] = [];
+				const taxArray: ITaxFlowhub[] = [];
+				const cartItemsArray: ICartItemFlowhub[] = [];
+
+				for (const cartItem of element.items) {
+					const product = await this.productModel.findOne({
+						posProductId: cartItem.productId,
 					});
-					if (staffExists) return;
-					staffArray.push({
-						staffName: d.fullName,
-						storeId: storeData._id,
+
+					if (!product) {
+						continue;
+					}
+
+					if (cartItem.discounts) {
+						for (const discount of cartItem.discounts) {
+							itemDiscounts.push({
+								_id: discount.discountId.toString(),
+								name: discount.discountName,
+								discountAmount: discount.amount,
+							});
+						}
+					}
+
+					if (cartItem.taxes) {
+						for (const tax of cartItem.taxes) {
+							taxArray.push({
+								_id: '',
+								name: tax.rateName,
+								percentage: tax.rate,
+								appliesTo: 'all',
+								supplierSpecificTax: false,
+								excludeCustomerGroups: [],
+								thisTaxInPennies: tax.amount,
+							});
+						}
+					}
+
+					cartItemsArray.push({
+						category: product.category,
+						itemDiscounts: itemDiscounts,
+						id: element.transactionId.toString(),
+						productName: product.productName,
+						quantity: cartItem.quantity,
+						sku: product.sku,
+						strainName: product.strain,
+						tax: taxArray,
+						totalCost: cartItem.quantity * cartItem.unitCost,
+						totalPrice: cartItem.totalPrice,
+						unitCost: cartItem.unitCost,
+						unitOfWeight: cartItem.unitWeightUnit,
+						unitPrice: cartItem.unitPrice,
+						title1: product.productName,
+						title2: cartItem.vendor,
+						brand: product.brand,
 					});
 				}
 
-				const insertEmployee = await this.staffModel.insertMany(staffArray);
-				console.log(`Seeded ${insertEmployee.length} employees.`);
+				const orderObject: IOrderFlowHubInterface = {
+					_id: element.transactionId.toString(),
+					clientId: '',
+					createdAt: new Date(element.checkInDate).toISOString(),
+					customerId: element.customerId.toString(),
+					currentPoints: element.loyaltyEarned,
+					customerType:
+						element.customerTypeId === 2 ? CUSTOMER_TYPE.recCustomer : CUSTOMER_TYPE.medCustomer,
+					name: element.completedByUser,
+					locationId: storeData.location.locationId,
+					locationName: storeData.locationName,
+					itemsInCart: cartItemsArray,
+					voided: false,
+					fullName: element.completedByUser,
+					orderType: orderType[element.orderType],
+					payments: [
+						{
+							amount: element.total,
+							_id: element.transactionId.toString(),
+							cardId: null,
+							debitProvider: '',
+							paymentType,
+							loyaltyPoints: element.loyaltySpent,
+							balanceAfterPayment: null,
+						},
+					],
+					totals: {
+						finalTotal: element.total,
+						subTotal: element.subtotal,
+						totalDiscounts: element.totalDiscount,
+						totalTaxes: element.tax,
+						totalFees: 0,
+					},
+					completedOn: new Date(element.estDeliveryDateLocal).toISOString(),
+					orderStatus: 'sold',
+					budtender: element.employeeId.toString(),
+				};
+
+				ordersArray.push(orderObject);
 			}
+
+			await this.orderModel.bulkWrite(
+				ordersArray.map((order) => ({
+					updateOne: {
+						filter: { _id: new mongoose.Types.ObjectId(order._id) }, // Ensure _id is converted to ObjectId
+						update: order,
+						upsert: true,
+					},
+				}))
+			);
+
+			console.log(`Seeded ${data.length} orders.`);
 		} catch (error) {
-			console.error('Failed to seed staff data:', error.message);
+			console.error(error);
+		}
+	}
+
+	async seedDutchieStaff(posData: IPOS, company: any) {
+		try {
+			const tokenOptions = {
+				method: 'get',
+				url: `${posData.liveUrl}/util/AuthorizationHeader/${company.key}`,
+				headers: {
+					Accept: 'application/json',
+				},
+			};
+
+			const { data: token } = await axios.request(tokenOptions);
+			console.log('company.key =>' + company.key);
+			console.log('token =>' + token);
+
+			const staffOptions: AxiosRequestConfig = {
+				url: `${posData.liveUrl}/employees`,
+				headers: {
+					Accept: 'application/json',
+					Authorization: token,
+				},
+			};
+
+			const { data } = await axios.request(staffOptions);
+
+			const storeData: IStore = await this.storeModel.findOne({
+				companyId: company.companyId,
+			});
+
+			const bulkOps = data.map((d) => ({
+				updateOne: {
+					filter: { staffName: d.fullName, storeId: storeData._id },
+					update: { $setOnInsert: { staffName: d.fullName, storeId: storeData._id } },
+					upsert: true,
+				},
+			}));
+
+			const result = await this.staffModel.bulkWrite(bulkOps);
+
+			console.log(
+				`Seeded ${result.upsertedCount} new employees and updated ${result.modifiedCount} existing employees.`
+			);
+		} catch (error) {
+			console.error('Failed to seed staff data:');
+			console.error(error.message);
 			throw error;
 		}
 	}

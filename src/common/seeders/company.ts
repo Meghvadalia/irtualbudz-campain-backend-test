@@ -21,6 +21,17 @@ export const companyData = [
 		lastSyncDataDuration: 100,
 		isActive: true,
 	},
+	{
+		name: 'The Tea House',
+		posId: '',
+		totalStore: 0,
+		dataObject: {
+			key: '8aaf93b1fa784b8d8c0a96a2f54cac8f',
+		},
+		posName: 'dutchie',
+		lastSyncDataDuration: 100,
+		isActive: true,
+	},
 	// {
 	// 	name: 'Boulder',
 	// 	posId: '',
