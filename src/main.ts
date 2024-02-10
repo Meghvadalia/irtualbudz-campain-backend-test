@@ -31,6 +31,7 @@ async function bootstrap() {
 	const whitelist = [
 		'http://localhost:3000' as string,
 		'https://monarc.virtualbudz.com' as string,
+		'https://app.monarchdata.io' as string,
 		'https://monarch-staging.virtualbudz.com' as string,
 	];
 	app.enableCors({
