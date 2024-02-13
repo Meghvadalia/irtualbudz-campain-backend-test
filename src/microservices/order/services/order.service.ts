@@ -522,7 +522,6 @@ export class OrderService {
 	}
 
 	async seedDutchieOrders(posData: IPOS, company: any) {
-		console.log('seedDutchieOrders ====>');
 		try {
 			let currentDate: Date = new Date(),
 				fromDate: Date,
@@ -534,12 +533,10 @@ export class OrderService {
 					0,
 					0
 				);
-
 			let storeData: IStore;
 			storeData = await this.storeModel.findOne({
 				companyId: company.companyId,
 			});
-
 			const tokenOptions = {
 				method: 'get',
 				url: `${posData.liveUrl}/util/AuthorizationHeader/${company.key}`,
@@ -554,26 +551,178 @@ export class OrderService {
 			});
 
 			let orderOptions: AxiosRequestConfig;
+			let paymentType: string;
+			const isRetail = (iDutchieOrder: IDutchieOrderInterface) =>
+				iDutchieOrder.transactionType === 'Retail';
 
+			const processChunk = async (chunk: IDutchieOrderInterface[], page) => {
+				try {
+					console.log('Chunk Length ', chunk.length);
+					const ordersArray: IOrderFlowHubInterface[] = [];
+					const retailOrders: IDutchieOrderInterface[] = chunk.filter(isRetail);
+					console.log('retailOrders Length ', retailOrders.length);
+					for (let index = 0; index < retailOrders.length; index++) {
+						const element = retailOrders[index];
+						if (element.cashPaid !== null || element.creditPaid !== null) {
+							paymentType = 'cash';
+						} else if (element.giftPaid !== null) {
+							paymentType = 'gift card';
+						} else if (element.loyaltySpent !== null) {
+							paymentType = 'loyalty points';
+						} else {
+							paymentType = 'debit';
+						}
+						const itemDiscounts: ItemDiscounts[] = [];
+						const taxArray: ITaxFlowhub[] = [];
+						const cartItemsArray: ICartItemFlowhub[] = [];
+						for (const cartItem of element.items) {
+							const product = await this.productModel.findOne({
+								posProductId: cartItem.productId,
+								companyId: company.companyId,
+							});
+							if (!product) {
+								continue;
+							}
+							if (cartItem.discounts) {
+								for (const discount of cartItem.discounts) {
+									itemDiscounts.push({
+										_id: discount.discountId.toString(),
+										name: discount.discountName,
+										discountAmount: discount.amount,
+									});
+								}
+							}
+							if (cartItem.taxes) {
+								for (const tax of cartItem.taxes) {
+									taxArray.push({
+										_id: '',
+										name: tax.rateName,
+										percentage: tax.rate,
+										appliesTo: 'all',
+										supplierSpecificTax: false,
+										excludeCustomerGroups: [],
+										thisTaxInPennies: tax.amount,
+									});
+								}
+							}
+							cartItemsArray.push({
+								category: product.category,
+								itemDiscounts: itemDiscounts,
+								id: element.transactionId.toString(),
+								productName: product.productName,
+								quantity: cartItem.quantity,
+								sku: product.sku,
+								strainName: product.strain,
+								tax: taxArray,
+								totalCost: cartItem.quantity * cartItem.unitCost,
+								totalPrice: cartItem.totalPrice,
+								unitCost: cartItem.unitCost,
+								unitOfWeight: cartItem.unitWeightUnit,
+								unitPrice: cartItem.unitPrice,
+								title1: product.productName,
+								title2: cartItem.vendor,
+								brand: product.brand,
+							});
+						}
+						const orderObject: IOrderFlowHubInterface = {
+							_id: element.transactionId.toString(),
+							clientId: '',
+							createdAt: new Date(element.checkInDate).toISOString(),
+							customerId: element.customerId.toString(),
+							currentPoints: element.loyaltyEarned,
+							customerType:
+								element.customerTypeId === 2
+									? CUSTOMER_TYPE.recCustomer
+									: CUSTOMER_TYPE.medCustomer,
+							name: element.completedByUser,
+							locationId: storeData.location.locationId,
+							locationName: storeData.locationName,
+							itemsInCart: cartItemsArray,
+							voided: false,
+							fullName: element.completedByUser,
+							orderType: orderType[element.orderType],
+							payments: [
+								{
+									amount: element.total,
+									_id: element.transactionId.toString(),
+									cardId: null,
+									debitProvider: '',
+									paymentType,
+									loyaltyPoints: element.loyaltySpent,
+									balanceAfterPayment: null,
+								},
+							],
+							totals: {
+								finalTotal: element.total,
+								subTotal: element.subtotal,
+								totalDiscounts: element.totalDiscount,
+								totalTaxes: element.tax,
+								totalFees: 0,
+							},
+							completedOn: new Date(element.estDeliveryDateLocal).toISOString(),
+							orderStatus: 'sold',
+							budtender: element.employeeId.toString(),
+						};
+						ordersArray.push(orderObject);
+					}
+					//setTimeout(() => {
+					this.processOrderBatch(ordersArray, page, posData._id, company.companyId, storeData._id);
+					//	}, 2 * 1000);
+				} catch (error) {
+					console.error('Error In the chunk ', error);
+				}
+			};
+			let orderDataFromDutchie: Array<IDutchieOrderInterface> = [];
 			if (!orderData) {
-				fromDate = new Date(
-					currentDate.getFullYear(),
-					currentDate.getMonth(),
-					currentDate.getDate() - company.lastSyncDataDuration,
-					0,
-					0,
-					0
-				);
+				// fromDate = new Date(
+				// 	currentDate.getFullYear(),
+				// 	currentDate.getMonth(),
+				// 	currentDate.getDate() - company.lastSyncDataDuration,
+				// 	0,
+				// 	0,
+				// 	0
+				// );
+				// orderOptions = {
+				// 	url: `${
+				// 		posData.liveUrl
+				// 	}/reporting/transactions?FromDateUTC=${fromDate.toISOString()}&ToDateUTC=${toDate.toISOString()}&IncludeDetail=true&IncludeTaxes=true&IncludeOrderIds=true`,
+				// 	headers: {
+				// 		Accept: 'application/json',
+				// 		Authorization: token,
+				// 	},
+				// };
 
-				orderOptions = {
-					url: `${
-						posData.liveUrl
-					}/reporting/transactions?FromDateUTC=${fromDate.toISOString()}&ToDateUTC=${toDate.toISOString()}&IncludeDetail=true&IncludeTaxes=true&IncludeOrderIds=true`,
-					headers: {
-						Accept: 'application/json',
-						Authorization: token,
-					},
-				};
+				const startDate = new Date(currentDate);
+				startDate.setDate(startDate.getDate() - company.lastSyncDataDuration);
+
+				// Calculate the number of months to cover
+				const numMonths = Math.ceil(company.lastSyncDataDuration / 30);
+
+				for (let i = 0; i < numMonths; i++) {
+					const fromDate = new Date(startDate);
+					fromDate.setMonth(fromDate.getMonth() + i);
+
+					const toDate = new Date(fromDate.getFullYear(), fromDate.getMonth() + 1, 0, 23, 59, 59);
+
+					const orderOptions = {
+						url: `${
+							posData.liveUrl
+						}/reporting/transactions?FromDateUTC=${fromDate.toISOString()}&ToDateUTC=${toDate.toISOString()}&IncludeDetail=true&IncludeTaxes=true&IncludeOrderIds=true${
+							i === 0 ? '&IncludeFeesAndDonations=true' : ''
+						}`,
+						headers: {
+							Accept: 'application/json',
+							Authorization: token,
+						},
+					};
+
+					console.log(`API Calling for ${fromDate.getMonth() + 1}/${fromDate.getFullYear()}`);
+					const { data } = await axios.request(orderOptions);
+					console.log(
+						`Total Orders for ${fromDate.getMonth() + 1}/${fromDate.getFullYear()}: ${data.length}`
+					);
+					orderDataFromDutchie.push(data);
+				}
 			} else {
 				fromDate = new Date(
 					currentDate.getFullYear(),
@@ -592,137 +741,17 @@ export class OrderService {
 						Authorization: token,
 					},
 				};
+				console.log('API Calling  url ' + JSON.stringify(orderOptions));
+				const { data } = await axios.request(orderOptions);
+				console.log('Total Order That we Are Seeding, ' + data.length);
+				orderDataFromDutchie.push(data);
 			}
 
-			const { data } = await axios.request(orderOptions);
+			const chunkSize = 50;
 
-			let paymentType: string;
+			const arrayOfChunks = _.chunk(orderDataFromDutchie, chunkSize);
 
-			const isRetail = (iDutchieOrder: IDutchieOrderInterface) =>
-				iDutchieOrder.transactionType === 'Retail';
-
-			const ordersArray: IOrderFlowHubInterface[] = [];
-
-			for (const element of data) {
-				if (element.cashPaid !== null || element.creditPaid !== null) {
-					paymentType = 'cash';
-				} else if (element.giftPaid !== null) {
-					paymentType = 'gift card';
-				} else if (element.loyaltySpent !== null) {
-					paymentType = 'loyalty points';
-				} else {
-					paymentType = 'debit';
-				}
-
-				const itemDiscounts: ItemDiscounts[] = [];
-				const taxArray: ITaxFlowhub[] = [];
-				const cartItemsArray: ICartItemFlowhub[] = [];
-
-				for (const cartItem of element.items) {
-					const product = await this.productModel.findOne({
-						posProductId: cartItem.productId,
-					});
-
-					if (!product) {
-						continue;
-					}
-
-					if (cartItem.discounts) {
-						for (const discount of cartItem.discounts) {
-							itemDiscounts.push({
-								_id: discount.discountId.toString(),
-								name: discount.discountName,
-								discountAmount: discount.amount,
-							});
-						}
-					}
-
-					if (cartItem.taxes) {
-						for (const tax of cartItem.taxes) {
-							taxArray.push({
-								_id: '',
-								name: tax.rateName,
-								percentage: tax.rate,
-								appliesTo: 'all',
-								supplierSpecificTax: false,
-								excludeCustomerGroups: [],
-								thisTaxInPennies: tax.amount,
-							});
-						}
-					}
-
-					cartItemsArray.push({
-						category: product.category,
-						itemDiscounts: itemDiscounts,
-						id: element.transactionId.toString(),
-						productName: product.productName,
-						quantity: cartItem.quantity,
-						sku: product.sku,
-						strainName: product.strain,
-						tax: taxArray,
-						totalCost: cartItem.quantity * cartItem.unitCost,
-						totalPrice: cartItem.totalPrice,
-						unitCost: cartItem.unitCost,
-						unitOfWeight: cartItem.unitWeightUnit,
-						unitPrice: cartItem.unitPrice,
-						title1: product.productName,
-						title2: cartItem.vendor,
-						brand: product.brand,
-					});
-				}
-
-				const orderObject: IOrderFlowHubInterface = {
-					_id: element.transactionId.toString(),
-					clientId: '',
-					createdAt: new Date(element.checkInDate).toISOString(),
-					customerId: element.customerId.toString(),
-					currentPoints: element.loyaltyEarned,
-					customerType:
-						element.customerTypeId === 2 ? CUSTOMER_TYPE.recCustomer : CUSTOMER_TYPE.medCustomer,
-					name: element.completedByUser,
-					locationId: storeData.location.locationId,
-					locationName: storeData.locationName,
-					itemsInCart: cartItemsArray,
-					voided: false,
-					fullName: element.completedByUser,
-					orderType: orderType[element.orderType],
-					payments: [
-						{
-							amount: element.total,
-							_id: element.transactionId.toString(),
-							cardId: null,
-							debitProvider: '',
-							paymentType,
-							loyaltyPoints: element.loyaltySpent,
-							balanceAfterPayment: null,
-						},
-					],
-					totals: {
-						finalTotal: element.total,
-						subTotal: element.subtotal,
-						totalDiscounts: element.totalDiscount,
-						totalTaxes: element.tax,
-						totalFees: 0,
-					},
-					completedOn: new Date(element.estDeliveryDateLocal).toISOString(),
-					orderStatus: 'sold',
-					budtender: element.employeeId.toString(),
-				};
-
-				ordersArray.push(orderObject);
-			}
-
-			await this.orderModel.bulkWrite(
-				ordersArray.map((order) => ({
-					updateOne: {
-						filter: { _id: new mongoose.Types.ObjectId(order._id) }, // Ensure _id is converted to ObjectId
-						update: order,
-						upsert: true,
-					},
-				}))
-			);
-
-			console.log(`Seeded ${data.length} orders.`);
+			arrayOfChunks.map((chunk: any, index: number) => processChunk(chunk, index));
 		} catch (error) {
 			console.error(error);
 		}

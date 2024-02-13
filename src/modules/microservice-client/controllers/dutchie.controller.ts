@@ -40,6 +40,8 @@ export class DutchieController {
 		const storeListsPromises = companiesList.map(async (companyData) => {
 			return this.storeModel.find({
 				companyId: companyData._id,
+				isDeleted: false,
+				isActive: true,
 			});
 		});
 
@@ -74,6 +76,9 @@ export class DutchieController {
 			);
 			const currentDate = moment(new Date());
 			console.log('storeData.timeZone' + JSON.stringify(storeData));
+			if (!storeData.timeZone) {
+				storeData.timeZone = 'US/Mountain';
+			}
 			const utcOffsetForStore = calculateUtcOffset(storeData.timeZone);
 			// const utcOffsetForStore = 1;
 			console.log('TimeZone ' + storeData.timeZone + ' ' + storeData.locationName);

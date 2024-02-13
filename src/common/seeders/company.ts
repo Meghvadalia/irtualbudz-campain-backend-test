@@ -26,10 +26,10 @@ export const companyData = [
 		posId: '',
 		totalStore: 0,
 		dataObject: {
-			key: '8aaf93b1fa784b8d8c0a96a2f54cac8f',
+			key: 'f051ea224b2a4425a58824e550e632b0',
 		},
 		posName: 'dutchie',
-		lastSyncDataDuration: 100,
+		lastSyncDataDuration: 30,
 		isActive: true,
 	},
 	// {
