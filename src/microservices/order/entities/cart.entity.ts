@@ -6,50 +6,50 @@ import { DATABASE_COLLECTION } from 'src/common/constants';
 @Schema({ collection: DATABASE_COLLECTION.CART, timestamps: true })
 export class Cart extends Model<ItemsCart> {
 	@Prop({ required: true, unique: false })
-		posCartId: string;
+	posCartId: string;
 
 	@Prop({
 		required: true,
 		type: Types.ObjectId,
 		ref: DATABASE_COLLECTION.STORES,
 	})
-		storeId: string;
+	storeId: string;
 
 	@Prop()
-		sku: string;
+	sku: string;
 
 	@Prop()
-		category: string;
+	category: string;
 
 	@Prop()
-		title1: string;
+	title1: string;
 
 	@Prop()
-		title2: string;
+	title2: string;
 
 	@Prop()
-		productName: string;
+	productName: string;
 
 	@Prop()
-		strainName: string;
+	strainName: string;
 
 	@Prop()
-		unitOfWeight: string;
+	unitOfWeight: string;
 
 	@Prop()
-		quantity: number;
+	quantity: number;
 
 	@Prop()
-		unitPrice: number;
+	unitPrice: number;
 
 	@Prop()
-		totalPrice: number;
+	totalPrice: number;
 
 	@Prop()
-		unitCost: number;
+	unitCost: number;
 
 	@Prop()
-		totalCost: number;
+	totalCost: number;
 
 	@Prop(
 		raw([
@@ -72,7 +72,7 @@ export class Cart extends Model<ItemsCart> {
 			},
 		])
 	)
-		itemDiscounts: ItemDiscounts[];
+	itemDiscounts: ItemDiscounts[];
 
 	@Prop(
 		raw([
@@ -90,9 +90,10 @@ export class Cart extends Model<ItemsCart> {
 			},
 		])
 	)
-		tax: Tax[];
+	tax: Tax[];
 }
 
 export const CartSchema = SchemaFactory.createForClass(Cart);
-CartSchema.index({ _id: 1 },{ unique: true });
-CartSchema.index({ sku: 1 },{ unique: true });
+CartSchema.index({ _id: 1 }, { unique: true });
+CartSchema.index({ sku: 1 }, { unique: true });
+CartSchema.index({ posCartId: 1, storeId: 1, productName: 1 });
