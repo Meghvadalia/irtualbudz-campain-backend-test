@@ -784,7 +784,7 @@ export class OrderService {
 				console.error('Error In the chunk ' + error);
 			}
 		};
-		const chunkSize = 50;
+		const chunkSize = 1000;
 
 		const arrayOfChunks = _.chunk(data, chunkSize);
 
