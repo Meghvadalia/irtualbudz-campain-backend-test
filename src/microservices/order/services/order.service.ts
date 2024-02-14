@@ -674,8 +674,34 @@ export class OrderService {
 				const ordersArray: IOrderFlowHubInterface[] = [];
 				const retailOrders: IDutchieOrderInterface[] = chunk.filter(isRetail);
 				console.log('retailOrders Length ' + retailOrders.length);
+				// Batch product query to fetch all products at once
+				const productIds = new Set();
+
 				for (let index = 0; index < retailOrders.length; index++) {
 					const element = retailOrders[index];
+					for (let index = 0; index < element.items.length; index++) {
+						const cartItem = element.items[index];
+						productIds.add(cartItem.productId);
+					}
+				}
+				const uniqueProductIdsArray = [...productIds];
+				console.log('productIds =>' + JSON.stringify(uniqueProductIdsArray));
+				const products = await this.productModel.find({
+					posProductId: { $in: uniqueProductIdsArray },
+					companyId: company.companyId,
+				});
+				console.log('products =>' + products.length);
+				// Create a map for easier lookup by productId
+				//const productMap: any = new Map(products.map((product) => [product.posProductId, product]));
+				//console.log('productMap => ' + JSON.stringify(productMap));
+
+				for (let index = 0; index < retailOrders.length; index++) {
+					const cartItemsArray = [];
+					const itemDiscounts = [];
+					const taxArray = [];
+					const element = retailOrders[index];
+					let paymentType;
+
 					if (element.cashPaid !== null || element.creditPaid !== null) {
 						paymentType = 'cash';
 					} else if (element.giftPaid !== null) {
@@ -685,14 +711,11 @@ export class OrderService {
 					} else {
 						paymentType = 'debit';
 					}
-					const itemDiscounts: ItemDiscounts[] = [];
-					const taxArray: ITaxFlowhub[] = [];
-					const cartItemsArray: ICartItemFlowhub[] = [];
 					for (const cartItem of element.items) {
-						const product = await this.productModel.findOne({
-							posProductId: cartItem.productId,
-							companyId: company.companyId,
-						});
+						const product = products.find(
+							(productItem) => productItem.posProductId.toString() === cartItem.productId.toString()
+						);
+
 						if (!product) {
 							continue;
 						}
@@ -718,6 +741,8 @@ export class OrderService {
 								});
 							}
 						}
+
+						// Construct cart item object
 						cartItemsArray.push({
 							category: product.category,
 							itemDiscounts: itemDiscounts,
@@ -736,6 +761,7 @@ export class OrderService {
 							title2: cartItem.vendor,
 							brand: product.brand,
 						});
+						console.log('cartItemsArray =>' + cartItemsArray.length);
 					}
 					const orderObject: IOrderFlowHubInterface = {
 						_id: element.transactionId.toString(),
@@ -774,9 +800,11 @@ export class OrderService {
 						orderStatus: 'sold',
 						budtender: element.employeeId.toString(),
 					};
+
 					ordersArray.push(orderObject);
 				}
-				console.log('ordersArray =>' + ordersArray.length);
+
+				console.log('ordersArray =>' + ordersArray[0]);
 				//setTimeout(() => {
 				this.processOrderBatch(ordersArray, page, posData._id, company.companyId, storeData._id);
 				//	}, 2 * 1000);
