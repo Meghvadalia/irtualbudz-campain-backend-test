@@ -841,12 +841,40 @@ export class ClientCampaignService {
 
 	async removeCampaign(campaignId: Types.ObjectId) {
 		try {
+			let campaignData = await this.campaignModel.findById(campaignId);
+			let storeData = await this.storeModel.findById(campaignData.storeId);
 			const campaigns = await this.campaignModel.findByIdAndRemove(
 				{
 					_id: campaignId,
 				},
 				{ lean: true }
 			);
+			const options: AxiosRequestConfig = {
+				method: 'post',
+				url: `${process.env.TRACKING_SERVER}/campaign/removeCampaign`,
+				data: JSON.stringify({
+					appId: storeData.brandId,
+					name: campaignData.campaignName,
+				}),
+				headers: {
+					'Content-Type': 'application/json',
+					Authorization:
+						'Basic ' +
+						btoa(
+							`${process.env.TRACKING_AUTH_USERNAME}:${process.env.TRACKING_AUTH_PASSWORD}`
+						).toString(),
+				},
+			};
+			try {
+				axios
+					.request(options)
+					.then(async (response) => {})
+					.catch((error) => {
+						console.log(error);
+					});
+			} catch (error) {
+				console.log(error);
+			}
 			return campaigns;
 		} catch (error) {
 			dynamicCatchException(error);

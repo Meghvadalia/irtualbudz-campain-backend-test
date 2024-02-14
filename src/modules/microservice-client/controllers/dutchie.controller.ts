@@ -1,8 +1,7 @@
-import { Controller, Get } from '@nestjs/common';
+import { Controller, Get, Param, Query } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import * as moment from 'moment';
-import { Model } from 'mongoose';
 import { KAFKA_SEEDING_EVENT_TYPE } from 'src/common/constants';
 import { Company } from 'src/model/company/entities/company.entity';
 import { ICompany } from 'src/model/company/interface/company.interface';
@@ -11,6 +10,9 @@ import { IPOS } from 'src/model/pos/interface/pos.interface';
 import { Store } from 'src/model/store/entities/store.entity';
 import { SeedDataProducer } from 'src/modules/kafka/producers/dataSeed.producer';
 import { calculateUtcOffset } from 'src/utils/time.utils';
+import { OrderService } from 'src/microservices/order/services/order.service';
+import { sendSuccess } from 'src/utils/request-response.utils';
+import mongoose, { Model } from 'mongoose';
 
 @Controller('dutchie')
 export class DutchieController {
@@ -18,7 +20,8 @@ export class DutchieController {
 		private readonly seedDataProducer: SeedDataProducer,
 		@InjectModel(Company.name) private companyModel: Model<Company>,
 		@InjectModel(POS.name) private posModel: Model<POS>,
-		@InjectModel(Store.name) private storeModel: Model<Store>
+		@InjectModel(Store.name) private storeModel: Model<Store>,
+		public orderService: OrderService
 	) {}
 
 	@Get('seed')
@@ -79,8 +82,8 @@ export class DutchieController {
 			if (!storeData.timeZone) {
 				storeData.timeZone = 'US/Mountain';
 			}
-			const utcOffsetForStore = calculateUtcOffset(storeData.timeZone);
-			// const utcOffsetForStore = 1;
+			// const utcOffsetForStore = calculateUtcOffset(storeData.timeZone);
+			const utcOffsetForStore = 1;
 			console.log('TimeZone ' + storeData.timeZone + ' ' + storeData.locationName);
 			console.log('cronJobTime ' + cronJobTime);
 			console.log('currentDate ' + currentDate);
@@ -94,12 +97,31 @@ export class DutchieController {
 			this.seedDataProducer.sendSeedData(
 				storeData.companyId,
 				storeData.storeId,
-				KAFKA_SEEDING_EVENT_TYPE.SCHEDULE_TIME,
+				KAFKA_SEEDING_EVENT_TYPE.INITIAL_TIME,
 				posData._id,
 				utcOffsetForStore
 			);
 			// }
 		};
 		await processStoresParallel();
+	}
+
+	@Get('seed-company-wise/:companyId')
+	async seedCompanyWiseDate(
+		@Param('companyId') companyId: string,
+		@Query() query: { fromDate: string; toDate: string }
+	) {
+		try {
+			const fromDate = new Date(query.fromDate);
+			fromDate.setDate(fromDate.getDate() - 1);
+			fromDate.setHours(0, 0, 0, 0);
+			const toDate = new Date(query.toDate);
+			toDate.setHours(0, 0, 0, 0);
+			this.orderService.storeWiseDutchiOrderSeed(fromDate, toDate, companyId);
+			return sendSuccess({ message: 'Data Synced' });
+		} catch (error) {
+			console.error(error);
+			throw new Error(error);
+		}
 	}
 }

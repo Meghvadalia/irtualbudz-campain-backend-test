@@ -360,6 +360,7 @@ export class OrderService {
 			// );
 			const bulkOperations = [];
 			const itemsInCartIds = [];
+			console.log('orders =>' + orders.length);
 			for (const order of orders) {
 				const itemsInCartId = {};
 				itemsInCartId['id'] = order._id ? order._id.toString() : order.id.toString();
@@ -385,7 +386,11 @@ export class OrderService {
 				bulkOperations.push(...items);
 				itemsInCartIds.push(itemsInCartId);
 			}
+			console.log('bulkOperations =>' + bulkOperations.length);
+			console.log('itemsInCartIds =>' + itemsInCartIds.length);
 			const cartResults = await this.cartModel.bulkWrite(bulkOperations);
+			console.log('cartResults =>' + cartResults);
+
 			// @ts-ignore
 			cartResults.result.upserted.forEach((element) => {
 				const id = bulkOperations[element.index].updateOne.update.$set.posCartId;
@@ -404,10 +409,11 @@ export class OrderService {
 
 				order.itemsInCart = items;
 				order.staffId = staffId;
-
+				console.log('order.staffId =>' + order.staffId);
 				delete order.budtender;
 
 				const customer = customers.find((c) => c.posCustomerId === order.customerId);
+				console.log('customer =>' + JSON.stringify(customer));
 				order.customerId = customer ? customer._id : order.customerId;
 
 				const objectIdStoreId = new Types.ObjectId(storeId);
@@ -418,6 +424,7 @@ export class OrderService {
 						{ $set: { storeId: customer.storeId } }
 					);
 				}
+				console.log('objectIdStoreId =>' + objectIdStoreId);
 				order.posOrderId = order._id ? order._id : order.id;
 
 				delete order._id;
@@ -431,6 +438,7 @@ export class OrderService {
 				};
 				delete processOrder.createdAt;
 				this.customerAudience(customer, storeId);
+				console.log('processOrder =>' + JSON.stringify(processOrder));
 				return {
 					updateOne: {
 						filter: {
@@ -441,11 +449,11 @@ export class OrderService {
 					},
 				};
 			});
-
+			console.log('orderPromises =>' + JSON.stringify(orderPromises));
 			const processedOrders = await this.orderModel.bulkWrite(orderPromises);
 			return processedOrders;
 		} catch (error) {
-			console.trace('Error while processing order batch:', error.message);
+			console.trace('Error while processing order batch:' + error.message);
 			throw error;
 		}
 	}
@@ -479,7 +487,8 @@ export class OrderService {
 					) {
 						console.error('Duplicate key violation:' + error.message);
 					} else {
-						throw error;
+						console.log('=>' + error);
+						// throw error;
 					}
 				}
 			}
@@ -516,245 +525,270 @@ export class OrderService {
 			) {
 				console.error('Duplicate key violation:' + error.message);
 			} else {
-				throw error;
+				console.log('=>' + error);
+				// throw error;
 			}
 		}
 	}
 
-	async seedDutchieOrders(posData: IPOS, company: any) {
+	async storeWiseDutchiOrderSeed(fromDate: Date, toDate: Date, companyId) {
 		try {
-			let currentDate: Date = new Date(),
-				fromDate: Date,
-				toDate = new Date(
-					currentDate.getFullYear(),
-					currentDate.getMonth(),
-					currentDate.getDate(),
-					0,
-					0,
-					0
-				);
-			let storeData: IStore;
-			storeData = await this.storeModel.findOne({
-				companyId: company.companyId,
+			const companyData: ICompany = await this.companyModel.findOne<ICompany>({
+				isActive: true,
+				_id: companyId,
 			});
-			const tokenOptions = {
-				method: 'get',
-				url: `${posData.liveUrl}/util/AuthorizationHeader/${company.key}`,
-				headers: {
-					Accept: 'application/json',
-				},
-			};
+			if (companyData) {
+				const storeList: IStore[] = await this.storeModel.find({
+					companyId: companyData._id,
+				});
+				const posData: IPOS = await this.posModel.findOne({
+					_id: companyData.posId,
+				});
+				let orderOptions: AxiosRequestConfig;
+				orderOptions = await this.createAPICallData({
+					key: companyData.dataObject.key,
+					liveUrl: posData.liveUrl,
+					fromDate,
+					toDate,
+				});
+				storeList.map(async (storeData) => {
+					const { data } = await axios.request(orderOptions);
+					console.log('Total Order That we Are Seeding, ' + data.length);
+					data.push(data);
+					const storeObject = {
+						companyId: companyData._id,
+						key: companyData.dataObject.key,
+						clientId: companyData.dataObject.clientId,
+						location: storeData.location,
+						_id: storeData._id,
+						lastSyncDataDuration: companyData.lastSyncDataDuration,
+						timeZone: storeData.timeZone,
+						name: companyData.name,
+					};
 
-			const { data: token } = await axios.request(tokenOptions);
+					this.seedOrderByChunk(posData, storeObject, data);
+				});
+			}
+		} catch (error) {
+			console.error('Error While syncing Data for Specific Date,', error);
+		}
+	}
+
+	async createAPICallData(obj) {
+		console.time('createAPICallData');
+
+		let orderOptions = {};
+		const currentDate = new Date();
+		let fromDate, toDate;
+
+		if (obj && obj.fromDate && obj.toDate) {
+			fromDate = new Date(obj.fromDate);
+			toDate = new Date(obj.toDate);
+		} else {
+			fromDate = new Date(
+				currentDate.getFullYear(),
+				currentDate.getMonth(),
+				currentDate.getDate() - (obj ? obj.lastSyncDataDuration : 0),
+				0,
+				0,
+				0
+			);
+			toDate = new Date(
+				currentDate.getFullYear(),
+				currentDate.getMonth(),
+				currentDate.getDate(),
+				0,
+				0,
+				0
+			);
+		}
+
+		const tokenOptions = {
+			method: 'get',
+			url: `${obj.liveUrl}/util/AuthorizationHeader/${obj.key}`,
+			headers: {
+				Accept: 'application/json',
+			},
+		};
+
+		const { data: token } = await axios.request(tokenOptions);
+
+		orderOptions = {
+			url: `${
+				obj.liveUrl
+			}/reporting/transactions?FromDateUTC=${fromDate.toISOString()}&ToDateUTC=${toDate.toISOString()}&IncludeDetail=true&IncludeTaxes=true&IncludeOrderIds=true`,
+			headers: {
+				Accept: 'application/json',
+				Authorization: token,
+			},
+		};
+
+		console.timeEnd('createAPICallData');
+		return orderOptions;
+	}
+
+	async seedDutchieOrders(posData: IPOS, company: any) {
+		console.log('seedDutchieOrders start' + new Date().toISOString());
+		try {
 			const orderData: IOrder = await this.orderModel.findOne({
 				companyId: company.companyId,
 			});
 
 			let orderOptions: AxiosRequestConfig;
-			let paymentType: string;
-			const isRetail = (iDutchieOrder: IDutchieOrderInterface) =>
-				iDutchieOrder.transactionType === 'Retail';
 
-			const processChunk = async (chunk: IDutchieOrderInterface[], page) => {
-				try {
-					console.log('Chunk Length ', chunk.length);
-					const ordersArray: IOrderFlowHubInterface[] = [];
-					const retailOrders: IDutchieOrderInterface[] = chunk.filter(isRetail);
-					console.log('retailOrders Length ', retailOrders.length);
-					for (let index = 0; index < retailOrders.length; index++) {
-						const element = retailOrders[index];
-						if (element.cashPaid !== null || element.creditPaid !== null) {
-							paymentType = 'cash';
-						} else if (element.giftPaid !== null) {
-							paymentType = 'gift card';
-						} else if (element.loyaltySpent !== null) {
-							paymentType = 'loyalty points';
-						} else {
-							paymentType = 'debit';
-						}
-						const itemDiscounts: ItemDiscounts[] = [];
-						const taxArray: ITaxFlowhub[] = [];
-						const cartItemsArray: ICartItemFlowhub[] = [];
-						for (const cartItem of element.items) {
-							const product = await this.productModel.findOne({
-								posProductId: cartItem.productId,
-								companyId: company.companyId,
-							});
-							if (!product) {
-								continue;
-							}
-							if (cartItem.discounts) {
-								for (const discount of cartItem.discounts) {
-									itemDiscounts.push({
-										_id: discount.discountId.toString(),
-										name: discount.discountName,
-										discountAmount: discount.amount,
-									});
-								}
-							}
-							if (cartItem.taxes) {
-								for (const tax of cartItem.taxes) {
-									taxArray.push({
-										_id: '',
-										name: tax.rateName,
-										percentage: tax.rate,
-										appliesTo: 'all',
-										supplierSpecificTax: false,
-										excludeCustomerGroups: [],
-										thisTaxInPennies: tax.amount,
-									});
-								}
-							}
-							cartItemsArray.push({
-								category: product.category,
-								itemDiscounts: itemDiscounts,
-								id: element.transactionId.toString(),
-								productName: product.productName,
-								quantity: cartItem.quantity,
-								sku: product.sku,
-								strainName: product.strain,
-								tax: taxArray,
-								totalCost: cartItem.quantity * cartItem.unitCost,
-								totalPrice: cartItem.totalPrice,
-								unitCost: cartItem.unitCost,
-								unitOfWeight: cartItem.unitWeightUnit,
-								unitPrice: cartItem.unitPrice,
-								title1: product.productName,
-								title2: cartItem.vendor,
-								brand: product.brand,
-							});
-						}
-						const orderObject: IOrderFlowHubInterface = {
-							_id: element.transactionId.toString(),
-							clientId: '',
-							createdAt: new Date(element.checkInDate).toISOString(),
-							customerId: element.customerId.toString(),
-							currentPoints: element.loyaltyEarned,
-							customerType:
-								element.customerTypeId === 2
-									? CUSTOMER_TYPE.recCustomer
-									: CUSTOMER_TYPE.medCustomer,
-							name: element.completedByUser,
-							locationId: storeData.location.locationId,
-							locationName: storeData.locationName,
-							itemsInCart: cartItemsArray,
-							voided: false,
-							fullName: element.completedByUser,
-							orderType: orderType[element.orderType],
-							payments: [
-								{
-									amount: element.total,
-									_id: element.transactionId.toString(),
-									cardId: null,
-									debitProvider: '',
-									paymentType,
-									loyaltyPoints: element.loyaltySpent,
-									balanceAfterPayment: null,
-								},
-							],
-							totals: {
-								finalTotal: element.total,
-								subTotal: element.subtotal,
-								totalDiscounts: element.totalDiscount,
-								totalTaxes: element.tax,
-								totalFees: 0,
-							},
-							completedOn: new Date(element.estDeliveryDateLocal).toISOString(),
-							orderStatus: 'sold',
-							budtender: element.employeeId.toString(),
-						};
-						ordersArray.push(orderObject);
-					}
-					//setTimeout(() => {
-					this.processOrderBatch(ordersArray, page, posData._id, company.companyId, storeData._id);
-					//	}, 2 * 1000);
-				} catch (error) {
-					console.error('Error In the chunk ', error);
-				}
-			};
-			let orderDataFromDutchie: Array<IDutchieOrderInterface> = [];
 			if (!orderData) {
-				// fromDate = new Date(
-				// 	currentDate.getFullYear(),
-				// 	currentDate.getMonth(),
-				// 	currentDate.getDate() - company.lastSyncDataDuration,
-				// 	0,
-				// 	0,
-				// 	0
-				// );
-				// orderOptions = {
-				// 	url: `${
-				// 		posData.liveUrl
-				// 	}/reporting/transactions?FromDateUTC=${fromDate.toISOString()}&ToDateUTC=${toDate.toISOString()}&IncludeDetail=true&IncludeTaxes=true&IncludeOrderIds=true`,
-				// 	headers: {
-				// 		Accept: 'application/json',
-				// 		Authorization: token,
-				// 	},
-				// };
-
-				const startDate = new Date(currentDate);
-				startDate.setDate(startDate.getDate() - company.lastSyncDataDuration);
-
-				// Calculate the number of months to cover
-				const numMonths = Math.ceil(company.lastSyncDataDuration / 30);
-
-				for (let i = 0; i < numMonths; i++) {
-					const fromDate = new Date(startDate);
-					fromDate.setMonth(fromDate.getMonth() + i);
-
-					const toDate = new Date(fromDate.getFullYear(), fromDate.getMonth() + 1, 0, 23, 59, 59);
-
-					const orderOptions = {
-						url: `${
-							posData.liveUrl
-						}/reporting/transactions?FromDateUTC=${fromDate.toISOString()}&ToDateUTC=${toDate.toISOString()}&IncludeDetail=true&IncludeTaxes=true&IncludeOrderIds=true${
-							i === 0 ? '&IncludeFeesAndDonations=true' : ''
-						}`,
-						headers: {
-							Accept: 'application/json',
-							Authorization: token,
-						},
-					};
-
-					console.log(`API Calling for ${fromDate.getMonth() + 1}/${fromDate.getFullYear()}`);
-					const { data } = await axios.request(orderOptions);
-					console.log(
-						`Total Orders for ${fromDate.getMonth() + 1}/${fromDate.getFullYear()}: ${data.length}`
-					);
-					orderDataFromDutchie.push(data);
-				}
+				orderOptions = await this.createAPICallData({
+					lastSyncDataDuration: company.lastSyncDataDuration,
+					key: company.key,
+					liveUrl: posData.liveUrl,
+				});
 			} else {
-				fromDate = new Date(
-					currentDate.getFullYear(),
-					currentDate.getMonth(),
-					currentDate.getDate() - 1,
-					0,
-					0,
-					0
-				);
-				orderOptions = {
-					url: `${
-						posData.liveUrl
-					}/reporting/transactions?FromDateUTC=${fromDate.toISOString()}&ToDateUTC=${toDate.toISOString()}&IncludeDetail=true&IncludeTaxes=true&IncludeOrderIds=true&IncludeFeesAndDonations=true`,
-					headers: {
-						Accept: 'application/json',
-						Authorization: token,
-					},
-				};
-				console.log('API Calling  url ' + JSON.stringify(orderOptions));
-				const { data } = await axios.request(orderOptions);
-				console.log('Total Order That we Are Seeding, ' + data.length);
-				orderDataFromDutchie.push(data);
+				orderOptions = await this.createAPICallData({
+					lastSyncDataDuration: 1,
+					key: company.key,
+					liveUrl: posData.liveUrl,
+				});
 			}
-
-			const chunkSize = 50;
-
-			const arrayOfChunks = _.chunk(orderDataFromDutchie, chunkSize);
-
-			arrayOfChunks.map((chunk: any, index: number) => processChunk(chunk, index));
+			console.log('API Calling  url ' + JSON.stringify(orderOptions));
+			const { data } = await axios.request(orderOptions);
+			console.log('Total Order That we Are Seeding, ' + data.length);
+			data.push(data);
+			this.seedOrderByChunk(posData, company, data);
 		} catch (error) {
 			console.error(error);
 		}
+	}
+
+	async seedOrderByChunk(posData: IPOS, company: any, data) {
+		console.log('seedOrderByChunk => length ' + data.length);
+		let paymentType: string;
+		const isRetail = (iDutchieOrder: IDutchieOrderInterface) =>
+			iDutchieOrder.transactionType === 'Retail';
+		let storeData: IStore;
+		storeData = await this.storeModel.findOne({
+			companyId: company.companyId,
+		});
+		const processChunk = async (chunk: IDutchieOrderInterface[], page) => {
+			try {
+				console.log('Chunk Length ' + chunk.length);
+				const ordersArray: IOrderFlowHubInterface[] = [];
+				const retailOrders: IDutchieOrderInterface[] = chunk.filter(isRetail);
+				console.log('retailOrders Length ' + retailOrders.length);
+				for (let index = 0; index < retailOrders.length; index++) {
+					const element = retailOrders[index];
+					if (element.cashPaid !== null || element.creditPaid !== null) {
+						paymentType = 'cash';
+					} else if (element.giftPaid !== null) {
+						paymentType = 'gift card';
+					} else if (element.loyaltySpent !== null) {
+						paymentType = 'loyalty points';
+					} else {
+						paymentType = 'debit';
+					}
+					const itemDiscounts: ItemDiscounts[] = [];
+					const taxArray: ITaxFlowhub[] = [];
+					const cartItemsArray: ICartItemFlowhub[] = [];
+					for (const cartItem of element.items) {
+						const product = await this.productModel.findOne({
+							posProductId: cartItem.productId,
+							companyId: company.companyId,
+						});
+						if (!product) {
+							continue;
+						}
+						if (cartItem.discounts) {
+							for (const discount of cartItem.discounts) {
+								itemDiscounts.push({
+									_id: discount.discountId.toString(),
+									name: discount.discountName,
+									discountAmount: discount.amount,
+								});
+							}
+						}
+						if (cartItem.taxes) {
+							for (const tax of cartItem.taxes) {
+								taxArray.push({
+									_id: '',
+									name: tax.rateName,
+									percentage: tax.rate,
+									appliesTo: 'all',
+									supplierSpecificTax: false,
+									excludeCustomerGroups: [],
+									thisTaxInPennies: tax.amount,
+								});
+							}
+						}
+						cartItemsArray.push({
+							category: product.category,
+							itemDiscounts: itemDiscounts,
+							id: element.transactionId.toString(),
+							productName: product.productName,
+							quantity: cartItem.quantity,
+							sku: product.sku,
+							strainName: product.strain,
+							tax: taxArray,
+							totalCost: cartItem.quantity * cartItem.unitCost,
+							totalPrice: cartItem.totalPrice,
+							unitCost: cartItem.unitCost,
+							unitOfWeight: cartItem.unitWeightUnit,
+							unitPrice: cartItem.unitPrice,
+							title1: product.productName,
+							title2: cartItem.vendor,
+							brand: product.brand,
+						});
+					}
+					const orderObject: IOrderFlowHubInterface = {
+						_id: element.transactionId.toString(),
+						clientId: '',
+						createdAt: new Date(element.checkInDate).toISOString(),
+						customerId: element.customerId.toString(),
+						currentPoints: element.loyaltyEarned,
+						customerType:
+							element.customerTypeId === 2 ? CUSTOMER_TYPE.recCustomer : CUSTOMER_TYPE.medCustomer,
+						name: element.completedByUser,
+						locationId: storeData.location.locationId,
+						locationName: storeData.locationName,
+						itemsInCart: cartItemsArray,
+						voided: false,
+						fullName: element.completedByUser,
+						orderType: orderType[element.orderType],
+						payments: [
+							{
+								amount: element.total,
+								_id: element.transactionId.toString(),
+								cardId: null,
+								debitProvider: '',
+								paymentType,
+								loyaltyPoints: element.loyaltySpent,
+								balanceAfterPayment: null,
+							},
+						],
+						totals: {
+							finalTotal: element.total,
+							subTotal: element.subtotal,
+							totalDiscounts: element.totalDiscount,
+							totalTaxes: element.tax,
+							totalFees: 0,
+						},
+						completedOn: new Date(element.estDeliveryDateLocal).toISOString(),
+						orderStatus: 'sold',
+						budtender: element.employeeId.toString(),
+					};
+					ordersArray.push(orderObject);
+				}
+				console.log('ordersArray =>' + ordersArray.length);
+				//setTimeout(() => {
+				this.processOrderBatch(ordersArray, page, posData._id, company.companyId, storeData._id);
+				//	}, 2 * 1000);
+			} catch (error) {
+				console.error('Error In the chunk ' + error);
+			}
+		};
+		const chunkSize = 50;
+
+		const arrayOfChunks = _.chunk(data, chunkSize);
+
+		arrayOfChunks.map((chunk: any, index: number) => processChunk(chunk, index));
 	}
 
 	async seedDutchieStaff(posData: IPOS, company: any) {
