@@ -849,6 +849,11 @@ export class ClientCampaignService {
 				},
 				{ lean: true }
 			);
+			console.log('SGR');
+			console.log({
+				appId: storeData.brandId,
+				name: campaignData.campaignName,
+			});
 			const options: AxiosRequestConfig = {
 				method: 'post',
 				url: `${process.env.TRACKING_SERVER}/campaign/removeCampaign`,
@@ -868,9 +873,13 @@ export class ClientCampaignService {
 			try {
 				axios
 					.request(options)
-					.then(async (response) => {})
+					.then(async (response) => {
+						console.log('TRACKING_SERVER campaigne delete');
+						console.log(response);
+					})
 					.catch((error) => {
-						console.log(error);
+						console.error('TRACKING_SERVER campaigne delete');
+						console.error(error);
 					});
 			} catch (error) {
 				console.log(error);
