@@ -33,7 +33,7 @@ export class AudienceDetailsService {
 
 	async getAllAudiences() {
 		try {
-			const allAudiences = await this.audienceDetailsModel.find().select({
+			const allAudiences = await this.audienceDetailsModel.find({ isActive: true }).select({
 				name: 1,
 				_id: 1,
 				audienceDescription: 1,

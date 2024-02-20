@@ -92,15 +92,18 @@ export class ClientCustomerService {
 	async getNewCustomersByMonth(storeId: Types.ObjectId) {
 		const storeData = await this.clientStoreService.storeById(storeId.toString());
 		const { formattedFromDate, formattedToDate } = getCurrentYearDateRange(storeData.timeZone);
-
 		try {
 			const pipeline: PipelineStage[] = [
 				{
 					$match: {
 						storeId,
 						userCreatedAt: {
-							$gte: formattedFromDate,
-							$lte: formattedToDate,
+							$gte: new Date(
+								new Date(
+									new Date(formattedFromDate).setFullYear(new Date().getFullYear() - 1)
+								).toISOString()
+							),
+							$lte: new Date(new Date(formattedFromDate).toISOString()),
 						},
 					},
 				},
@@ -141,7 +144,6 @@ export class ClientCustomerService {
 					},
 				},
 			];
-
 			const result = await this.customerModel.aggregate(pipeline);
 			const newCustomersByMonth = result.length > 0 ? result : [];
 
@@ -157,8 +159,12 @@ export class ClientCustomerService {
 			const result = await this.customerModel.countDocuments({
 				storeId: { $in: [new Types.ObjectId(storeId)] },
 				userCreatedAt: {
-					$gte: formattedFromDate,
-					$lte: formattedToDate,
+					$gte: new Date(
+						new Date(
+							new Date(formattedFromDate).setFullYear(new Date().getFullYear() - 1)
+						).toISOString()
+					),
+					$lte: new Date(new Date(formattedFromDate).toISOString()),
 				},
 			});
 			if (result) {

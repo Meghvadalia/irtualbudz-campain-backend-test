@@ -247,7 +247,7 @@ export const graphData = [
 		],
 	},
 	{
-		name: ACTIONS.INCREASE_MARGINS,
+		name: GOALSTYPES.IncreaseMargins,
 		condition: [
 			{
 				$match: {

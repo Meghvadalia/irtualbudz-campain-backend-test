@@ -8,6 +8,7 @@ export interface IGOALS {
 }
 
 export enum GOALSTYPES {
+	IncreaseMargins = 'Increase Margins',
 	IncreaseInStoreTraffic = 'Increase In-store traffic',
 	IncreaseCartSize = 'Increase Cart Size',
 	IncreaseOnlineOrders = 'Increase Online Orders',

@@ -1,7 +1,7 @@
 import { IAction } from 'src/model/actions/interface/action.interface';
 
 export enum ACTIONS {
-	INCREASE_MARGINS = 'Increase Margins',
+	// INCREASE_MARGINS = 'Increase Margins',
 	REDUCE_INVENTORY = 'Reduce Inventory',
 	MARKET_SPECIFIC_BRAND = 'Market Specific Brand',
 	INCREASE_TRANSACTIONS = 'Increase Transactions',
@@ -15,12 +15,12 @@ export enum ACTIONS {
 }
 
 export const actionsList: IAction[] = [
-	{
-		name: ACTIONS.INCREASE_MARGINS,
-		isActive: true,
-		isDeleted: false,
-		isTrackable: true,
-	},
+	// {
+	// 	name: ACTIONS.INCREASE_MARGINS,
+	// 	isActive: true,
+	// 	isDeleted: false,
+	// 	isTrackable: true,
+	// },
 	{
 		name: ACTIONS.REDUCE_INVENTORY,
 		isActive: true,
