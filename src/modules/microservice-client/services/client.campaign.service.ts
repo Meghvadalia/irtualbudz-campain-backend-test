@@ -849,17 +849,13 @@ export class ClientCampaignService {
 				},
 				{ lean: true }
 			);
-			console.log('SGR');
-			console.log({
-				appId: storeData.brandId,
-				name: campaignData.campaignName,
-			});
+
 			const options: AxiosRequestConfig = {
 				method: 'post',
 				url: `${process.env.TRACKING_SERVER}/campaign/removeCampaign`,
 				data: JSON.stringify({
 					appId: storeData.brandId,
-					name: campaignData.campaignName,
+					campaignName: campaignData.campaignName,
 				}),
 				headers: {
 					'Content-Type': 'application/json',
