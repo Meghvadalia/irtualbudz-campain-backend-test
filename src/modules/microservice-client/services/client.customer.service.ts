@@ -144,6 +144,8 @@ export class ClientCustomerService {
 					},
 				},
 			];
+			console.error('newCustomersByMonth');
+			console.log(JSON.stringify(pipeline));
 			const result = await this.customerModel.aggregate(pipeline);
 			const newCustomersByMonth = result.length > 0 ? result : [];
 
