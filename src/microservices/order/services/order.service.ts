@@ -1,3 +1,4 @@
+import { DutchieController } from './../../../modules/microservice-client/controllers/dutchie.controller';
 import { Injectable } from '@nestjs/common';
 import { InjectModel, Schema } from '@nestjs/mongoose';
 import mongoose, { Model, Types } from 'mongoose';
@@ -800,11 +801,12 @@ export class OrderService {
 						orderStatus: 'sold',
 						budtender: element.employeeId.toString(),
 					};
-
+					console.log('Final OrderObject For DutchieController' + JSON.stringify(orderObject));
 					ordersArray.push(orderObject);
 				}
 
-				console.log('ordersArray =>' + ordersArray[0]);
+				console.log('ordersArray =>');
+				console.log(ordersArray[0]);
 				//setTimeout(() => {
 				this.processOrderBatch(ordersArray, page, posData._id, company.companyId, storeData._id);
 				//	}, 2 * 1000);
