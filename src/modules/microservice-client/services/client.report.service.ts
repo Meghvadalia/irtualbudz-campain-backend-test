@@ -27,9 +27,13 @@ export class ClientReportService {
 				this.getAllCountries(campaignId),
 				this.getSummaryData(campaignId),
 			];
-			return Promise.all(funcionsArry).then((values) => {
-				return resolve(values);
-			});
+			return Promise.all(funcionsArry)
+				.then((values) => {
+					return resolve(values);
+				})
+				.catch((error) => {
+					return reject(error);
+				});
 		});
 	}
 
