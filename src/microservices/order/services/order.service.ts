@@ -681,7 +681,7 @@ export class OrderService {
 					const element = retailOrders[index];
 					for (let index = 0; index < element.items.length; index++) {
 						const cartItem = element.items[index];
-						productIds.add(cartItem.productId);
+						productIds.add(cartItem.productId.toString());
 					}
 				}
 				const uniqueProductIdsArray = [...productIds];
