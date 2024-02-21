@@ -12,7 +12,8 @@ import { SeedDataProducer } from 'src/modules/kafka/producers/dataSeed.producer'
 import { calculateUtcOffset } from 'src/utils/time.utils';
 import { OrderService } from 'src/microservices/order/services/order.service';
 import { sendSuccess } from 'src/utils/request-response.utils';
-import mongoose, { Model } from 'mongoose';
+import mongoose, { Model, Types } from 'mongoose';
+import { InventoryService } from 'src/microservices/inventory';
 
 @Controller('dutchie')
 export class DutchieController {
@@ -21,7 +22,8 @@ export class DutchieController {
 		@InjectModel(Company.name) private companyModel: Model<Company>,
 		@InjectModel(POS.name) private posModel: Model<POS>,
 		@InjectModel(Store.name) private storeModel: Model<Store>,
-		public orderService: OrderService
+		public orderService: OrderService,
+		private inventoryService: InventoryService
 	) {}
 
 	@Get('seed')
@@ -118,6 +120,37 @@ export class DutchieController {
 			const toDate = new Date(query.toDate);
 			toDate.setHours(0, 0, 0, 0);
 			this.orderService.storeWiseDutchiOrderSeed(fromDate, toDate, companyId);
+			return sendSuccess({ message: 'Data Synced' });
+		} catch (error) {
+			console.error(error);
+			throw new Error(error);
+		}
+	}
+
+	@Get('seedInventory-company-wise/:companyId')
+	async seedInventory(@Param('companyId') companyId: string) {
+		try {
+			const companyData: ICompany = await this.companyModel.findOne<ICompany>({
+				isActive: true,
+				_id: companyId,
+			});
+
+			const posData: IPOS = await this.posModel.findOne({
+				_id: companyData.posId,
+			});
+			const storeData = await this.storeModel.findOne({ companyId: new Types.ObjectId(companyId) });
+			console.log(storeData);
+			const storeObject = {
+				companyId: companyData._id,
+				key: companyData.dataObject.key,
+				clientId: companyData.dataObject.clientId,
+				location: storeData.location,
+				_id: storeData._id,
+				lastSyncDataDuration: companyData.lastSyncDataDuration,
+				timeZone: storeData.timeZone,
+				name: companyData.name,
+			};
+			this.inventoryService.seedDutchieInventory(posData, storeObject);
 			return sendSuccess({ message: 'Data Synced' });
 		} catch (error) {
 			console.error(error);

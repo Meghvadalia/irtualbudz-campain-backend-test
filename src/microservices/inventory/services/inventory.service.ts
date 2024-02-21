@@ -155,76 +155,94 @@ export class InventoryService {
 				companyId: company.companyId,
 			});
 
-			const bulkProductOps = productsData.map((d) => ({
-				updateOne: {
-					filter: { posProductId: d.productId },
-					update: {
-						$setOnInsert: {
-							productName: d.productName,
-							productDescription: d.description,
-							brand: d.brandName,
-							category: d.masterCategory,
-							posProductId: d.productId,
-							productPictureURL: d.imageUrl,
-							productWeight: d.netWeight,
-							sku: d.sku,
-							posId: posData._id,
-							type: d.category,
-							companyId: company.companyId,
-							purchaseCategory: d.raregulatoryCategory,
-							speciesName: d.strainType,
-							'extraDetails.nutrients': '',
-							'extraDetails.isMixAndMatch': null,
-							'extraDetails.isStackable': null,
-							'extraDetails.productUnitOfMeasure': d.defaultUnit,
-							'extraDetails.cannabinoidInformation': {
-								name: '',
-								lowerRange: null,
-								upperRange: null,
-								unitOfMeasure: '',
-								unitOfMeasureToGramsMultiplier: '',
-							},
-							'extraDetails.weightTierInformation': {
-								name: '',
-								gramAmount: '',
-								pricePerUnitInMinorUnits: null,
+			const bulkProductOps = productsData.map((d) => {
+				return {
+					updateOne: {
+						filter: { posProductId: d.productId },
+						update: {
+							$setOnInsert: {
+								productName: d.productName,
+								productDescription: d.description,
+								brand: d.brandName,
+								category: d.masterCategory,
+								posProductId: d.productId,
+								productPictureURL: d.imageUrl,
+								productWeight: d.netWeight,
+								sku: d.sku,
+								posId: posData._id,
+								type: d.category,
+								companyId: company.companyId,
+								purchaseCategory: d.raregulatoryCategory,
+								speciesName: d.strainType,
+								'extraDetails.nutrients': '',
+								'extraDetails.isMixAndMatch': null,
+								'extraDetails.isStackable': null,
+								'extraDetails.productUnitOfMeasure': d.defaultUnit,
+								'extraDetails.cannabinoidInformation': {
+									name: '',
+									lowerRange: null,
+									upperRange: null,
+									unitOfMeasure: '',
+									unitOfMeasureToGramsMultiplier: '',
+								},
+								'extraDetails.weightTierInformation': {
+									name: '',
+									gramAmount: '',
+									pricePerUnitInMinorUnits: null,
+								},
 							},
 						},
+						upsert: true,
 					},
-					upsert: true,
-				},
-			}));
+				};
+			});
 
 			await this.productModel.bulkWrite(bulkProductOps);
 
 			const { data: inventoryData } = await axios.request(inventoryOptions);
+			const productIds = new Set();
 
-			const bulkInventoryOps = inventoryData.map((d) => ({
-				updateOne: {
-					filter: { posProductId: d.productId },
-					update: {
-						$setOnInsert: {
-							quantity: d.quantityAvailable,
-							expirationDate: d.expirationDate,
-							companyId: company.companyId,
-							posId: posData._id,
-							posProductId: d.productId,
-							sku: d.sku,
-							productUpdatedAt: d.lastModifiedDateUtc,
-							storeId: storeData._id,
-							locationName: storeData.location.locationName,
-							productId: '',
-							'extraDetails.inventoryUnitOfMeasure': d.unitWeightUnit,
-							'extraDetails.inventoryUnitOfMeasureToGramsMultiplier': 1,
-							currencyCode: '',
-							costInMinorUnits: 0,
-							priceInMinorUnits: 0,
-							forSale: false,
+			for (let index = 0; index < productsData.length; index++) {
+				const element = productsData[index];
+				productIds.add(element.productId.toString());
+			}
+			const uniqueProductIdsArray = [...productIds];
+
+			const products = await this.productModel.find({
+				posProductId: { $in: uniqueProductIdsArray },
+				companyId: company.companyId,
+			});
+			const bulkInventoryOps = inventoryData.map((d) => {
+				const product = products.find(
+					(productItem) => productItem.posProductId.toString() === d.productId.toString()
+				);
+				return {
+					updateOne: {
+						filter: { posProductId: d.productId },
+						update: {
+							$setOnInsert: {
+								quantity: d.quantityAvailable,
+								expirationDate: d.expirationDate,
+								companyId: company.companyId,
+								posId: posData._id,
+								posProductId: d.productId,
+								sku: d.sku,
+								productUpdatedAt: d.lastModifiedDateUtc,
+								storeId: storeData._id,
+								locationName: storeData.location.locationName,
+								productId: product._id,
+								'extraDetails.inventoryUnitOfMeasure': d.unitWeightUnit,
+								'extraDetails.inventoryUnitOfMeasureToGramsMultiplier': 1,
+								currencyCode: '',
+								costInMinorUnits: 0,
+								priceInMinorUnits: 0,
+								forSale: false,
+							},
 						},
+						upsert: true,
 					},
-					upsert: true,
-				},
-			}));
+				};
+			});
 
 			await this.inventoryModel.bulkWrite(bulkInventoryOps);
 

@@ -391,7 +391,8 @@ export class OrderService {
 			console.log('itemsInCartIds =>' + itemsInCartIds.length);
 			const cartResults = await this.cartModel.bulkWrite(bulkOperations);
 			console.log('cartResults =>' + cartResults);
-
+			// @ts-ignore
+			console.log('Cart Result with Upserted,' + JSON.stringify(cartResults.result));
 			// @ts-ignore
 			cartResults.result.upserted.forEach((element) => {
 				const id = bulkOperations[element.index].updateOne.update.$set.posCartId;
@@ -762,7 +763,6 @@ export class OrderService {
 							title2: cartItem.vendor,
 							brand: product.brand,
 						});
-						console.log('cartItemsArray =>' + cartItemsArray.length);
 					}
 					const orderObject: IOrderFlowHubInterface = {
 						_id: element.transactionId.toString(),
@@ -801,12 +801,10 @@ export class OrderService {
 						orderStatus: 'sold',
 						budtender: element.employeeId.toString(),
 					};
-					console.log('Final OrderObject For DutchieController' + JSON.stringify(orderObject));
+
 					ordersArray.push(orderObject);
 				}
 
-				console.log('ordersArray =>');
-				console.log(ordersArray[0]);
 				//setTimeout(() => {
 				this.processOrderBatch(ordersArray, page, posData._id, company.companyId, storeData._id);
 				//	}, 2 * 1000);
