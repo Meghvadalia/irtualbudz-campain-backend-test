@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
+import { Model, Types } from 'mongoose';
 import axios, { AxiosRequestConfig } from 'axios';
 
 import { Customer } from '../entities/customer.entity';
@@ -127,6 +127,27 @@ export class CustomerService {
 				console.log('All customers fetched');
 				shouldContinue = false;
 			}
+		}
+	}
+
+	async updateCustomer(customer, companyId, order) {
+		try {
+			console.log(
+				'Updating Customer store customer Service=> ' +
+					JSON.stringify({
+						posCustomerId: customer ? customer.posCustomerId : order.customerId,
+						companyId: new Types.ObjectId(companyId),
+					})
+			);
+			await this.customerModel.updateOne(
+				{
+					posCustomerId: customer ? customer.posCustomerId : order.customerId,
+					companyId: new Types.ObjectId(companyId),
+				},
+				{ $set: { storeId: customer.storeId } }
+			);
+		} catch (error) {
+			console.error('Error While Updating customer', error);
 		}
 	}
 
