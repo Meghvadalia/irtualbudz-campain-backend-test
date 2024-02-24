@@ -418,15 +418,6 @@ export class OrderService {
 				console.log('customer =>' + JSON.stringify(customer));
 				order.customerId = customer ? customer._id : order.customerId;
 
-				const objectIdStoreId = new Types.ObjectId(storeId);
-				if (customer && !customer.storeId.includes(objectIdStoreId)) {
-					customer.storeId.push(objectIdStoreId);
-					this.customerModel.updateOne(
-						{ _id: customer ? customer._id : order.customerId },
-						{ $set: { storeId: customer.storeId } }
-					);
-				}
-				console.log('objectIdStoreId =>' + objectIdStoreId);
 				order.posOrderId = order._id ? order._id : order.id;
 
 				delete order._id;
@@ -441,6 +432,13 @@ export class OrderService {
 				delete processOrder.createdAt;
 				this.customerAudience(customer, storeId);
 				console.log('processOrder =>' + JSON.stringify(processOrder));
+				const objectIdStoreId = new Types.ObjectId(storeId);
+				if (customer && !customer.storeId.includes(objectIdStoreId)) {
+					customer.storeId.push(objectIdStoreId);
+					console.log('Updating customer For this store =>' + JSON.stringify(customer));
+					this.customerService.updateCustomer(customer, companyId, order);
+				}
+				console.log('objectIdStoreId =>' + objectIdStoreId);
 				return {
 					updateOne: {
 						filter: {
