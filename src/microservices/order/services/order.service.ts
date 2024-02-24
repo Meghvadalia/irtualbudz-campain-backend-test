@@ -727,6 +727,7 @@ export class OrderService {
 									_id: discount.discountId.toString(),
 									name: discount.discountName,
 									discountAmount: discount.amount,
+									penniesOff: Number(discount.amount) * 100,
 								});
 							}
 						}
