@@ -275,6 +275,7 @@ export class SeederService {
 							name: audienceDetail.name,
 							audienceDescription: audienceDetail.audienceDescription,
 							type: audienceDetail.type,
+							displayIndex: audienceDetail.displayIndex,
 						},
 					},
 					upsert: true,

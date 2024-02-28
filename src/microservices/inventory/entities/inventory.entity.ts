@@ -55,7 +55,7 @@ export class Inventory extends Model<IInventory> {
 	costInMinorUnits: number;
 	@Prop({ default: 0 })
 	priceInMinorUnits: number;
-	@Prop({ default: false })
+	@Prop({ default: true })
 	forSale: boolean;
 }
 
