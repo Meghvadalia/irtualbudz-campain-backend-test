@@ -67,8 +67,8 @@ export class ClientAudienceCustomerService {
 			const bulkOperations = [];
 
 			if (audienceDetail.name === AudienceName.ALL) {
-				const audienceCustomersList: IAudienceCustomer[] = await this.audienceCustomerModel.find({
-					type: AudienceCustomerType.SYSTEM,
+				const audienceCustomersList: IAudienceCustomer[] = await this.customerModel.find({
+					storeId: { $in: [storeObjectId] },
 				});
 
 				for (const customer of audienceCustomersList) {
