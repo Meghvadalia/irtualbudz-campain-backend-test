@@ -211,10 +211,13 @@ export class ClientCampaignService {
 					const element = productList[i];
 					if (element.productPictureURL == null && element.type != 'category') {
 						if (categoryData.length > 0) {
-							let imgs = categoryData.filter((x) => x.name == element.category)[0].images;
-							element.productPictureURL = (
-								process.env.REACT_APP_IMAGE_SERVER + imgs[Math.floor(Math.random() * imgs.length)]
-							).trim();
+							let imgs = categoryData.filter((x) => x.name == element.category);
+							if (imgs.length > 0) {
+								imgs[0]?.images;
+								element.productPictureURL = (
+									process.env.REACT_APP_IMAGE_SERVER + imgs[Math.floor(Math.random() * imgs.length)]
+								).trim();
+							}
 						}
 					}
 				}
