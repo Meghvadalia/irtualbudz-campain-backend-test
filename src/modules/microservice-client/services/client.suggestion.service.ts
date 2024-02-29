@@ -82,7 +82,7 @@ export class ClientSuggestionService {
 				toDate.toLocaleString(),
 				timeZone
 			);
-			const replacements = [
+			const replacements: any = [
 				{ key: 'storeId', value: storeObjectId },
 				{ key: '$gte', value: storeDateTime.formattedFromDate },
 				{ key: '$lte', value: storeDateTime.formattedToDate },
@@ -162,7 +162,11 @@ export class ClientSuggestionService {
 					}
 				} else if (suggestion.name === suggestionsList.SLOW_MOVING_ITEMS) {
 					let suggestionData;
-
+					let ignoreCategory = ['Accessories'];
+					replacements.push({
+						key: '$nin',
+						value: ignoreCategory,
+					});
 					switch (filter) {
 						case 'sellable':
 							suggestionData = await this.suggestionModel.findOne({
@@ -871,9 +875,15 @@ export class ClientSuggestionService {
 						break;
 				}
 			}
+			console.log('replacements =>');
+			console.log(replacements);
 			for (const element of replacements) {
 				updatePipeline(pipeline, element.key, element.value);
 			}
+			console.log('pipeline =>');
+			console.log(suggestion.name);
+			console.log(pipeline);
+			console.log(suggestion.collectionName);
 			const productList = await this.collectionMap[suggestion.collectionName].aggregate(pipeline);
 			return productList;
 		} catch (error) {

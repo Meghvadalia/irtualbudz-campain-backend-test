@@ -7,4 +7,5 @@ export interface IAudienceDetails {
 	isActive?: boolean;
 	isDeleted?: boolean;
 	type: AudienceType;
+	displayIndex: number;
 }

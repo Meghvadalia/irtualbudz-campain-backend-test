@@ -220,7 +220,7 @@ export class InventoryService {
 					updateOne: {
 						filter: { posProductId: d.productId },
 						update: {
-							$setOnInsert: {
+							$set: {
 								quantity: d.quantityAvailable,
 								expirationDate: d.expirationDate,
 								companyId: company.companyId,
@@ -236,7 +236,7 @@ export class InventoryService {
 								currencyCode: '',
 								costInMinorUnits: 0,
 								priceInMinorUnits: 0,
-								forSale: false,
+								forSale: true,
 							},
 						},
 						upsert: true,

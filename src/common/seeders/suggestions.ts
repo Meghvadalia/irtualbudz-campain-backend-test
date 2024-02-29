@@ -93,6 +93,11 @@ export const SuggestionList: ISuggestions[] = [
 				$unwind: '$cartData',
 			},
 			{
+				$match: {
+					'cartData.category': { $nin: '' },
+				},
+			},
+			{
 				$project: {
 					_id: 0,
 					orderId: '$_id',
@@ -514,7 +519,11 @@ export const SuggestionList: ISuggestions[] = [
 			{
 				$unwind: '$cartData',
 			},
-
+			{
+				$match: {
+					'cartData.category': { $nin: '' },
+				},
+			},
 			{
 				$project: {
 					_id: 0,
@@ -605,7 +614,11 @@ export const SuggestionList: ISuggestions[] = [
 			{
 				$unwind: '$cartData',
 			},
-
+			{
+				$match: {
+					'cartData.category': { $nin: '' },
+				},
+			},
 			{
 				$project: {
 					_id: 0,

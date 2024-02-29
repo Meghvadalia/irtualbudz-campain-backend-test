@@ -33,14 +33,18 @@ export class AudienceDetailsService {
 
 	async getAllAudiences() {
 		try {
-			const allAudiences = await this.audienceDetailsModel.find({ isActive: true }).select({
-				name: 1,
-				_id: 1,
-				audienceDescription: 1,
-				isActive: 1,
-				isDeleted: 1,
-				type: 1,
-			});
+			const allAudiences = await this.audienceDetailsModel
+				.find({ isActive: true })
+				.select({
+					name: 1,
+					_id: 1,
+					audienceDescription: 1,
+					isActive: 1,
+					isDeleted: 1,
+					type: 1,
+					displayIndex: 1,
+				})
+				.sort({ displayIndex: 1 });
 			return allAudiences;
 		} catch (error) {
 			dynamicCatchException(error);
