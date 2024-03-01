@@ -335,17 +335,21 @@ export const graphData = [
 							if: { $eq: ['$LastDayGrossProfit', 0] },
 							then: 0,
 							else: {
-								$multiply: [
-									{
-										$divide: [
+								$cond: {
+									if: { $eq: ['$FirstDayGrossProfit', 0] },
+									then: 100,
+									else: {
+										$multiply: [
 											{
-												$subtract: ['$LastDayGrossProfit', '$FirstDayGrossProfit'],
+												$divide: [
+													{ $subtract: ['$LastDayGrossProfit', '$FirstDayGrossProfit'] },
+													'$FirstDayGrossProfit',
+												],
 											},
-											'$FirstDayGrossProfit',
+											100,
 										],
 									},
-									100,
-								],
+								},
 							},
 						},
 					},

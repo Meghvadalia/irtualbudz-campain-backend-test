@@ -1,4 +1,6 @@
-export interface IChannel {
+import { BaseInterface } from 'src/common/interface';
+
+export interface IChannel extends BaseInterface {
 	name: ChannelTypes;
 	isActive: boolean;
 	isDeleted: boolean;

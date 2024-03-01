@@ -204,6 +204,7 @@ export class ClientReportService {
 				})
 				.catch((error) => {
 					console.log(error);
+					return reject(error);
 				});
 		});
 	}

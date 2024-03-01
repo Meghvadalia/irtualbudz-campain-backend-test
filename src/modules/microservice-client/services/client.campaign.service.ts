@@ -17,6 +17,7 @@ import {
 	KAFKA_CAMPAIGN_EVENT_TYPE,
 	KAFKA_CUSTOMER_EVENT_TYPE,
 	UPLOAD_DIRECTORY,
+	KAFKA_SUBSCRIBER_SEEDING_EVENT_TYPE,
 } from 'src/common/constants';
 import { CampaignAsset } from 'src/model/campaignAssets/entities/campaignAsset.entity';
 import { Product } from 'src/microservices/inventory';
@@ -42,6 +43,9 @@ import { CustomerProducer } from 'src/modules/kafka/producers/customer.producer'
 import { Channels } from 'src/model/channels/interface/channel.interface';
 import { Cart } from 'src/microservices/order/entities/cart.entity';
 import { ClientCategoryService } from '../services/client.category.service';
+import { IStore } from 'src/model/store/interface/store.inteface';
+import { ClientChannelService } from './client.channels.service';
+import { SeedSubscriberProducer } from 'src/modules/kafka/producers/seedSubscriber.producer';
 
 @Injectable()
 export class ClientCampaignService {
@@ -64,7 +68,9 @@ export class ClientCampaignService {
 		private readonly campaignProducer: CampaignProducer,
 		private readonly clientNotificationService: ClientNotificationService,
 		private readonly customerProducer: CustomerProducer,
-		private readonly clientCategoryService: ClientCategoryService
+		private readonly clientCategoryService: ClientCategoryService,
+		private readonly clientChannelService: ClientChannelService,
+		private readonly seedSubscriberProducer: SeedSubscriberProducer
 	) {}
 
 	async addCampaign(data: Partial<ICampaign>, files, userId: string) {
@@ -81,7 +87,6 @@ export class ClientCampaignService {
 				if (sortItem.suggestionId) {
 					sortItem.suggestionId = new Types.ObjectId(sortItem.suggestionId);
 				}
-
 				if (sortItem.sortBy && Array.isArray(sortItem.sortBy)) {
 					sortItem.sortBy.forEach((sortBy) => {
 						if (sortBy.key === SORT_KEYS.AllSellable) {
@@ -265,163 +270,177 @@ export class ClientCampaignService {
 
 		for (const channel of data.channels) {
 			const channelData = await this.channelModel.findById(channel);
-			const storeData = await this.storeModel.findById(campaignDataWithFiles.storeId);
-
-			if (channelData.name === Channels.Email) {
-				const options: AxiosRequestConfig = {
-					method: 'post',
-					url: `${process.env.TRACKING_SERVER}/list/add`,
-					data: JSON.stringify({
-						app: storeData.brandId,
-						userID: 1,
-						name: campaign.campaignName,
-						opt_in: '0',
-					}),
-					headers: {
-						'Content-Type': 'application/json',
-						Authorization:
-							'Basic ' +
-							btoa(
-								`${process.env.TRACKING_AUTH_USERNAME}:${process.env.TRACKING_AUTH_PASSWORD}`
-							).toString(),
-					},
-				};
-				try {
-					axios
-						.request(options)
-						.then(async (response) => {
-							await this.campaignModel.findOneAndUpdate(
-								{ _id: campaign._id },
-								{ listId: response.data.data.listId }
-							);
-							setTimeout(() => {
-								this.customerProducer.sendCustomerMessage(
-									campaign._id as unknown as string,
-									response.data.data.listId,
-									KAFKA_CUSTOMER_EVENT_TYPE.CUSTOMER_TOPIC
+			const storeData: IStore = await this.storeModel.findById(campaignDataWithFiles.storeId);
+			if (storeData?.brandId) {
+				if (channelData.name === Channels.Email && storeData) {
+					const options: AxiosRequestConfig = {
+						method: 'post',
+						url: `${process.env.TRACKING_SERVER}/list/add`,
+						data: JSON.stringify({
+							app: storeData.brandId,
+							userID: 1,
+							name: campaign.campaignName,
+							opt_in: '0',
+						}),
+						headers: {
+							'Content-Type': 'application/json',
+							Authorization:
+								'Basic ' +
+								btoa(
+									`${process.env.TRACKING_AUTH_USERNAME}:${process.env.TRACKING_AUTH_PASSWORD}`
+								).toString(),
+						},
+					};
+					try {
+						axios
+							.request(options)
+							.then(async (response) => {
+								await this.campaignModel.findOneAndUpdate(
+									{ _id: campaign._id },
+									{ listId: response.data.data.listId }
 								);
-							}, 1000);
-						})
-						.catch((error) => {
-							console.log(error);
-						});
-				} catch (error) {
-					console.log(error);
-				}
-				console.log(templateList.length + ' row Templates found');
-				for (let temp = 0; temp < templateList.length; temp++) {
-					const templateElement = templateList[temp];
-					template = templateElement.content;
-					const replaceKeys = templateElement.replacements;
-					template = template.replaceAll(
-						'src="./public/',
-						`src="${process.env.REACT_APP_IMAGE_SERVER}/public/template/`
-					);
-					template = template.replaceAll(TemplateReplaceKey.STORE_LINK, storeData.storeLink);
-					template = template.replaceAll(TemplateReplaceKey.STORE_LOGO, storeData.logos);
-					template = template.replaceAll(
-						TemplateReplaceKey.CAMPAIGN_NAME,
-						campaignDataWithFiles.campaignName
-					);
-					template = template.replaceAll(
-						TemplateReplaceKey.STORE_FB_LINK,
-						storeData.facebook ? storeData.facebook : storeData.storeLink
-					);
-					template = template.replaceAll(
-						TemplateReplaceKey.STORE_TWITTER_LINK,
-						storeData.twitter ? storeData.twitter : storeData.storeLink
-					);
-					template = template.replaceAll(
-						TemplateReplaceKey.STORE_LINKEDIN_LINK,
-						storeData.linkedIn ? storeData.linkedIn : storeData.storeLink
-					);
-					template = template.replaceAll(
-						TemplateReplaceKey.STORE_INSTA_LINK,
-						storeData.instagram ? storeData.instagram : storeData.storeLink
-					);
-					template = template.replaceAll(
-						TemplateReplaceKey.STORE_WEB_LINK,
-						storeData.website ? storeData.website : storeData.storeLink
-					);
-					template = template.replaceAll(
-						TemplateReplaceKey.STORE_ADDRESS,
-						storeData.store_address ? storeData.store_address : ''
-					);
-					const replaceArray = [];
-					const replaceSpecialCharacters = (text) => {
-						if (text) {
-							text = text.replace(/[&\/\\#,+()$~%.'":*?<>{}]/g, '_');
-						}
-						return text;
-					};
-					const replaceMap = {
-						[TemplateReplaceKey.ITEM_IMAGE]: (element) => element?.productPictureURL || '',
-						[TemplateReplaceKey.PRODUCT_NAME]: (element) =>
-							replaceSpecialCharacters(element.productName) || '',
-						[TemplateReplaceKey.PRODUCT_DISCOUNT]: () => `${campaignDataWithFiles.discount}%` || '',
-						[TemplateReplaceKey.PRODUCT_DESC]: (element) =>
-							replaceSpecialCharacters(element?.productDescription) || '',
-						// [TemplateReplaceKey.STORE_LINK]: () => storeData.storeLink || '',
-						// [TemplateReplaceKey.CAMPAIGN_NAME]: () => campaignDataWithFiles.campaignName || '',
-						// [TemplateReplaceKey.STORE_LOGO]: () => storeData.logos,
-						[TemplateReplaceKey.CAMPAIGN_DATE]: () =>
-							formatDateRange(
-								campaignDataWithFiles.startDateWithTime,
-								campaignDataWithFiles.endDateWithTime
-							) || '',
-						[TemplateReplaceKey.STORE_DESC]: () => storeData.storeDesc || '',
-						[TemplateReplaceKey.CAMPAIGN_IMAGE]: () =>
-							(campaign?.files.length > 0
-								? (process.env.REACT_APP_IMAGE_SERVER + campaign?.files[0]).trim()
-								: null) || '',
-						// [TemplateReplaceKey.STORE_FB_LINK]: () => storeData.facebook || '',
-						// [TemplateReplaceKey.STORE_TWITTER_LINK]: () => storeData.twitter || '',
-						// [TemplateReplaceKey.STORE_LINKEDIN_LINK]: () => storeData.linkedin || '',
-						// [TemplateReplaceKey.STORE_INSTA_LINK]: () => storeData.instagram || '',
-						// [TemplateReplaceKey.STORE_WEB_LINK]: () => storeData.website || '',
-					};
-					for (const element of productList) {
-						for (const obj of replaceKeys) {
-							const valueGenerator = replaceMap[obj];
-							if (valueGenerator) {
-								const searchKey = obj;
-								var value = valueGenerator(element);
+								setTimeout(() => {
+									this.customerProducer.sendCustomerMessage(
+										campaign._id as unknown as string,
+										response.data.data.listId,
+										KAFKA_CUSTOMER_EVENT_TYPE.CUSTOMER_TOPIC
+									);
+								}, 1000);
+							})
+							.catch((error) => {
+								console.error('TRACKING_SERVER');
+								console.error(error);
+								this.seedSubscriberProducer.sendSeedSubscriber(
+									campaign._id as unknown as string,
+									KAFKA_SUBSCRIBER_SEEDING_EVENT_TYPE.SUBSCRIBER_SCHEDULE_TIME
+								);
+							});
+					} catch (error) {
+						console.error('TRACKING_SERVER1');
+						this.seedSubscriberProducer.sendSeedSubscriber(
+							campaign._id as unknown as string,
+							KAFKA_SUBSCRIBER_SEEDING_EVENT_TYPE.SUBSCRIBER_SCHEDULE_TIME
+						);
+						console.error(error);
+					}
+					console.log(templateList.length + ' row Templates found');
+					for (let temp = 0; temp < templateList.length; temp++) {
+						const templateElement = templateList[temp];
+						template = templateElement.content;
+						const replaceKeys = templateElement.replacements;
+						template = template.replaceAll(
+							'src="./public/',
+							`src="${process.env.REACT_APP_IMAGE_SERVER}/public/template/`
+						);
+						template = template.replaceAll(TemplateReplaceKey.STORE_LINK, storeData.storeLink);
+						template = template.replaceAll(TemplateReplaceKey.STORE_LOGO, storeData.logos);
+						template = template.replaceAll(
+							TemplateReplaceKey.CAMPAIGN_NAME,
+							campaignDataWithFiles.campaignName
+						);
+						template = template.replaceAll(
+							TemplateReplaceKey.STORE_FB_LINK,
+							storeData.facebook ? storeData.facebook : storeData.storeLink
+						);
+						template = template.replaceAll(
+							TemplateReplaceKey.STORE_TWITTER_LINK,
+							storeData.twitter ? storeData.twitter : storeData.storeLink
+						);
+						template = template.replaceAll(
+							TemplateReplaceKey.STORE_LINKEDIN_LINK,
+							storeData.linkedIn ? storeData.linkedIn : storeData.storeLink
+						);
+						template = template.replaceAll(
+							TemplateReplaceKey.STORE_INSTA_LINK,
+							storeData.instagram ? storeData.instagram : storeData.storeLink
+						);
+						template = template.replaceAll(
+							TemplateReplaceKey.STORE_WEB_LINK,
+							storeData.website ? storeData.website : storeData.storeLink
+						);
+						template = template.replaceAll(
+							TemplateReplaceKey.STORE_ADDRESS,
+							storeData.store_address ? storeData.store_address : ''
+						);
+						const replaceArray = [];
+						const replaceSpecialCharacters = (text) => {
+							if (text) {
+								text = text.replace(/[&\/\\#,+()$~%.'":*?<>{}]/g, '_');
+							}
+							return text;
+						};
+						const replaceMap = {
+							[TemplateReplaceKey.ITEM_IMAGE]: (element) => element?.productPictureURL || '',
+							[TemplateReplaceKey.PRODUCT_NAME]: (element) =>
+								replaceSpecialCharacters(element.productName) || '',
+							[TemplateReplaceKey.PRODUCT_DISCOUNT]: () =>
+								`${campaignDataWithFiles.discount}%` || '',
+							[TemplateReplaceKey.PRODUCT_DESC]: (element) =>
+								replaceSpecialCharacters(element?.productDescription) || '',
+							// [TemplateReplaceKey.STORE_LINK]: () => storeData.storeLink || '',
+							// [TemplateReplaceKey.CAMPAIGN_NAME]: () => campaignDataWithFiles.campaignName || '',
+							// [TemplateReplaceKey.STORE_LOGO]: () => storeData.logos,
+							[TemplateReplaceKey.CAMPAIGN_DATE]: () =>
+								formatDateRange(
+									campaignDataWithFiles.startDateWithTime,
+									campaignDataWithFiles.endDateWithTime
+								) || '',
+							[TemplateReplaceKey.STORE_DESC]: () => storeData.storeDesc || '',
+							[TemplateReplaceKey.CAMPAIGN_IMAGE]: () =>
+								(campaign?.files.length > 0
+									? (process.env.REACT_APP_IMAGE_SERVER + campaign?.files[0]).trim()
+									: null) || '',
+							// [TemplateReplaceKey.STORE_FB_LINK]: () => storeData.facebook || '',
+							// [TemplateReplaceKey.STORE_TWITTER_LINK]: () => storeData.twitter || '',
+							// [TemplateReplaceKey.STORE_LINKEDIN_LINK]: () => storeData.linkedin || '',
+							// [TemplateReplaceKey.STORE_INSTA_LINK]: () => storeData.instagram || '',
+							// [TemplateReplaceKey.STORE_WEB_LINK]: () => storeData.website || '',
+						};
+						for (const element of productList) {
+							for (const obj of replaceKeys) {
+								const valueGenerator = replaceMap[obj];
+								if (valueGenerator) {
+									const searchKey = obj;
+									var value = valueGenerator(element);
 
-								if (element.type == 'category') {
-									if (searchKey == TemplateReplaceKey.ITEM_IMAGE) {
-										const categoryData = element.productName;
-										replaceArray.push({ searchKey, value, categoryData });
-									} else if (searchKey == TemplateReplaceKey.PRODUCT_DESC) {
-										value = value.replace(/\n/g, '');
-										replaceArray.push({ searchKey, value });
+									if (element.type == 'category') {
+										if (searchKey == TemplateReplaceKey.ITEM_IMAGE) {
+											const categoryData = element.productName;
+											replaceArray.push({ searchKey, value, categoryData });
+										} else if (searchKey == TemplateReplaceKey.PRODUCT_DESC) {
+											value = value.replace(/\n/g, '');
+											replaceArray.push({ searchKey, value });
+										} else {
+											replaceArray.push({ searchKey, value });
+										}
 									} else {
-										replaceArray.push({ searchKey, value });
-									}
-								} else {
-									if (searchKey == TemplateReplaceKey.PRODUCT_DESC) {
-										value = value.replace(/\n/g, '');
-										replaceArray.push({ searchKey, value });
-									} else {
-										replaceArray.push({ searchKey, value });
+										if (searchKey == TemplateReplaceKey.PRODUCT_DESC) {
+											value = value.replace(/\n/g, '');
+											replaceArray.push({ searchKey, value });
+										} else {
+											replaceArray.push({ searchKey, value });
+										}
 									}
 								}
 							}
 						}
-					}
-					console.log('replaceArray');
-					console.log(replaceArray);
-					const newTemplate = templateUpdateFun(template, replaceArray);
+						console.log('replaceArray');
+						console.log(replaceArray);
+						const newTemplate = templateUpdateFun(template, replaceArray);
 
-					const templateData = await this.templateModel.create({
-						campaignId: campaign._id,
-						rawTemplateId: templateElement._id,
-						template: newTemplate,
-						// .replace(/\n/g, '').replace(/\t/g, ''),
-						// .replace(/\\"/g, "'"),
-						userId: new Types.ObjectId(userId),
-					});
-					console.log('Template created ' + templateData?._id);
+						const templateData = await this.templateModel.create({
+							campaignId: campaign._id,
+							rawTemplateId: templateElement._id,
+							template: newTemplate,
+							// .replace(/\n/g, '').replace(/\t/g, ''),
+							// .replace(/\\"/g, "'"),
+							userId: new Types.ObjectId(userId),
+						});
+						console.log('Template created ' + templateData?._id);
+					}
 				}
+			} else {
+				throw 'Brand id required';
 			}
 		}
 
@@ -474,50 +493,51 @@ export class ClientCampaignService {
 	}
 
 	async sendMail(campaignData) {
-		// const templateData = await this.templateModel.findOneAndUpdate({_id:campaignData.templateId},{template:campaignData.template});
-		// const templateData = await this.templateModel.findById(campaignData.templateId);
-		// console.log(templateData);
-
 		const campaignTempData = await this.campaignModel.findById(campaignData.campaignId);
 
 		const storeData = await this.storeModel.findById(campaignTempData.storeId);
-		const obj = {
-			from_name: storeData.locationName,
-			from_email: storeData.email ? storeData.email : process.env.SENDY_FROM_EMAIL,
-			title: campaignTempData.campaignName,
-			subject: campaignTempData.campaignName,
-			plain_text: 'text',
-			html_text: campaignData.template,
-			schedule_date_time: campaignData.startDate,
-			schedule_timezone: storeData.timeZone ? storeData.timeZone : 'UTC',
-			brand_id: storeData.brandId,
-			send_campaign: 0,
-			list_ids: campaignTempData.listId,
-		};
+		if (storeData?.brandId && campaignTempData?.listId) {
+			const obj = {
+				from_name: storeData.locationName,
+				from_email: storeData.email ? storeData.email : process.env.SENDY_FROM_EMAIL,
+				title: campaignTempData.campaignName,
+				subject: campaignTempData.campaignName,
+				plain_text: 'text',
+				html_text: campaignData.template,
+				schedule_date_time: campaignData.startDate,
+				schedule_timezone: storeData.timeZone ? storeData.timeZone : 'UTC',
+				brand_id: storeData.brandId,
+				send_campaign: 0,
+				list_ids: campaignTempData.listId,
+			};
 
-		const options = {
-			method: 'post',
-			url: `${process.env.TRACKING_SERVER}/campaign/create`,
-			data: JSON.stringify(obj),
-			headers: {
-				'Content-Type': 'application/json',
-				Authorization:
-					'Basic ' +
-					btoa(
-						`${process.env.TRACKING_AUTH_USERNAME}:${process.env.TRACKING_AUTH_PASSWORD}`
-					).toString(),
-			},
-		};
-		const createCampaign = axios
-			.request(options)
-			.then((data) => {
-				return data.data;
-			})
-			.catch((error) => {
-				console.log(error);
-			});
+			const options = {
+				method: 'post',
+				url: `${process.env.TRACKING_SERVER}/campaign/create`,
+				data: JSON.stringify(obj),
+				headers: {
+					'Content-Type': 'application/json',
+					Authorization:
+						'Basic ' +
+						btoa(
+							`${process.env.TRACKING_AUTH_USERNAME}:${process.env.TRACKING_AUTH_PASSWORD}`
+						).toString(),
+				},
+			};
+			const createCampaign = axios
+				.request(options)
+				.then((data) => {
+					return data.data;
+				})
+				.catch((error) => {
+					console.log(error);
+					throw error;
+				});
 
-		return createCampaign;
+			return createCampaign;
+		} else {
+			return { success: false, message: 'Brand id and list id required' };
+		}
 	}
 
 	async campaignList(user, page: number, limit: number, storeId?: string, name?: string) {
@@ -874,11 +894,10 @@ export class ClientCampaignService {
 					.request(options)
 					.then(async (response) => {
 						console.log('TRACKING_SERVER campaigne delete');
-						console.log(response);
+						return response;
 					})
 					.catch((error) => {
-						console.error('TRACKING_SERVER campaigne delete');
-						console.error(error);
+						return error;
 					});
 			} catch (error) {
 				console.log(error);
@@ -887,5 +906,81 @@ export class ClientCampaignService {
 		} catch (error) {
 			dynamicCatchException(error);
 		}
+	}
+
+	async createTrackingListAndSubscribers(campaignId?: Types.ObjectId) {
+		const channelData = await this.clientChannelService.getChannelsByName(Channels.Email);
+		let campaignList = [];
+		if (campaignId) {
+			campaignList = await this.campaignModel.find({
+				_id: campaignId,
+				listId: { $exists: false },
+				channels: channelData[0]._id,
+			});
+		} else {
+			campaignList = await this.campaignModel.find({
+				listId: { $exists: false },
+				channels: channelData[0]._id,
+			});
+		}
+
+		console.log(`${campaignList.length} company found for seed subscriber`);
+		for (let index = 0; index < campaignList.length; index++) {
+			const element = campaignList[index];
+			const storeData: IStore = await this.storeModel.findById(element.storeId);
+			if (storeData?.brandId) {
+				const options: AxiosRequestConfig = {
+					method: 'post',
+					url: `${process.env.TRACKING_SERVER}/list/add`,
+					data: JSON.stringify({
+						app: storeData.brandId,
+						userID: 1,
+						name: element.campaignName,
+						opt_in: '0',
+					}),
+					headers: {
+						'Content-Type': 'application/json',
+						Authorization:
+							'Basic ' +
+							btoa(
+								`${process.env.TRACKING_AUTH_USERNAME}:${process.env.TRACKING_AUTH_PASSWORD}`
+							).toString(),
+					},
+				};
+				try {
+					axios
+						.request(options)
+						.then(async (response) => {
+							await this.campaignModel.findOneAndUpdate(
+								{ _id: element._id },
+								{ listId: response.data.data.listId }
+							);
+							setTimeout(() => {
+								this.customerProducer.sendCustomerMessage(
+									element._id as unknown as string,
+									response.data.data.listId,
+									KAFKA_CUSTOMER_EVENT_TYPE.CUSTOMER_TOPIC
+								);
+							}, 1000);
+						})
+						.catch((error) => {
+							console.error('TRACKING_SERVER');
+							this.seedSubscriberProducer.sendSeedSubscriber(
+								element._id as unknown as string,
+								KAFKA_SUBSCRIBER_SEEDING_EVENT_TYPE.SUBSCRIBER_SCHEDULE_TIME
+							);
+							console.error(error);
+						});
+				} catch (error) {
+					console.error('TRACKING_SERVER1');
+					this.seedSubscriberProducer.sendSeedSubscriber(
+						element._id as unknown as string,
+						KAFKA_SUBSCRIBER_SEEDING_EVENT_TYPE.SUBSCRIBER_SCHEDULE_TIME
+					);
+					console.error(error);
+				}
+			}
+		}
+		return `${campaignList.length} company found for seed subscriber`;
 	}
 }

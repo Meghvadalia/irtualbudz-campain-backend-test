@@ -99,3 +99,4 @@ OrderSchema.index({ customerId: 1 }, { unique: true });
 OrderSchema.index({ itemsInCart: 1 }, { unique: true });
 OrderSchema.index({ posOrderId: 1 });
 OrderSchema.index({ storeId: 1, orderStatus: 1, posCreatedAt: 1 });
+OrderSchema.index({ storeId: 1, posCreatedAt: 1 });

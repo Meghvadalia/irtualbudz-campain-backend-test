@@ -1,6 +1,7 @@
 import { Types } from 'mongoose';
+import { BaseInterface } from 'src/common/interface';
 
-export interface ICampaign {
+export interface ICampaign extends BaseInterface {
 	campaignName: string;
 	goals: string;
 	// campaignType: string;

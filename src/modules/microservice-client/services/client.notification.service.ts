@@ -283,6 +283,7 @@ export class ClientNotificationService {
 			})
 			.catch((error) => {
 				console.error(error);
+				return error;
 			});
 	}
 

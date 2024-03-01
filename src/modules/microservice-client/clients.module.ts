@@ -93,6 +93,8 @@ import { SeedDataConsumer } from '../kafka/consumers/dataSeed.consumer';
 import { SeedDataProducer } from '../kafka/producers/dataSeed.producer';
 import { ClientReportService } from './services/client.report.service';
 import { ClientReportController } from './controllers/client.report.controller';
+import { SeedSubscriberConsumer } from '../kafka/consumers/seedSubscriber.consumer';
+import { SeedSubscriberProducer } from '../kafka/producers/seedSubscriber.producer';
 
 @Module({
 	imports: [
@@ -192,6 +194,8 @@ import { ClientReportController } from './controllers/client.report.controller';
 		SeedDataProducer,
 		SeedDataConsumer,
 		ClientReportService,
+		SeedSubscriberConsumer,
+		SeedSubscriberProducer,
 	],
 	exports: [
 		AudienceDetailsService,

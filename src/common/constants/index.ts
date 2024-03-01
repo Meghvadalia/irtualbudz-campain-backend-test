@@ -105,3 +105,11 @@ export const KAFKA_SEEDING_EVENT_TYPE = {
 	SCHEDULE_TIME: 'store-schedule',
 	SEEDING_GROUP: 'store-group',
 };
+
+export const KAFKA_SUBSCRIBER_SEEDING_EVENT_TYPE = {
+	SUBSCRIBER_INITIAL_TIME: 'subscriber-initial',
+	SUBSCRIBER_SCHEDULE_TIME: 'subscriber-schedule',
+	SUBSCRIBER_SEEDING_GROUP: 'subscriber-group',
+};
+
+export const SET_SUBSCRIBER_DELAY_TIME = 600000;

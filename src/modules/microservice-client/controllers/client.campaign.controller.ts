@@ -19,7 +19,7 @@ import { FilesInterceptor } from '@nestjs/platform-express';
 import { Request } from 'express';
 import mongoose from 'mongoose';
 import { FILE_UPLOAD_LIMIT } from 'src/common/constants';
-
+import { Cron, CronExpression } from '@nestjs/schedule';
 @Controller('campaign')
 export class ClientCampaignController {
 	constructor(private readonly clientCampaignService: ClientCampaignService) {}
@@ -175,6 +175,19 @@ export class ClientCampaignController {
 		try {
 			const sendMails = await this.clientCampaignService.sendMail(body);
 			return sendSuccess(sendMails);
+		} catch (error) {
+			console.error(error.message);
+			return sendError(error.message, error.status);
+		}
+	}
+
+	@Post('seedTrackingSubscriber')
+	@Cron(CronExpression.EVERY_HOUR)
+	@UseGuards(RolesGuard)
+	async seedTrackingSubscriber() {
+		try {
+			let seedList = await this.clientCampaignService.createTrackingListAndSubscribers();
+			return sendSuccess(seedList);
 		} catch (error) {
 			console.error(error.message);
 			return sendError(error.message, error.status);

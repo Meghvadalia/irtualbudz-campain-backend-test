@@ -9,6 +9,8 @@ import { CustomerConsumer } from './consumers/customer.consumer';
 import { CustomerProducer } from './producers/customer.producer';
 import { ClientAudienceCustomerService } from '../microservice-client/services/client.audienceCustomer.service';
 import { ClientCustomerService } from '../microservice-client/services/client.customer.service';
+import { SeedSubscriberProducer } from './producers/seedSubscriber.producer';
+import { SeedSubscriberConsumer } from './consumers/seedSubscriber.consumer';
 
 @Injectable()
 export class KafkaService implements OnModuleInit {
@@ -20,6 +22,8 @@ export class KafkaService implements OnModuleInit {
 	private campaignConsumer: CampaignConsumer;
 	private customerProducer: CustomerProducer;
 	private customerConsumer: CustomerConsumer;
+	private seedSubscriberProducer: SeedSubscriberProducer;
+	private seedSubscriberConsumer: SeedSubscriberConsumer;
 
 	constructor(
 		private readonly campaignService: ClientCampaignService,
@@ -41,6 +45,8 @@ export class KafkaService implements OnModuleInit {
 			this.customerService,
 			this.clientCustomerService
 		);
+		this.seedSubscriberProducer = new SeedSubscriberProducer(this.kafka);
+		this.seedSubscriberConsumer = new SeedSubscriberConsumer(this.kafka, this.campaignService);
 	}
 
 	async onModuleInit(): Promise<void> {
@@ -69,5 +75,12 @@ export class KafkaService implements OnModuleInit {
 	}
 	getCustomerConsumer(): CustomerConsumer {
 		return this.customerConsumer;
+	}
+
+	getSubscriberProducer(): SeedSubscriberProducer {
+		return this.seedSubscriberProducer;
+	}
+	getSubscriberConsumer(): SeedSubscriberConsumer {
+		return this.seedSubscriberConsumer;
 	}
 }

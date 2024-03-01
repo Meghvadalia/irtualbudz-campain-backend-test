@@ -36,14 +36,9 @@ export class CustomerConsumer implements OnModuleInit {
 				const { campaignId, listId, eventType } = campaignMessage;
 
 				const dataList = await this.audienceService.getCampaignWiseCustomer(campaignId);
-				console.log('Customer List count ');
-				console.log(dataList.length);
 				const ids = dataList.map((x) => x.customerId);
-				console.log('Customer Count ');
-				console.log(ids.length);
 				const customerData = await this.clientCustomerService.getCustomerData(ids);
-				console.log('Customer data object count ');
-				console.log(customerData.length);
+				console.log(`Total ${customerData.length} email customers found`);
 				const options = {
 					method: 'post',
 					url: `${process.env.TRACKING_SERVER}/subscriber/add`,
