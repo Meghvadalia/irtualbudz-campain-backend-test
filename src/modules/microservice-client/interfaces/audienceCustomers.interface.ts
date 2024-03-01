@@ -1,6 +1,7 @@
 import { Types } from 'mongoose';
 
 export interface IAudienceCustomer {
+	_id?: Types.ObjectId;
 	audienceId: Types.ObjectId;
 	customerId: Types.ObjectId;
 	storeId: Types.ObjectId;

@@ -76,7 +76,7 @@ export class ClientAudienceCustomerService {
 						audienceId,
 						campaignId,
 						storeId: storeObjectId,
-						customerId: customer.customerId,
+						customerId: customer._id,
 						type: AudienceCustomerType.USER,
 					};
 
