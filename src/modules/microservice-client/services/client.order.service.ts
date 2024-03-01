@@ -478,7 +478,7 @@ export class ClientOrderService {
 							brand: '$product.title2',
 						},
 						totalAmount: {
-							$sum: '$totals.finalTotal',
+							$sum: { $round: ['$totals.finalTotal', 2] },
 						},
 					},
 				},

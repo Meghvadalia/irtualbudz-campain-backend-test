@@ -182,11 +182,10 @@ export class ClientCampaignController {
 	}
 
 	@Post('seedTrackingSubscriber')
-	@Cron(CronExpression.EVERY_HOUR)
 	@UseGuards(RolesGuard)
 	async seedTrackingSubscriber() {
 		try {
-			let seedList = await this.clientCampaignService.createTrackingListAndSubscribers();
+			const seedList = await this.clientCampaignService.createTrackingListAndSubscribers();
 			return sendSuccess(seedList);
 		} catch (error) {
 			console.error(error.message);

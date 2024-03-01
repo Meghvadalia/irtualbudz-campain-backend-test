@@ -41,8 +41,10 @@ async function bootstrap() {
 				callback(null, true);
 				return true;
 			}
+
 			if (whitelist.indexOf(origin) !== -1) {
-				console.log('allowed CORS for:', origin);
+				console.log('allowed CORS for:');
+				console.log(origin);
 				callback(null, true);
 			} else {
 				console.log('blocked cors for:', origin);
