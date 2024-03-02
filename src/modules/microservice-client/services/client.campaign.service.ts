@@ -18,6 +18,7 @@ import {
 	KAFKA_CUSTOMER_EVENT_TYPE,
 	UPLOAD_DIRECTORY,
 	KAFKA_SUBSCRIBER_SEEDING_EVENT_TYPE,
+	DEFAULT_IMAGE,
 } from 'src/common/constants';
 import { CampaignAsset } from 'src/model/campaignAssets/entities/campaignAsset.entity';
 import { Product } from 'src/microservices/inventory';
@@ -97,7 +98,10 @@ export class ClientCampaignService {
 			});
 		}
 
-		const campaignDataWithFiles = { ...data, files: filePaths };
+		const campaignDataWithFiles = {
+			...data,
+			files: filePaths.length > 0 ? filePaths : DEFAULT_IMAGE,
+		};
 
 		let productItemCount = 0;
 		let productList = [];

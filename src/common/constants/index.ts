@@ -113,3 +113,5 @@ export const KAFKA_SUBSCRIBER_SEEDING_EVENT_TYPE = {
 };
 
 export const SET_SUBSCRIBER_DELAY_TIME = 600000;
+
+export const DEFAULT_IMAGE = '/public/default_image/MDS-Logo.png';
