@@ -113,14 +113,13 @@ export class ClientCustomerService {
 						count: { $sum: 1 },
 					},
 				},
-				{ $sort: { _id: 1 } },
 				{
-					$project: {
-						_id: 0,
+					$addFields: {
 						month: {
 							$let: {
 								vars: {
 									monthsInString: [
+										null,
 										'January',
 										'February',
 										'March',
@@ -136,12 +135,25 @@ export class ClientCustomerService {
 									],
 								},
 								in: {
-									$arrayElemAt: ['$$monthsInString', { $subtract: ['$_id', 1] }],
+									$arrayElemAt: ['$$monthsInString', '$_id'],
 								},
 							},
 						},
-						count: 1,
 					},
+				},
+				{
+					$addFields: {
+						sortOrder: {
+							$cond: {
+								if: { $gte: ['$_id', new Date().getMonth() + 1] },
+								then: { $subtract: ['$_id', new Date().getMonth() + 1] },
+								else: { $add: ['$_id', 12 - new Date().getMonth() - 1] },
+							},
+						},
+					},
+				},
+				{
+					$sort: { sortOrder: 1 },
 				},
 			];
 			console.error('newCustomersByMonth');

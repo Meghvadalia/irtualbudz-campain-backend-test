@@ -1234,71 +1234,42 @@ export class ClientOrderService {
 					},
 				},
 				{
-					$lookup: {
-						from: DATABASE_COLLECTION.CUSTOMER,
-						let: {
-							customerId: '$customerId',
-						},
-						pipeline: [
-							{
-								$match: {
-									$expr: {
-										$or: [
-											{
-												$eq: ['$posCustomerId', '$$customerId'],
-											},
-											{
-												$eq: ['$_id', '$$customerId'],
-											},
-										],
-									},
-								},
-							},
-						],
-						as: 'customerInfo',
-					},
-				},
-				{
-					$addFields: {
-						isRegistered: {
+					$project: {
+						customerIdType: {
 							$cond: {
-								if: {
-									$eq: [
-										{
-											$size: '$customerInfo',
-										},
-										0,
-									],
-								},
-								then: 'NonRegistered',
-								else: 'Registered',
+								if: { $eq: [{ $type: '$customerId' }, 'objectId'] },
+								then: 'Registered',
+								else: 'NonRegistered',
 							},
 						},
+						'totals.finalTotal': 1,
 					},
 				},
 				{
 					$group: {
-						_id: '$isRegistered',
-						averageSpend: {
-							$avg: '$totals.finalTotal',
-						},
+						_id: '$customerIdType',
+						count: { $sum: 1 },
+						totalSpend: { $sum: '$totals.finalTotal' },
 					},
 				},
 				{
 					$project: {
 						_id: 0,
-						status: '$_id',
-						averageSpend: {
-							$round: ['$averageSpend', 2],
-						},
+						customerIdType: '$_id',
+						count: 1,
+						averageSpend: { $round: [{ $divide: ['$totalSpend', '$count'] }, 2] },
 					},
 				},
 			];
+			console.error('getRegisteredVsNonRegisteredCustomers');
+			console.log(JSON.stringify(pipeline));
 			const result = await this.orderModel.aggregate(pipeline);
 
 			const transformedResult = {};
+			console.error('result');
+			console.log(result);
 			result.forEach((item) => {
-				transformedResult[item.status] = item.averageSpend;
+				transformedResult[item.customerIdType] = item.averageSpend;
 			});
 			return transformedResult;
 		} catch (error) {
