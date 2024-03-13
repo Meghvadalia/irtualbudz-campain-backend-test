@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { Kafka, Producer } from 'kafkajs';
 import { KAFKA_CUSTOMER_EVENT_TYPE } from 'src/common/constants';
+import { IStore } from 'src/model/store/interface/store.inteface';
 
 @Injectable()
 export class CustomerProducer {
@@ -15,12 +16,13 @@ export class CustomerProducer {
 	async sendCustomerMessage(
 		campaignId: string,
 		listId: string,
-		eventType: string
+		eventType: string,
+		storeObject: IStore
 	): Promise<void> {
 		await this.producer.connect();
 		await this.producer.send({
 			topic: this.topic,
-			messages: [{ value: JSON.stringify({ campaignId, listId, eventType }) }],
+			messages: [{ value: JSON.stringify({ campaignId, listId, eventType, storeObject }) }],
 		});
 		await this.producer.disconnect();
 	}

@@ -220,7 +220,7 @@ export class ClientCampaignService {
 					const element = productList[i];
 					if (element.productPictureURL == null && element.type != 'category') {
 						if (categoryData.length > 0) {
-							let imgs = categoryData.filter((x) => x.name == element.category);
+							const imgs = categoryData.filter((x) => x.name == element.category);
 							if (imgs.length > 0) {
 								imgs[0]?.images;
 								element.productPictureURL = (
@@ -235,7 +235,7 @@ export class ClientCampaignService {
 		console.log('productList ' + productList.length);
 		console.log(productList);
 		console.log('productItemCount ' + productItemCount);
-		var templateList = await this.rawTemplate.find({
+		let templateList = await this.rawTemplate.find({
 			itemCount: productItemCount,
 			isActive: true,
 		});
@@ -307,7 +307,8 @@ export class ClientCampaignService {
 									this.customerProducer.sendCustomerMessage(
 										campaign._id as unknown as string,
 										response.data.data.listId,
-										KAFKA_CUSTOMER_EVENT_TYPE.CUSTOMER_TOPIC
+										KAFKA_CUSTOMER_EVENT_TYPE.CUSTOMER_TOPIC,
+										storeData
 									);
 								}, 1000);
 							})
@@ -405,7 +406,7 @@ export class ClientCampaignService {
 								const valueGenerator = replaceMap[obj];
 								if (valueGenerator) {
 									const searchKey = obj;
-									var value = valueGenerator(element);
+									let value = valueGenerator(element);
 
 									if (element.type == 'category') {
 										if (searchKey == TemplateReplaceKey.ITEM_IMAGE) {
@@ -868,8 +869,8 @@ export class ClientCampaignService {
 
 	async removeCampaign(campaignId: Types.ObjectId) {
 		try {
-			let campaignData = await this.campaignModel.findById(campaignId);
-			let storeData = await this.storeModel.findById(campaignData.storeId);
+			const campaignData = await this.campaignModel.findById(campaignId);
+			const storeData = await this.storeModel.findById(campaignData.storeId);
 			const campaigns = await this.campaignModel.findByIdAndRemove(
 				{
 					_id: campaignId,
@@ -963,7 +964,8 @@ export class ClientCampaignService {
 								this.customerProducer.sendCustomerMessage(
 									element._id as unknown as string,
 									response.data.data.listId,
-									KAFKA_CUSTOMER_EVENT_TYPE.CUSTOMER_TOPIC
+									KAFKA_CUSTOMER_EVENT_TYPE.CUSTOMER_TOPIC,
+									storeData
 								);
 							}, 1000);
 						})

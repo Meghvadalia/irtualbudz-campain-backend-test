@@ -190,9 +190,9 @@ export class CustomerService {
 
 			const bulkOps = data.map((customer) => ({
 				updateOne: {
-					filter: { posCustomerId: customer.customerId },
+					filter: { posCustomerId: customer.customerId, companyId: company.companyId },
 					update: {
-						$setOnInsert: {
+						$set: {
 							birthDate: customer.dateOfBirth,
 							city: customer.city,
 							email: customer.emailAddress,
@@ -213,6 +213,7 @@ export class CustomerService {
 							loyaltyPoints: 0,
 							country: '',
 							userCreatedAt: customer.creationDate,
+							discountGroups: customer.discountGroups,
 						},
 					},
 					upsert: true,

@@ -1,3 +1,4 @@
+import { ObjectType } from '@nestjs/graphql';
 import { Injectable, OnModuleInit } from '@nestjs/common';
 import { Consumer, EachMessagePayload, Kafka } from 'kafkajs';
 import { KAFKA_CUSTOMER_EVENT_TYPE } from 'src/common/constants';
@@ -33,11 +34,10 @@ export class CustomerConsumer implements OnModuleInit {
 					`Received customer message: ${JSON.stringify(campaignMessage)}, ${topic}.${partition}`
 				);
 
-				const { campaignId, listId, eventType } = campaignMessage;
-
+				const { campaignId, listId, storeObject } = campaignMessage;
 				const dataList = await this.audienceService.getCampaignWiseCustomer(campaignId);
 				const ids = dataList.map((x) => x.customerId);
-				const customerData = await this.clientCustomerService.getCustomerData(ids);
+				const customerData = await this.clientCustomerService.getCustomerData(ids,storeObject);
 				console.log(`Total ${customerData.length} email customers found`);
 				const options = {
 					method: 'post',

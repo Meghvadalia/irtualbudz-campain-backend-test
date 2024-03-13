@@ -8,6 +8,7 @@ import { getCurrentYearDateRange } from 'src/utils/time.utils';
 import { dynamicCatchException } from 'src/utils/error.utils';
 import { DATABASE_COLLECTION } from 'src/common/constants';
 import { Order } from 'src/microservices/order/entities/order.entity';
+import { IStore } from 'src/model/store/interface/store.inteface';
 
 @Injectable()
 export class ClientCustomerService {
@@ -190,20 +191,25 @@ export class ClientCustomerService {
 		}
 	}
 
-	async getCustomerData(customerIds) {
-		const customerData = await this.customerModel
-			.find({
-				$and: [
-					{ _id: { $in: customerIds } },
-					{
-						email: {
-							$ne: null,
-							$nin: ['', /^\s*$/],
-						},
-					},
-				],
-			})
-			.select('name email');
+	/**
+	 * Retrieves customer data based on the provided customer IDs and store object.
+	 * @param {number[]} customerIds - An array of customer IDs.
+	 * @param {object} storeObject - An optional store object that contains location information.
+	 * @returns {Promise<object[]>} - An array of customer objects containing the 'name' and 'email' fields.
+	 */
+	async getCustomerData(customerIds: string[], storeObject?: IStore): Promise<object[]> {
+		const query: any = {
+			_id: { $in: customerIds },
+			email: { $ne: null, $nin: ['', /^\s*$/] },
+		};
+
+		if (storeObject) {
+			if (storeObject.location.locationName === 'The Tea House Retail') {
+				query.discountGroups = 'VIP';
+			}
+		}
+
+		const customerData = await this.customerModel.find(query).select('name email');
 		return customerData;
 	}
 }
