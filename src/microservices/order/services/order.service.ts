@@ -1,3 +1,4 @@
+import { orderType } from './../constant/order.constant';
 import { DutchieController } from './../../../modules/microservice-client/controllers/dutchie.controller';
 import { Injectable } from '@nestjs/common';
 import { InjectModel, Schema } from '@nestjs/mongoose';
@@ -410,6 +411,7 @@ export class OrderService {
 				const items = cartEntry ? cartEntry.data : [];
 
 				order.itemsInCart = items;
+				order.orderType = order.orderType ? order.orderType : orderType['In-Store'];
 				order.staffId = staffId;
 				console.log('order.staffId =>' + order.staffId);
 				delete order.budtender;
