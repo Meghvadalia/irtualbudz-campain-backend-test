@@ -394,11 +394,53 @@ export class OrderService {
 			console.log('cartResults =>' + cartResults);
 			// @ts-ignore
 			console.log('Cart Result with Upserted,' + JSON.stringify(cartResults.result));
+
+			if (
+				// @ts-ignore
+				cartResults.result.upserted.length > 0 &&
+				// @ts-ignore
+				cartResults.result.upserted.length === bulkOperations.length
+			) {
+				// @ts-ignore
+				cartResults.result.upserted.forEach((element) => {
+					const id = bulkOperations[element.index].updateOne.update.$set.posCartId;
+					this.replaceValueInDataArray(itemsInCartIds, id, element._id);
+				});
+			} else {
+				if (
+					// @ts-ignore
+					cartResults.result.upserted.length > 0 ||
+					// @ts-ignore
+					cartResults.result.nModified > 0
+				) {
+					let randomIndexes = [];
+					let posCartIds = [];
+					// @ts-ignore
+					cartResults.result.upserted.forEach((element) => {
+						const id = bulkOperations[element.index].updateOne.update.$set.posCartId;
+						this.replaceValueInDataArray(itemsInCartIds, id, element._id);
+						randomIndexes.push(element.index);
+					});
+
+					randomIndexes.sort((a, b) => b - a);
+					randomIndexes.forEach((index) => {
+						if (index >= 0 && index < bulkOperations.length) {
+							bulkOperations.splice(index, 1);
+						}
+					});
+					bulkOperations.map((element) => {
+						posCartIds.push(element.updateOne.update.$set.posCartId);
+					});
+					let allCart = await this.cartModel.find({ posCartId: { $in: posCartIds } });
+					allCart.forEach((element) => {
+						this.replaceValueInDataArray(itemsInCartIds, element.posCartId, element._id);
+					});
+				}
+			}
+
+			console.log('cartResults.result');
 			// @ts-ignore
-			cartResults.result.upserted.forEach((element) => {
-				const id = bulkOperations[element.index].updateOne.update.$set.posCartId;
-				this.replaceValueInDataArray(itemsInCartIds, id, element._id);
-			});
+			console.log(cartResults.result);
 
 			const cart = itemsInCartIds;
 
@@ -414,6 +456,7 @@ export class OrderService {
 				order.orderType = order.orderType ? order.orderType : orderType['In-Store'];
 				order.staffId = staffId;
 				console.log('order.staffId =>' + order.staffId);
+
 				delete order.budtender;
 
 				const customer = customers.find((c) => c.posCustomerId === order.customerId);
