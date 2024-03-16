@@ -1,4 +1,3 @@
-import { orderType } from './../constant/order.constant';
 import { DutchieController } from './../../../modules/microservice-client/controllers/dutchie.controller';
 import { Injectable } from '@nestjs/common';
 import { InjectModel, Schema } from '@nestjs/mongoose';
