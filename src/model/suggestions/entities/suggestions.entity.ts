@@ -28,3 +28,4 @@ export class Suggestions extends Model<ISuggestions> {
 }
 
 export const SuggestionsSchema = SchemaFactory.createForClass(Suggestions);
+SuggestionsSchema.index({ name: 1 });

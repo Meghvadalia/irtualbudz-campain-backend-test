@@ -10,38 +10,38 @@ export class Inventory extends Model<IInventory> {
 		type: Types.ObjectId,
 		ref: DATABASE_COLLECTION.COMPANIES,
 	})
-	companyId: string;
+		companyId: string;
 
 	@Prop({
 		required: true,
 		type: Types.ObjectId,
 		ref: DATABASE_COLLECTION.POS,
 	})
-	posId: string;
+		posId: string;
 
 	@Prop({ type: Types.ObjectId, ref: DATABASE_COLLECTION.PRODUCT })
-	productId: string;
+		productId: string;
 
 	@Prop()
-	quantity: number;
+		quantity: number;
 
 	@Prop()
-	posProductId: string;
+		posProductId: string;
 
 	@Prop({ type: Types.ObjectId, ref: DATABASE_COLLECTION.STORES })
-	storeId: string;
+		storeId: string;
 
 	@Prop()
-	locationName: string;
+		locationName: string;
 
 	@Prop()
-	sku: string;
+		sku: string;
 
 	@Prop()
-	expirationDate: Date;
+		expirationDate: Date;
 
 	@Prop()
-	productUpdatedAt: Date;
+		productUpdatedAt: Date;
 
 	@Prop(
 		raw({
@@ -50,13 +50,13 @@ export class Inventory extends Model<IInventory> {
 			inventoryUnitOfMeasure: { type: String },
 		})
 	)
-	extraDetails: Types.Subdocument;
+		extraDetails: Types.Subdocument;
 	@Prop({ default: 0 })
-	costInMinorUnits: number;
+		costInMinorUnits: number;
 	@Prop({ default: 0 })
-	priceInMinorUnits: number;
+		priceInMinorUnits: number;
 	@Prop({ default: true })
-	forSale: boolean;
+		forSale: boolean;
 }
 
 export const InventorySchema = SchemaFactory.createForClass(Inventory);

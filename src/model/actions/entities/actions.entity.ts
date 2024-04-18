@@ -27,3 +27,4 @@ export class Action extends Model<IAction> {
 }
 
 export const ActionSchema = SchemaFactory.createForClass(Action);
+ActionSchema.index({ name: 1 });

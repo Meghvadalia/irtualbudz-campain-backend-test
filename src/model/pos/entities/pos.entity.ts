@@ -31,3 +31,4 @@ export class POS extends Model<IPOS> {
 }
 
 export const POSSchema = SchemaFactory.createForClass(POS);
+POSSchema.index({ name: 1 });

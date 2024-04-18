@@ -16,3 +16,4 @@ export class CampaignTypes extends Model<ICampaignType> {
 }
 
 export const CampaignTypesSchema = SchemaFactory.createForClass(CampaignTypes);
+CampaignTypesSchema.index({ name: 1 });

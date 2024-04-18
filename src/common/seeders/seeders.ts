@@ -206,6 +206,8 @@ export class SeederService {
 					companyId: company._id,
 					brandId: brandData.data.data.appId,
 					sendyUserId: brandData.data.data.loginId,
+					timeZone:'US/Mountain',
+					locationName: data.locationName
 				});
 			}
 		} catch (error) {

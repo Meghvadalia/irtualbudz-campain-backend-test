@@ -70,7 +70,8 @@ export class ClientAudienceCustomerService {
 				const audienceCustomersList: IAudienceCustomer[] = await this.customerModel.find({
 					storeId: { $in: [storeObjectId] },
 				});
-
+				console.log('================>');
+				console.log('Audience Length' + audienceCustomersList.length);
 				for (const customer of audienceCustomersList) {
 					const audienceCustomerData = {
 						audienceId,

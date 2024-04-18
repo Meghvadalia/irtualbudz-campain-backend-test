@@ -87,4 +87,15 @@ export const companyData = [
 		posName: 'flowhub',
 		lastSyncDataDuration: 395,
 	},
+	{
+		name: 'Milton',
+		posId: '',
+		totalStore: 0,
+		dataObject: {
+			key: '3e5438d2b19f4171a88015fcec80a2d2',
+		},
+		posName: 'dutchie',
+		lastSyncDataDuration: 30,
+		isActive: true,
+	},
 ];

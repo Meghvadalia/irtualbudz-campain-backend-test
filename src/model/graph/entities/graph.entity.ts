@@ -25,3 +25,4 @@ export class Graph extends Model<IGraph> {
 }
 
 export const GraphSchema = SchemaFactory.createForClass(Graph);
+GraphSchema.index({ name: 1 });

@@ -11,75 +11,75 @@ import { DATABASE_COLLECTION } from 'src/common/constants';
 @ObjectType()
 export class Customer extends Model<ICustomer> {
 	@Prop({ trim: true })
-	posCustomerId: string;
+		posCustomerId: string;
 
 	@Prop({
 		required: true,
 		type: Types.ObjectId,
 		ref: DATABASE_COLLECTION.COMPANIES,
 	})
-	companyId: string;
+		companyId: string;
 
 	@Prop({
 		required: true,
 		type: Types.ObjectId,
 		ref: DATABASE_COLLECTION.POS,
 	})
-	POSId: string;
+		POSId: string;
 
 	@Prop({ type: [{ type: Types.ObjectId, ref: DATABASE_COLLECTION.STORES }] })
-	storeId: Types.ObjectId[];
+		storeId: Types.ObjectId[];
 
 	@Prop({ enum: CustomerType })
-	type: string;
+		type: string;
 
 	@Prop()
-	name: string;
+		name: string;
 
 	@Prop()
-	state: string;
+		state: string;
 
 	@Prop()
-	birthDate: Date;
+		birthDate: Date;
 
 	@Prop()
-	isLoyal: boolean;
+		isLoyal: boolean;
 
 	@Prop()
-	loyaltyPoints: number;
+		loyaltyPoints: number;
 
 	@Prop()
-	email: string;
+		email: string;
 
 	@Prop()
-	phone: string;
+		phone: string;
 
 	@Prop()
-	streetAddress1: string;
+		streetAddress1: string;
 
 	@Prop()
-	streetAddress2: string;
+		streetAddress2: string;
 
 	@Prop()
-	city: string;
+		city: string;
 
 	@Prop()
-	zip: string;
+		zip: string;
 
 	@Prop()
-	country: string;
+		country: string;
 
 	@Prop()
-	discountGroups: string[];
+		discountGroups: string[];
 
 	@Prop({ default: false })
-	isDeleted: boolean;
+		isDeleted: boolean;
 
 	@Prop({ default: true })
-	isActive: boolean;
+		isActive: boolean;
 
 	@Prop()
-	userCreatedAt: Date;
+		userCreatedAt: Date;
 }
 
 export const CustomerSchema = SchemaFactory.createForClass(Customer);

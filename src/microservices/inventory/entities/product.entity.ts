@@ -10,47 +10,47 @@ export class Product extends Model<IProduct> {
 		type: Types.ObjectId,
 		ref: DATABASE_COLLECTION.COMPANIES,
 	})
-	companyId: string;
+		companyId: string;
 
 	@Prop({
 		required: true,
 		type: Types.ObjectId,
 		ref: DATABASE_COLLECTION.POS,
 	})
-	posId: string;
+		posId: string;
 
 	@Prop({ trim: true })
-	productName: string;
+		productName: string;
 
 	@Prop({ trim: true })
-	posProductId: string;
+		posProductId: string;
 
 	@Prop({ trim: true })
-	productDescription: string;
+		productDescription: string;
 
 	@Prop()
-	sku: string;
+		sku: string;
 
 	@Prop()
-	productPictureURL: string;
+		productPictureURL: string;
 
 	@Prop()
-	purchaseCategory: string;
+		purchaseCategory: string;
 
 	@Prop()
-	category: string;
+		category: string;
 
 	@Prop()
-	type: string;
+		type: string;
 
 	@Prop()
-	brand: string;
+		brand: string;
 
 	@Prop()
-	productWeight: number;
+		productWeight: number;
 
 	@Prop()
-	speciesName: string;
+		speciesName: string;
 
 	@Prop(
 		raw({
@@ -77,7 +77,7 @@ export class Product extends Model<IProduct> {
 			},
 		})
 	)
-	extraDetails: Types.Subdocument;
+		extraDetails: Types.Subdocument;
 }
 
 export const ProductSchema = SchemaFactory.createForClass(Product);

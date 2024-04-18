@@ -158,7 +158,7 @@ export class InventoryService {
 			const bulkProductOps = productsData.map((d) => {
 				return {
 					updateOne: {
-						filter: { posProductId: d.productId },
+						filter: { posProductId: d.productId,companyId: company.companyId },
 						update: {
 							$setOnInsert: {
 								productName: d.productName,
