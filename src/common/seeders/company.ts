@@ -98,4 +98,15 @@ export const companyData = [
 		lastSyncDataDuration: 30,
 		isActive: true,
 	},
+	{
+		name: 'Del Port',
+		posId: '',
+		totalStore: 0,
+		dataObject: {
+			key: '60d977f25c9c4dec8be0bab4ac85fd48',
+		},
+		posName: 'dutchie',
+		lastSyncDataDuration: 30,
+		isActive: true,
+	},
 ];
