@@ -50,8 +50,16 @@ export class ClientStoreService {
 						Accept: 'application/json',
 					},
 				};
-				const { data } = await axios.request(options);
-				const storeData = data.data;
+				let storeData;
+				try {
+					const { data } = await axios.request(options);
+					storeData = data.data;
+				} catch (error) {
+					console.log('Error while Seeding the store for company '+ companyData.name);
+					continue;
+				}
+				
+				
 				const storeArea: Array<IStore> = [];
 				for (let index = 0; index < storeData.length; index++) {
 					const element: IStoreResponseFlowHub = storeData[index];
@@ -70,11 +78,16 @@ export class ClientStoreService {
 								storeTimezone: element.timeZone,
 							};
 
-							const brandData = await this.createBrand(createBrandData);
+							let brandData;
+							try {
+								brandData = await this.createBrand(createBrandData);
+							} catch (error) {
+								console.log(error);
+							}
 
 							await this.storeModel.findByIdAndUpdate(existingStore._id, {
-								brandId: brandData.data.data.appId,
-								sendyUserId: brandData.data.data.loginId,
+								brandId: brandData?.data?.data?.appId || null,
+								sendyUserId: brandData?.data?.data?.loginId || null,
 							});
 						}
 						continue;
@@ -87,7 +100,12 @@ export class ClientStoreService {
 						storeTimezone: element.timeZone,
 					};
 
-					const brandData = await this.createBrand(createBrandData);
+					let brandData;
+					try {
+						brandData = await this.createBrand(createBrandData);
+					} catch (error) {
+						console.log(error);
+					}
 
 					storeArea.push({
 						location: {
@@ -104,12 +122,12 @@ export class ClientStoreService {
 						imageUrl: element.locationLogoURL,
 						website: element.website,
 						locationName: element.locationName,
-						brandId: brandData.data.data.appId,
-						sendyUserId: brandData.data.data.loginId,
+						brandId: brandData?.data?.data?.appId || null,
+						sendyUserId: brandData?.data?.data?.loginId || null,
 					});
 				}
 
-				if (storeArea.length > 0) {
+				if (storeArea.crolength > 0) {
 					await this.storeModel.insertMany(storeArea);
 				}
 			}
