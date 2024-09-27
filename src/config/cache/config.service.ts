@@ -14,6 +14,9 @@ export class RedisService {
 		if (process.env.NODE_ENV === 'production') {
 			redisOptions.password = process.env.REDIS_PASSWORD;
 		}
+		if (process.env.NODE_ENV === 'staging') {
+			redisOptions.password = process.env.REDIS_PASSWORD;
+		}
 		this.redisClient = new Redis(redisOptions);
 	}
 

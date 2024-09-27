@@ -29,6 +29,6 @@ export class MongodbConfigService {
 	}
 	shouldAuthenticate(): boolean {
 		const nodeEnv = this.configService.get<string>('NODE_ENV');
-		return nodeEnv === 'production';
+		return nodeEnv === 'production' || nodeEnv === 'staging';
 	}
 }
