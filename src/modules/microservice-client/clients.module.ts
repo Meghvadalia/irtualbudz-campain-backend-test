@@ -95,6 +95,12 @@ import { ClientReportService } from './services/client.report.service';
 import { ClientReportController } from './controllers/client.report.controller';
 import { SeedSubscriberConsumer } from '../kafka/consumers/seedSubscriber.consumer';
 import { SeedSubscriberProducer } from '../kafka/producers/seedSubscriber.producer';
+// import { ClientMaryJanePosController } from './controllers/client.maryJanePos.controller';
+import { ClientPosService } from './services/client.pos.service';
+// import { ClientMaryJaneCompanyController } from './controllers/client.maryJaneCompany.controller';
+// import { ClientMaryJaneStoreController } from './controllers/client.maryJaneStore.controller';
+// import { ClientMaryJaneDashboardController } from './controllers/client.maryJaneDashboard.controller';
+import { ClientMaryJaneController } from './controllers/client.maryJane.controller';
 
 @Module({
 	imports: [
@@ -154,6 +160,7 @@ import { SeedSubscriberProducer } from '../kafka/producers/seedSubscriber.produc
 		ClientRawTemplateController,
 		ClientTemplateController,
 		ClientReportController,
+		ClientMaryJaneController,
 	],
 	providers: [
 		{
@@ -196,6 +203,7 @@ import { SeedSubscriberProducer } from '../kafka/producers/seedSubscriber.produc
 		ClientReportService,
 		SeedSubscriberConsumer,
 		SeedSubscriberProducer,
+		ClientPosService,
 	],
 	exports: [
 		AudienceDetailsService,
@@ -206,8 +214,15 @@ import { SeedSubscriberProducer } from '../kafka/producers/seedSubscriber.produc
 })
 export class MicroserviceClientModule implements NestModule {
 	configure(consumer: MiddlewareConsumer) {
-		consumer
-			.apply(BasicAuthMiddleware)
-			.forRoutes({ path: 'user/login', method: RequestMethod.POST });
+		consumer.apply(BasicAuthMiddleware).forRoutes(
+			{ path: 'user/login', method: RequestMethod.POST },
+			{ path: 'user/register', method: RequestMethod.POST },
+			{ path: 'mary-jane/company/create', method: RequestMethod.POST },
+			{ path: 'mary-jane/store/create', method: RequestMethod.POST },
+			{ path: 'mary-jane/pos/list', method: RequestMethod.GET },
+			{ path: 'mary-jane/dashboard/:companyId', method: RequestMethod.GET }
+			// { path: 'store/companyStoreList/:companyId', method: RequestMethod.POST },
+			// { path: 'store/getStoreWiseBrand/:storeId', method: RequestMethod.GET }
+		);
 	}
 }

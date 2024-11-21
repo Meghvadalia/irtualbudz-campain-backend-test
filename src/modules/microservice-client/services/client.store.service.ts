@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import { Company } from 'src/model/company/entities/company.entity';
@@ -6,7 +6,7 @@ import { ICompany } from 'src/model/company/interface/company.interface';
 import { POS } from 'src/model/pos/entities/pos.entity';
 import { IPOS } from 'src/model/pos/interface/pos.interface';
 import { Store } from 'src/model/store/entities/store.entity';
-import { IStore } from 'src/model/store/interface/store.inteface';
+import { CreateStoreDto, IStore } from 'src/model/store/interface/store.inteface';
 import axios, { AxiosRequestConfig, AxiosResponse } from 'axios';
 import { IStoreResponseFlowHub } from 'src/common/interface';
 import { User } from 'src/microservices/user/entities/user.entity';
@@ -55,11 +55,10 @@ export class ClientStoreService {
 					const { data } = await axios.request(options);
 					storeData = data.data;
 				} catch (error) {
-					console.log('Error while Seeding the store for company '+ companyData.name);
+					console.log('Error while Seeding the store for company ' + companyData.name);
 					continue;
 				}
-				
-				
+
 				const storeArea: Array<IStore> = [];
 				for (let index = 0; index < storeData.length; index++) {
 					const element: IStoreResponseFlowHub = storeData[index];
@@ -127,7 +126,7 @@ export class ClientStoreService {
 					});
 				}
 
-				if (storeArea.crolength > 0) {
+				if (storeArea.length > 0) {
 					await this.storeModel.insertMany(storeArea);
 				}
 			}
@@ -278,6 +277,40 @@ export class ClientStoreService {
 			return updateStore;
 		} catch (error) {
 			console.error('Error While Updating the Data For Store', error);
+			throw error;
+		}
+	}
+
+	async createStore(payload: CreateStoreDto) {
+		try {
+			const storeObject: IStore = {
+				location: {
+					locationName: payload.locationName,
+					locationId: '0',
+					importId: '0',
+				},
+				locationName: payload.locationName,
+				timeZone: payload.timeZone ? payload.timeZone : 'US/Mountain',
+				website: payload.website ? payload.website : '',
+				email: payload.email ? payload.email : '',
+				licenseType: payload.licenseType ? payload.licenseType : [],
+				logos: payload.logos ? payload.logos : [],
+				store_address: payload.store_address,
+				hoursOfOperation: [],
+				address: null,
+				phonenumber: '',
+				imageUrl: '',
+				companyId: payload.companyId,
+			};
+
+			const companyData = await this.companyModel.findById(storeObject.companyId);
+			if (!companyData) {
+				throw new NotFoundException('Company not found');
+			}
+			const updateStore = await this.storeModel.create({ ...storeObject });
+			return updateStore;
+		} catch (error) {
+			console.error('Error While creating Store', error);
 			throw error;
 		}
 	}

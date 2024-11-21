@@ -11,8 +11,19 @@ export interface IStore {
 	licenseType: string[];
 	imageUrl: string;
 	locationName: string;
-	brandId: number;
-	sendyUserId: number;
+	brandId?: number;
+	sendyUserId?: number;
 	[property: string]: any;
 	store_address?: string;
+}
+
+export interface CreateStoreDto {
+	locationName: string;
+	email: string;
+	companyId: string;
+	store_address: string;
+	timeZone: string;
+	website?: string;
+	logos?: string[];
+	licenseType?: string[];
 }

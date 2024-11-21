@@ -7,3 +7,9 @@ export interface ICompany extends BaseInterface {
 	dataObject: IFlowhubHeaderInterface;
 	lastSyncDataDuration: number;
 }
+
+export interface ICompanyRequest {
+	posName: string;
+	companyName: string;
+	dataObject: IFlowhubHeaderInterface;
+}
