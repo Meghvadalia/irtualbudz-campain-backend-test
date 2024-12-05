@@ -95,12 +95,12 @@ import { ClientReportService } from './services/client.report.service';
 import { ClientReportController } from './controllers/client.report.controller';
 import { SeedSubscriberConsumer } from '../kafka/consumers/seedSubscriber.consumer';
 import { SeedSubscriberProducer } from '../kafka/producers/seedSubscriber.producer';
-// import { ClientMaryJanePosController } from './controllers/client.maryJanePos.controller';
 import { ClientPosService } from './services/client.pos.service';
-// import { ClientMaryJaneCompanyController } from './controllers/client.maryJaneCompany.controller';
-// import { ClientMaryJaneStoreController } from './controllers/client.maryJaneStore.controller';
-// import { ClientMaryJaneDashboardController } from './controllers/client.maryJaneDashboard.controller';
+
 import { ClientMaryJaneController } from './controllers/client.maryJane.controller';
+import { BasicAuthMaryJaneMiddleware } from 'src/common/middlwares/basicAuthMaryJane.middleware';
+import { BasicAuthDopeCastMiddleware } from 'src/common/middlwares/basicAuthDopeCast.middleware';
+import { ClientDopeCastController } from './controllers/client.dopeCast.controller';
 
 @Module({
 	imports: [
@@ -161,6 +161,7 @@ import { ClientMaryJaneController } from './controllers/client.maryJane.controll
 		ClientTemplateController,
 		ClientReportController,
 		ClientMaryJaneController,
+		ClientDopeCastController,
 	],
 	providers: [
 		{
@@ -213,16 +214,52 @@ import { ClientMaryJaneController } from './controllers/client.maryJane.controll
 	],
 })
 export class MicroserviceClientModule implements NestModule {
+	/**
+	 * Configures middleware for the application.
+	 *
+	 * This method applies different authentication middlewares to specific routes.
+	 *
+	 * @param consumer - The middleware consumer to configure.
+	 *
+	 * The following middlewares and routes are configured:
+	 * - `BasicAuthMiddleware` for:
+	 *   - `POST /user/login`
+	 *   - `POST /user/register`
+	 * - `BasicAuthMaryJaneMiddleware` for:
+	 *   - `POST /mary-jane/company/create`
+	 *   - `POST /mary-jane/store/create`
+	 *   - `GET /mary-jane/pos/list`
+	 *   - `GET /mary-jane/dashboard/:companyId`
+	 * - `BasicAuthDopeCastMiddleware` for:
+	 *   - `POST /company/create`
+	 *   - `POST /store/create`
+	 *   - `POST /store/companyStoreList/:companyId`
+	 *   - `GET /store/getStoreWiseBrand/:storeId`
+	 */
 	configure(consumer: MiddlewareConsumer) {
-		consumer.apply(BasicAuthMiddleware).forRoutes(
-			{ path: 'user/login', method: RequestMethod.POST },
-			{ path: 'user/register', method: RequestMethod.POST },
-			{ path: 'mary-jane/company/create', method: RequestMethod.POST },
-			{ path: 'mary-jane/store/create', method: RequestMethod.POST },
-			{ path: 'mary-jane/pos/list', method: RequestMethod.GET },
-			{ path: 'mary-jane/dashboard/:companyId', method: RequestMethod.GET }
-			// { path: 'store/companyStoreList/:companyId', method: RequestMethod.POST },
-			// { path: 'store/getStoreWiseBrand/:storeId', method: RequestMethod.GET }
-		);
+		consumer
+			.apply(BasicAuthMiddleware)
+			.forRoutes(
+				{ path: 'user/login', method: RequestMethod.POST },
+				{ path: 'user/register', method: RequestMethod.POST }
+			);
+
+		consumer
+			.apply(BasicAuthMaryJaneMiddleware)
+			.forRoutes(
+				{ path: 'mary-jane/company/create', method: RequestMethod.POST },
+				{ path: 'mary-jane/store/create', method: RequestMethod.POST },
+				{ path: 'mary-jane/pos/list', method: RequestMethod.GET },
+				{ path: 'mary-jane/dashboard/:companyId', method: RequestMethod.GET }
+			);
+
+		consumer
+			.apply(BasicAuthDopeCastMiddleware)
+			.forRoutes(
+				{ path: 'dopecast/company/create', method: RequestMethod.POST },
+				{ path: 'dopecast/store/create', method: RequestMethod.POST },
+				{ path: 'dopecast/store/companyStoreList/:companyId', method: RequestMethod.POST },
+				{ path: '/dopecast/store/getStoreWiseBrand/:storeId', method: RequestMethod.GET }
+			);
 	}
 }

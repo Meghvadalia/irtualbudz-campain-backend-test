@@ -2,9 +2,9 @@ import { Injectable, NestMiddleware, UnauthorizedException } from '@nestjs/commo
 import { Request, Response, NextFunction } from 'express';
 
 @Injectable()
-export class BasicAuthMiddleware implements NestMiddleware {
-	private readonly validUsername = process.env.BASIC_AUTH_USERNAME;
-	private readonly validPassword = process.env.BASIC_AUTH_PASSWORD;
+export class BasicAuthDopeCastMiddleware implements NestMiddleware {
+	private readonly validUsername = process.env.BASIC_AUTH_DOPECAST_USERNAME;
+	private readonly validPassword = process.env.BASIC_AUTH_DOPECAST_PASSWORD;
 
 	constructor() {}
 
