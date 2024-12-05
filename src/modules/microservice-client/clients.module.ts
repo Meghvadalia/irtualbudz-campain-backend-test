@@ -100,7 +100,6 @@ import { ClientPosService } from './services/client.pos.service';
 import { ClientMaryJaneController } from './controllers/client.maryJane.controller';
 import { BasicAuthMaryJaneMiddleware } from 'src/common/middlwares/basicAuthMaryJane.middleware';
 import { BasicAuthDopeCastMiddleware } from 'src/common/middlwares/basicAuthDopeCast.middleware';
-import { ClientDopeCastController } from './controllers/client.dopeCast.controller';
 
 @Module({
 	imports: [
@@ -161,7 +160,6 @@ import { ClientDopeCastController } from './controllers/client.dopeCast.controll
 		ClientTemplateController,
 		ClientReportController,
 		ClientMaryJaneController,
-		ClientDopeCastController,
 	],
 	providers: [
 		{
