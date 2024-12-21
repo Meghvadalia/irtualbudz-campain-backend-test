@@ -19,7 +19,8 @@ export class ClientDashboardService {
 		storeId: Types.ObjectId,
 		query: { fromDate: string; toDate: string; goalFlag?: string },
 		campaignId?: Types.ObjectId,
-		audienceTracking?: boolean
+		audienceTracking?: boolean,
+		maryJaneQuery?: { topUsedCouponLimit?: number, topDiscountedProductLimit?: number, brandWiseSalesDataLimit?: number}
 	) {
 		const storeData = await this.storeService.storeById(storeId.toString());
 		if (!storeData) {
@@ -84,7 +85,8 @@ export class ClientDashboardService {
 		const brandWiseOrderData = await this.orderService.getBrandWiseSales(
 			storeId,
 			formattedFromDate,
-			formattedToDate
+			formattedToDate,
+			maryJaneQuery?.brandWiseSalesDataLimit
 		);
 		const staffWiseOrderData = await this.orderService.getEmployeeWiseSales(
 			storeId,
@@ -99,12 +101,14 @@ export class ClientDashboardService {
 		const topDiscountedProduct = await this.orderService.topDiscountedItem(
 			storeId,
 			formattedFromDate,
-			formattedToDate
+			formattedToDate,
+			maryJaneQuery?.topDiscountedProductLimit
 		);
 		const topUsedCoupon = await this.orderService.topDiscountedCoupon(
 			storeId,
 			formattedFromDate,
-			formattedToDate
+			formattedToDate,
+			maryJaneQuery?.topUsedCouponLimit
 		);
 		const { newCustomersByMonth, totalCustomerForCurrentYear } = await this.getCustomerAnalytics(
 			storeId

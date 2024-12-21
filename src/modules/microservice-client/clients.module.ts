@@ -102,6 +102,7 @@ import { ClientPosService } from './services/client.pos.service';
 import { ClientMaryJaneController } from './controllers/client.maryJane.controller';
 import { BasicAuthMaryJaneMiddleware } from 'src/common/middlwares/basicAuthMaryJane.middleware';
 import { BasicAuthDopeCastMiddleware } from 'src/common/middlwares/basicAuthDopeCast.middleware';
+import { MaryJaneService } from './services/client.maryJane.services';
 
 @Module({
 	imports: [
@@ -207,6 +208,7 @@ import { BasicAuthDopeCastMiddleware } from 'src/common/middlwares/basicAuthDope
 		SeedSubscriberConsumer,
 		SeedSubscriberProducer,
 		ClientPosService,
+		MaryJaneService
 	],
 	exports: [
 		AudienceDetailsService,

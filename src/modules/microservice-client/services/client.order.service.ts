@@ -442,7 +442,7 @@ export class ClientOrderService {
 		}
 	}
 
-	async getBrandWiseSales(storeId: Types.ObjectId, fromDate: Date, toDate: Date) {
+	async getBrandWiseSales(storeId: Types.ObjectId, fromDate: Date, toDate: Date, limit: number = 3) {
 		try {
 			const pipeline: PipelineStage[] = [
 				{
@@ -488,7 +488,7 @@ export class ClientOrderService {
 					},
 				},
 				{
-					$limit: 5,
+					$limit: Number(limit),
 				},
 				{
 					$project: {
@@ -838,10 +838,10 @@ export class ClientOrderService {
 				result.length > 0
 					? result[0]
 					: {
-							averageSpend: 0,
-							loyaltyPointsConverted: 0,
-							averageSpendGrowth: 0,
-							loyaltyPointsConversionGrowth: 0,
+						averageSpend: 0,
+						loyaltyPointsConverted: 0,
+						averageSpendGrowth: 0,
+						loyaltyPointsConversionGrowth: 0,
 					  };
 
 			return averageSpendWithLoyalty;
@@ -1198,10 +1198,10 @@ export class ClientOrderService {
 				result.length > 0
 					? result[0]
 					: {
-							returningCustomer: 0,
-							newCustomer: 0,
-							recurringCustomerAverageSpend: 0,
-							newCustomerAverageSpend: 0,
+						returningCustomer: 0,
+						newCustomer: 0,
+						recurringCustomerAverageSpend: 0,
+						newCustomerAverageSpend: 0,
 					  };
 			return {
 				returningCustomer,
@@ -1554,12 +1554,12 @@ export class ClientOrderService {
 				result.length > 0
 					? result[0]
 					: {
-							totalOrderAmount: 0,
-							totalDiscounts: 0,
-							totalOrders: 0,
-							orderAmountGrowth: 0,
-							discountGrowth: 0,
-							orderCountGrowth: 0,
+						totalOrderAmount: 0,
+						totalDiscounts: 0,
+						totalOrders: 0,
+						orderAmountGrowth: 0,
+						discountGrowth: 0,
+						orderCountGrowth: 0,
 					  };
 			return {
 				totalOrderAmount,
@@ -1736,7 +1736,7 @@ export class ClientOrderService {
 		}
 	}
 
-	async topDiscountedCoupon(storeId: Types.ObjectId, fromDate: Date, toDate: Date) {
+	async topDiscountedCoupon(storeId: Types.ObjectId, fromDate: Date, toDate: Date, limit: number = 3) {
 		try {
 			const pipeline: PipelineStage[] = [
 				{
@@ -1788,7 +1788,7 @@ export class ClientOrderService {
 								},
 							},
 							{
-								$limit: 3,
+								$limit: Number(limit),
 							},
 							{
 								$project: {
@@ -1843,7 +1843,7 @@ export class ClientOrderService {
 		}
 	}
 	// Top Discounted Items
-	async topDiscountedItem(storeId: Types.ObjectId, fromDate: Date, toDate: Date) {
+	async topDiscountedItem(storeId: Types.ObjectId, fromDate: Date, toDate: Date, limit: number = 3) {
 		try {
 			const pipeline: PipelineStage[] = [
 				{
@@ -1914,7 +1914,7 @@ export class ClientOrderService {
 					},
 				},
 				{
-					$limit: 3,
+					$limit: Number(limit),
 				},
 				{
 					$sort: {
@@ -2044,4 +2044,247 @@ export class ClientOrderService {
 			dynamicCatchException(error);
 		}
 	}
+
+	async topSellingCategoryProductCount(
+		storeId: Types.ObjectId,
+		fromDate: Date,
+		toDate: Date,
+		limit: number = 3
+	): Promise<{ category: string; productCount: number }[]> {
+		try {
+			const fromStartDate = fromDate;
+			const toEndDate = toDate;
+      
+			const pipeline: PipelineStage[] = [
+				{
+					$match: {
+						storeId,
+						posCreatedAt: {
+							$gte: fromStartDate,
+							$lte: toEndDate,
+						},
+					},
+				},
+				{
+					$unwind: '$itemsInCart',
+				},
+				{
+					$lookup: {
+						from: DATABASE_COLLECTION.CART,
+						localField: 'itemsInCart',
+						foreignField: '_id',
+						as: 'category',
+					},
+				},
+				{
+					$unwind: '$category',
+				},
+				{
+					$group: {
+						_id: '$category.category',
+						totalAmount: { $sum: '$totals.finalTotal' },
+					},
+				},
+				{
+					$sort: {
+						totalAmount: -1,
+					},
+				},
+				{
+					$limit: Number(limit),
+				},
+				{
+					$lookup: {
+						from: DATABASE_COLLECTION.PRODUCT,
+						localField: '_id',
+						foreignField: 'category',
+						as: 'products',
+					},
+				},
+				{
+					$project: {
+						category: '$_id',
+						productCount: { $size: '$products' },
+						_id: 0,
+					},
+				},
+			];
+      
+			const result = await this.orderModel.aggregate(pipeline);
+			return result;
+		} catch (error) {
+			console.error(error);
+			dynamicCatchException(error);
+		}
+	}
+
+	async getProductWiseSales(
+		storeId: Types.ObjectId,
+		fromDate: Date,
+		toDate: Date,
+		limit?: number
+	): Promise<{ productName: string; totalAmount: number }[]> {
+		try {
+			const pipeline: PipelineStage[] = [
+				{
+					$match: {
+						storeId,
+						posCreatedAt: {
+							$gte: fromDate,
+							$lte: toDate,
+						},
+					},
+				},
+				{
+					$unwind: '$itemsInCart',
+				},
+				{
+					$lookup: {
+						from: DATABASE_COLLECTION.CART,
+						localField: 'itemsInCart',
+						foreignField: '_id',
+						as: 'product',
+					},
+				},
+				{
+					$unwind: '$product',
+				},
+				{
+					$group: {
+						_id: '$product.productName',
+						totalAmount: {
+							$sum: { $round: ['$totals.finalTotal', 2] },
+						},
+					},
+				},
+				{
+					$sort: {
+						totalAmount: -1,
+					},
+				},
+				{
+					$limit: limit,
+				},
+				{
+					$project: {
+						_id: 0,
+						productName: '$_id',
+						totalAmount: 1,
+					},
+				},
+			];
+	
+			const productWiseOrderData = await this.orderModel.aggregate(pipeline);	
+			return productWiseOrderData;
+		} catch (error) {
+			console.error(error);
+			dynamicCatchException(error);
+		}
+	}
+	
+	async getTopProductTHC(
+		storeId: Types.ObjectId,
+		fromDate: Date,
+		toDate: Date,
+		limit?: number
+	): Promise<{ 
+		productName: string; 
+		thcDetails: Array<{
+			name: string;
+			lowerRange: number;
+			upperRange: number;
+			unitOfMeasure: string;
+			unitOfMeasureToGramsMultiplier: number | null;
+			_id: string;
+		}>;
+		productPictureURL: string; 
+	}[]> {
+		try {
+			const pipeline: PipelineStage[] = [
+				{
+					$match: {
+						storeId,
+						posCreatedAt: {
+							$gte: fromDate,
+							$lte: toDate,
+						},
+					},
+				},
+				{
+					$unwind: '$itemsInCart',
+				},
+				{
+					$lookup: {
+						from: DATABASE_COLLECTION.CART,
+						localField: 'itemsInCart',
+						foreignField: '_id',
+						as: 'product',
+					},
+				},
+				{
+					$unwind: '$product',
+				},
+				{
+					$group: {
+					  _id: '$product.sku',
+					  totalAmount: {
+							$sum: { $round: ['$totals.finalTotal', 2] },
+					  },
+					  productName: { $first: '$product.productName' },
+					},
+				  },
+				{
+					$sort: {
+						totalAmount: -1,
+					},
+				},
+				{
+					$limit: limit,
+				},
+				{
+					$lookup: {
+						from: DATABASE_COLLECTION.PRODUCT,
+						localField: '_id',
+						foreignField: 'sku',
+						as: 'productDetails',
+					},
+				},
+				{
+					$unwind: '$productDetails',
+				},
+				{
+					$unwind: '$productDetails.extraDetails.cannabinoidInformation',
+				},
+				{
+					$match: {
+						'productDetails.extraDetails.cannabinoidInformation.name': 'thc',
+					},
+				},
+				{
+					$group: {
+						_id: '$productDetails.productName',
+						thcDetails: {
+							$push: '$productDetails.extraDetails.cannabinoidInformation',
+						},
+						productPictureURL: { $first: '$productDetails.productPictureURL' },
+					},
+				},
+				{
+					$project: {
+						_id: 0,
+						productName: '$_id',
+						thcDetails: 1,
+						productPictureURL: 1,
+					},
+				},
+			];															
+	
+			const topTHCProducts = await this.orderModel.aggregate(pipeline);
+			return topTHCProducts;
+		} catch (error) {
+			console.error(error);
+			dynamicCatchException(error);
+		}
+	}
+	
 }

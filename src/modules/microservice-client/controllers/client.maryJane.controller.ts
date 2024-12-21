@@ -13,6 +13,8 @@ import { CreateStoreSchema } from 'src/common/validator/store.validator';
 import { CreateStoreDto } from 'src/model/store/interface/store.inteface';
 import { ICompanyRequest } from 'src/model/company/interface/company.interface';
 import { CreateCompanySchema } from 'src/common/validator/company.validator';
+import { MaryJaneService } from '../services/client.maryJane.services';
+import { MARY_JANE_DASHBOARD } from 'src/common/constants';
 
 @Controller('mary-jane')
 export class ClientMaryJaneController {
@@ -20,7 +22,8 @@ export class ClientMaryJaneController {
 		private readonly clientcompanyService: ClientCompanyService,
 		private readonly dashboardService: ClientDashboardService,
 		private readonly clientPosService: ClientPosService,
-		private readonly clientStoreService: ClientStoreService
+		private readonly clientStoreService: ClientStoreService,
+		private readonly maryJaneService: MaryJaneService
 	) {}
 	@Get()
 	async getParentRoute() {}
@@ -56,7 +59,7 @@ export class ClientMaryJaneController {
 	async getCalculatedData(
 		@Param('locationId') locationId: string,
 		@Query()
-		query: {
+			query: {
 			fromDate: string;
 			toDate: string;
 			goalFlag?: string;
@@ -70,18 +73,30 @@ export class ClientMaryJaneController {
 				? new mongoose.Types.ObjectId(query.campaignId)
 				: query.campaignId;
 			const audienceTracking = query.trackAudience;
+			const maryJaneQuery = {
+				topUsedCouponLimit: MARY_JANE_DASHBOARD.TOP_USED_COUPONS,
+				topDiscountedProductLimit: MARY_JANE_DASHBOARD.TOP_DISCOUNTED_PRODUCT,
+				brandWiseSalesDataLimit: MARY_JANE_DASHBOARD.BRAND_WISE_SALES_DATA
+			};
 			const { customer, overview, sales, operations, graphAndSummaryData } =
 				await this.dashboardService.getCalculatedData(
 					objectId,
 					query,
 					campaignId,
-					audienceTracking
+					audienceTracking,
+					maryJaneQuery
 				);
+			
+			const calculatedSalesData = await this.maryJaneService.calculateSalesData(
+				objectId,
+				query.fromDate,
+				query.toDate,
+			);			  
 
 			return sendSuccess({
 				overview,
 				customer,
-				sales,
+				sales: { ...sales, ...calculatedSalesData},
 				operations,
 				graphAndSummaryData,
 			});
