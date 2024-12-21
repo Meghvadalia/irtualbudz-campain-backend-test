@@ -84,4 +84,12 @@ export const userArrayForCompany: Array<UserSeeder> = [
 		phone: '+911234567890',
 		companyName: 'Del Port',
 	},
+	{
+		name: 'Silverleaf Admin',
+		email: 'silverleafadmin@silverleaf.com',
+		password: 'silverleaf@123',
+		type: USER_TYPE.COMPANY_ADMIN,
+		phone: '+911234567890',
+		companyName: 'silverleaf',
+	},
 ];

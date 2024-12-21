@@ -27,6 +27,7 @@ export interface ILocation {
 }
 
 export interface IFlowhubHeaderInterface {
+	dispensary?:string,
 	clientId?: string;
 	key: string;
 }

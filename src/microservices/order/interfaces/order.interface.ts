@@ -37,29 +37,6 @@ export interface Payments {
 	balanceAfterPayment: number;
 }
 
-// export enum OrderType {
-// 	inStore = 'in-store',
-// 	Delivery = 'Delivery',
-// 	pickUp = 'Pickup',
-// }
-
-// export enum PaymentType {
-// 	cash = 'cash',
-// 	debit = 'debit',
-// 	loyaltyPoints = 'loyalty points',
-// 	giftCard = 'gift card',
-// }
-
-// export enum OrderStatus {
-// 	Pending = 'Pending',
-// 	Cancelled = 'Cancelled',
-// 	sold = 'Sold',
-// }
-
-// export enum UnitOfWeight {
-// 	Each = 'Each',
-// 	Gram = 'Gram',
-// }
 
 export interface LocationData {
 	_id: string;

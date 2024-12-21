@@ -2,7 +2,7 @@ import { Injectable, OnModuleInit } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Consumer, EachMessagePayload, Kafka } from 'kafkajs';
 import { Model } from 'mongoose';
-import { KAFKA_SEEDING_EVENT_TYPE } from 'src/common/constants';
+import { KAFKA_SEEDING_EVENT_TYPE, KAFKA_TREEZ_EVENT_TYPE } from 'src/common/constants';
 import { SeederService } from 'src/common/seeders/seeders';
 import { CustomerService } from 'src/microservices/customers/service/customer.service';
 import { InventoryService } from 'src/microservices/inventory/services/inventory.service';
@@ -14,6 +14,7 @@ import { IPOS } from 'src/model/pos/interface/pos.interface';
 import { Store } from 'src/model/store/entities/store.entity';
 import * as moment from 'moment-timezone';
 import { calculateDelay, delay } from 'src/utils/time.utils';
+import { TreezService } from 'src/modules/microservice-client/services/treez.service';
 @Injectable()
 export class SeedDataConsumer implements OnModuleInit {
 	private consumer: Consumer;
@@ -28,7 +29,8 @@ export class SeedDataConsumer implements OnModuleInit {
 		@InjectModel(POS.name) private posModel: Model<POS>,
 		@InjectModel(Company.name) private companyModel: Model<Company>,
 		private readonly customerService: CustomerService,
-		private readonly inventoryService: InventoryService // private readonly storeService: SeederService,
+		private readonly inventoryService: InventoryService,
+		private readonly treezService: TreezService
 	) {
 		this.consumer = this.kafka.consumer({ groupId: this.seedingGroup });
 	}
@@ -58,11 +60,11 @@ export class SeedDataConsumer implements OnModuleInit {
 						console.log(
 							`Received seeding message: ${JSON.stringify(seedingData)}, ${topic}.${partition}`
 						);
-
-						const { eventType, companyId, storeId, posDataId, utcOffsetForStore } = seedingData;
+						const { eventType, companyId, storeId, posDataId, utcOffsetForStore, token } =
+							seedingData;
 
 						const storeData = await this.storeModel.findById(storeId);
-						const companyData = await this.companyModel.findById(companyId);
+						const companyData: ICompany = await this.companyModel.findById(companyId);
 						const posData: any = await this.posModel.findById(posDataId);
 						const currentDate = new Date();
 
@@ -133,6 +135,10 @@ export class SeedDataConsumer implements OnModuleInit {
 									console.error('SCHEDULE_TIME error');
 									console.error(err);
 								});
+						} else if (eventType === KAFKA_TREEZ_EVENT_TYPE.TREEZ_INITIAL_TIME) {
+							// await this.treezService.syncCustomerFromTreez(posData, token, companyData);
+							// await this.treezService.syncOrederFromTreez(posData, token, companyData);
+							// await this.treezService.syncProductFromTreez(posData, token, companyData);
 						}
 
 						console.log('==============================>');

@@ -4,8 +4,7 @@ export enum CUSTOMER_TYPE {
 }
 
 export const orderType = {
-	'In Store': 'in-store',
 	'In-Store Pickup': 'Pickup',
 	'In-Store': 'in-store',
-	Delivery: 'Delivery',
+	'Delivery': 'Delivery',
 };

@@ -88,6 +88,18 @@ export const companyData = [
 		lastSyncDataDuration: 395,
 	},
 	{
+		name: 'silverleaf',
+		posId: '',
+		totalStore: 0,
+		dataObject: {
+			clientId: 'EjEwCLEYcS4FDHCO5B9OOhIZ',
+			apikey: 'NzE4MWNiZjk1YjgyNDM5YTVkZ',
+			dispensary: 'silverleaf',
+		},
+		posName: 'treez',
+		lastSyncDataDuration: 100,
+	},
+	{
 		name: 'Milton',
 		posId: '',
 		totalStore: 0,

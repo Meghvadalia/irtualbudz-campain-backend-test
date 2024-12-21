@@ -97,7 +97,7 @@ export class FlowhubController {
 			this.seedDataProducer.sendSeedData(
 				storeData.companyId,
 				storeData.storeId,
-				KAFKA_SEEDING_EVENT_TYPE.SCHEDULE_TIME,
+				KAFKA_SEEDING_EVENT_TYPE.INITIAL_TIME,
 				posData._id,
 				utcOffsetForStore
 			);

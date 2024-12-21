@@ -169,10 +169,10 @@ export class OrderService {
 		}
 	}
 
-	async addItemsToCart(carts: ItemsCart[], storeId: string, id: string) {
+	async addItemsToCart(carts: ItemsCart[], storeId: string, id: string, posFlag) {
 		console.log('====> AddItemsToCart function call');
 		try {
-			const tempArr = carts.map((cart) => this.addSingleData(cart, storeId));
+			const tempArr = carts.map((cart) => this.addSingleData(cart, storeId, posFlag));
 			const data = await Promise.all(tempArr);
 			return { id, data };
 		} catch (error) {
@@ -238,8 +238,7 @@ export class OrderService {
 			console.error('Error While syncing Data for Specific Date,', error);
 		}
 	}
-	async addSingleData(cart: ItemsCart, storeId: string) {
-		console.log('====> AddSingleData function call');
+	async addSingleData(cart: ItemsCart, storeId: string, posFlag: boolean) {
 		try {
 			const posCartId = cart._id ? cart._id : cart.id;
 			const existingCartItem = await this.cartModel.findOne({
@@ -248,7 +247,7 @@ export class OrderService {
 				productName: cart.productName,
 			});
 
-			if (existingCartItem === null) {
+			if (existingCartItem === null || !posFlag) {
 				const newCartItem = {
 					...cart,
 					posCartId: posCartId,
@@ -319,7 +318,8 @@ export class OrderService {
 		page: number,
 		posId: string,
 		companyId: string,
-		storeId: string
+		storeId: string,
+		posFlag = true
 	) {
 		console.log('====> ProcessOrderBatch function call');
 		try {

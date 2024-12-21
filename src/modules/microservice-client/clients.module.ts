@@ -30,6 +30,7 @@ import { MetricsController } from './controllers/metrics.controller';
 import { RedisService } from 'src/config/cache/config.service';
 import { User, UserSchema } from 'src/microservices/user/entities/user.entity';
 import { DutchieController } from './controllers/dutchie.controller';
+import { TreezColtroller } from './controllers/treez.controller';
 import { Staff, StaffSchema } from 'src/microservices/order/entities/staff.entity';
 import { FlowhubController } from './controllers/flowhub.controller';
 import { ClientCompanyController } from './controllers/client.company.controller';
@@ -89,6 +90,7 @@ import { ClientTemplateController } from './controllers/client.template.controll
 import { ClientTemplateService } from './services/client.template.service';
 import { CustomerConsumer } from '../kafka/consumers/customer.consumer';
 import { CustomerProducer } from '../kafka/producers/customer.producer';
+import { TreezService } from './services/treez.service';
 import { SeedDataConsumer } from '../kafka/consumers/dataSeed.consumer';
 import { SeedDataProducer } from '../kafka/producers/dataSeed.producer';
 import { ClientReportService } from './services/client.report.service';
@@ -143,6 +145,7 @@ import { BasicAuthDopeCastMiddleware } from 'src/common/middlwares/basicAuthDope
 		ClientUserController,
 		MetricsController,
 		DutchieController,
+		TreezColtroller,
 		FlowhubController,
 		ClientCompanyController,
 		AudienceDetailsController,
@@ -179,6 +182,7 @@ import { BasicAuthDopeCastMiddleware } from 'src/common/middlwares/basicAuthDope
 		JwtService,
 		RedisService,
 		InventoryService,
+		TreezService,
 		ClientCompanyService,
 		AudienceDetailsService,
 		ClientAudienceCustomerService,

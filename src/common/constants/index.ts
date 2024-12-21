@@ -106,6 +106,11 @@ export const KAFKA_SEEDING_EVENT_TYPE = {
 	SEEDING_GROUP: 'store-group',
 };
 
+export const KAFKA_TREEZ_EVENT_TYPE = {
+	TREEZ_INITIAL_TIME: 'treez-initial',
+	TREEZ_SCHEDULE_TIME: 'treez-schedule',
+	TREEZ_SEEDING_GROUP: 'treez-group',
+};
 export const KAFKA_SUBSCRIBER_SEEDING_EVENT_TYPE = {
 	SUBSCRIBER_INITIAL_TIME: 'subscriber-initial',
 	SUBSCRIBER_SCHEDULE_TIME: 'subscriber-schedule',

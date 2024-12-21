@@ -9,4 +9,8 @@ export const posData = [
 		name: 'dutchie',
 		liveUrl: 'https://api.pos.dutchie.com',
 	},
+	{
+		name:'treez',
+		liveUrl:'https://api.treez.io/v2.0/dispensary'
+	}
 ];
