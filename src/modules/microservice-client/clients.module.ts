@@ -103,6 +103,7 @@ import { ClientMaryJaneController } from './controllers/client.maryJane.controll
 import { BasicAuthMaryJaneMiddleware } from 'src/common/middlwares/basicAuthMaryJane.middleware';
 import { BasicAuthDopeCastMiddleware } from 'src/common/middlwares/basicAuthDopeCast.middleware';
 import { MaryJaneService } from './services/client.maryJane.services';
+import { InventoryUpdatedLog, InventoryUpdatedLogSchema } from 'src/model/inventoryUpdatedLog/entities/inventoryUpdatedLog.entity';
 
 @Module({
 	imports: [
@@ -133,6 +134,7 @@ import { MaryJaneService } from './services/client.maryJane.services';
 			{ name: Category.name, schema: CategorySchema },
 			{ name: RawTemplate.name, schema: RawTemplateSchema },
 			{ name: Template.name, schema: TemplateSchema },
+			{name:InventoryUpdatedLog.name, schema:InventoryUpdatedLogSchema}
 		]),
 		CustomerModule,
 		OrderModule,

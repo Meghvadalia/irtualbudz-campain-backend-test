@@ -30,6 +30,7 @@ export const DATABASE_COLLECTION = {
 	EMAIL: 'email',
 	RAW_TEMPLATE: 'rawTemplates',
 	TEMPLATE: 'templates',
+	INVENTORYUPDATEDLOG:'inventoryUpdatedLog'
 };
 
 export const enum PERMISSIONS_FOR_DATABASE {

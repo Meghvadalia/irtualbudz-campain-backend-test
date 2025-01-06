@@ -78,7 +78,7 @@ export class ClientMaryJaneController {
 				topDiscountedProductLimit: MARY_JANE_DASHBOARD.TOP_DISCOUNTED_PRODUCT,
 				brandWiseSalesDataLimit: MARY_JANE_DASHBOARD.BRAND_WISE_SALES_DATA
 			};
-			const { customer, overview, sales, operations, graphAndSummaryData } =
+			const { customer, overview, sales, operations, graphAndSummaryData,sellQuantityAverage } =
 				await this.dashboardService.getCalculatedData(
 					objectId,
 					query,
@@ -99,6 +99,7 @@ export class ClientMaryJaneController {
 				sales: { ...sales, ...calculatedSalesData},
 				operations,
 				graphAndSummaryData,
+				sellQuantityAverage
 			});
 		} catch (error) {
 			console.log(error);

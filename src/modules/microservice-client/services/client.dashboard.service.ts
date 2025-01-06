@@ -1,3 +1,4 @@
+import { InventoryService } from 'src/microservices/inventory/services/inventory.service';
 import { Injectable } from '@nestjs/common';
 import { ClientCustomerService } from './client.customer.service';
 import { ClientOrderService } from './client.order.service';
@@ -12,7 +13,8 @@ export class ClientDashboardService {
 	constructor(
 		private readonly customerService: ClientCustomerService,
 		private readonly orderService: ClientOrderService,
-		private readonly storeService: ClientStoreService
+		private readonly storeService: ClientStoreService,
+		private readonly inventoryService: InventoryService
 	) {}
 
 	async getCalculatedData(
@@ -119,7 +121,10 @@ export class ClientDashboardService {
 				formattedFromDate,
 				formattedToDate
 			);
-
+		const sellQuantityAverage = await this.inventoryService.getTotalAverageSellQuantity(storeId,
+			formattedFromDate,
+			formattedToDate)
+			
 		return {
 			overview: {
 				totalSales: {
@@ -177,6 +182,7 @@ export class ClientDashboardService {
 				newCustomersByMonth,
 				totalCustomerForCurrentYear,
 			},
+			sellQuantityAverage:sellQuantityAverage
 		};
 	}
 

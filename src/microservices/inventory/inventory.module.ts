@@ -9,6 +9,7 @@ import { POS, POSSchema } from 'src/model/pos/entities/pos.entity';
 import { Store, StoreSchema } from 'src/model/store/entities/store.entity';
 import { InventoryController } from './controllers/inventory.controller';
 import { InventoryService } from './services/inventory.service';
+import { InventoryUpdatedLog, InventoryUpdatedLogSchema } from 'src/model/inventoryUpdatedLog/entities/inventoryUpdatedLog.entity';
 
 @Module({
 	imports: [
@@ -18,6 +19,7 @@ import { InventoryService } from './services/inventory.service';
 		MongooseModule.forFeature([{ name: Company.name, schema: CompanySchema }]),
 		MongooseModule.forFeature([{ name: POS.name, schema: POSSchema }]),
 		MongooseModule.forFeature([{ name: Store.name, schema: StoreSchema }]),
+		MongooseModule.forFeature([{ name: InventoryUpdatedLog.name, schema: InventoryUpdatedLogSchema }])
 	],
 	controllers: [InventoryController],
 	providers: [InventoryService],
